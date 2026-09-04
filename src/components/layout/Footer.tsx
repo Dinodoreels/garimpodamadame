@@ -116,13 +116,18 @@ export function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/releases" className="text-sm text-muted-foreground hover:text-chrome transition-colors min-h-[44px] flex items-center">
+                  Lançamentos
+                </Link>
+              </li>
+              <li>
                 <Link to="/catalog" className="text-sm text-muted-foreground hover:text-chrome transition-colors min-h-[44px] flex items-center">
                   Catálogo
                 </Link>
               </li>
               <li>
-                <Link to="/releases" className="text-sm text-muted-foreground hover:text-chrome transition-colors min-h-[44px] flex items-center">
-                  Lançamentos
+                <Link to="/lote" className="text-sm text-muted-foreground hover:text-chrome transition-colors min-h-[44px] flex items-center">
+                  Lotes
                 </Link>
               </li>
               <li>
