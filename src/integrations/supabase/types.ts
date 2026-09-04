@@ -1884,6 +1884,7 @@ export type Database = {
           id: string
           is_available: boolean
           is_consignment: boolean | null
+          is_lote: boolean
           length_cm: number | null
           position: number | null
           price: number
@@ -1906,6 +1907,7 @@ export type Database = {
           id?: string
           is_available?: boolean
           is_consignment?: boolean | null
+          is_lote?: boolean
           length_cm?: number | null
           position?: number | null
           price?: number
@@ -1928,6 +1930,7 @@ export type Database = {
           id?: string
           is_available?: boolean
           is_consignment?: boolean | null
+          is_lote?: boolean
           length_cm?: number | null
           position?: number | null
           price?: number
