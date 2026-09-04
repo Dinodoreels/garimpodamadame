@@ -132,6 +132,7 @@ export function useCreateProduct() {
           status: data.status || 'active',
           is_available: data.is_available ?? true,
           expiry_date: data.expiry_date || null,
+          is_lote: data.is_lote ?? false,
         })
         .select()
         .single();
@@ -253,6 +254,7 @@ export function useUpdateProduct() {
           status: data.status || 'active',
           is_available: data.is_available ?? true,
           expiry_date: data.expiry_date || null,
+          is_lote: data.is_lote ?? false,
         })
         .eq('id', id)
         .select()

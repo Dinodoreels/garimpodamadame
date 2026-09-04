@@ -177,6 +177,7 @@ export default function Products() {
   const [filterVendor, setFilterVendor] = useState<string>('');
   const [filterSupplier, setFilterSupplier] = useState<string>('');
   const [filterConsignment, setFilterConsignment] = useState<string>('');
+  const [filterLote, setFilterLote] = useState<string>('');
   
   // Product management state
   const [simpleDialogOpen, setSimpleDialogOpen] = useState(false);
@@ -255,17 +256,20 @@ export default function Products() {
       const matchesSupplier = !filterSupplier || (product as any).supplier_id === filterSupplier;
       const matchesConsignment = !filterConsignment ||
         (filterConsignment === 'consignment' ? (product as any).is_consignment === true : (product as any).is_consignment !== true);
-      return matchesSearch && matchesType && matchesVendor && matchesSupplier && matchesConsignment;
+      const matchesLote = !filterLote ||
+        (filterLote === 'lote' ? (product as any).is_lote === true : (product as any).is_lote !== true);
+      return matchesSearch && matchesType && matchesVendor && matchesSupplier && matchesConsignment && matchesLote;
     });
-  }, [products, search, filterType, filterVendor, filterSupplier, filterConsignment, categoryValues]);
+  }, [products, search, filterType, filterVendor, filterSupplier, filterConsignment, filterLote, categoryValues]);
 
-  const hasActiveFilters = filterType || filterVendor || filterSupplier || filterConsignment;
+  const hasActiveFilters = filterType || filterVendor || filterSupplier || filterConsignment || filterLote;
 
   const clearFilters = () => {
     setFilterType('');
     setFilterVendor('');
     setFilterSupplier('');
     setFilterConsignment('');
+    setFilterLote('');
   };
 
   const formatCurrency = (amount: number) => {
@@ -346,6 +350,7 @@ export default function Products() {
       status: 'active',
       is_available: true,
       expiry_date: data.expiry_date || null,
+      is_lote: !!data.is_lote,
       images: processedImages,
       variants: data.variants.map(v => ({
         title: [v.option1, v.option2].filter(Boolean).join(' / ') || 'Default',
@@ -520,6 +525,7 @@ export default function Products() {
       fulfillment_type: 'in_stock' as const,
       dropship_lead_time: 7,
       dropship_message: '',
+      is_lote: (selectedProduct as any).is_lote === true,
       variants: selectedProduct.variants?.map(v => ({
         price: String(v.price),
         sku: v.sku || '',
@@ -668,6 +674,17 @@ export default function Products() {
                   {s.name}
                 </SelectItem>
               ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filterLote} onValueChange={setFilterLote}>
+            <SelectTrigger className="w-full sm:w-[140px] font-light">
+              <Filter className="h-4 w-4 mr-2 text-muted-foreground" />
+              <SelectValue placeholder="Lote" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="lote" className="font-light">Só lotes</SelectItem>
+              <SelectItem value="not_lote" className="font-light">Sem lote</SelectItem>
             </SelectContent>
           </Select>
 
