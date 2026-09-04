@@ -10,6 +10,7 @@ import { PixelProvider } from "@/components/providers/PixelProvider";
 import Index from "./pages/Index";
 import Catalog from "./pages/Catalog";
 import Releases from "./pages/Releases";
+import Lote from "./pages/Lote";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import ProductDetail from "./pages/ProductDetail";

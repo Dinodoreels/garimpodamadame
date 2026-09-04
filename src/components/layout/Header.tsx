@@ -14,8 +14,9 @@ import { useTheme } from 'next-themes';
 
 const defaultNavigation = [
   { name: 'INÍCIO', href: '/' },
-  { name: 'CATÁLOGO', href: '/catalog' },
   { name: 'LANÇAMENTOS', href: '/releases' },
+  { name: 'CATÁLOGO', href: '/catalog' },
+  { name: 'LOTES', href: '/lote' },
   { name: 'SOBRE', href: '/about' },
   { name: 'CONTATO', href: '/contact' },
 ];
