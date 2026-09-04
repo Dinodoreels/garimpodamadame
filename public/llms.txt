@@ -1,0 +1,21 @@
+# Store Natalia Pardal
+
+> Loja brasileira de perfumes e cosméticos importados originais com curadoria exclusiva, entrega nacional e atendimento personalizado.
+
+Store Natalia Pardal comercializa fragrâncias e cosméticos importados originais, com lançamentos frequentes, kits selecionados e suporte ao cliente em português.
+
+## Pages
+
+- [Início](/): visão geral da loja, destaques e novidades
+- [Catálogo](/catalog): catálogo completo de perfumes e cosméticos importados
+- [Lançamentos](/releases): produtos recém-chegados
+- [Kits](/kits): kits e combos selecionados
+- [Sobre](/about): história da loja e diferenciais
+- [Contato](/contact): canais de atendimento, endereço e horários
+- [Rastrear pedido](/rastrear): consulta pública do status de pedidos
+
+## Optional
+
+- [Termos de uso](/termos)
+- [Política de privacidade](/privacidade)
+- [Política de cookies](/cookies)

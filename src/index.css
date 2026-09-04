@@ -1,0 +1,199 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 12%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 12%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 12%;
+
+    --primary: 0 0% 12%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 0 0% 97%;
+    --secondary-foreground: 0 0% 12%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 50%;
+
+    --accent: 30 5% 45%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 70% 45%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 0 0% 12%;
+
+    --radius: 0rem;
+
+    --chrome: 30 5% 45%;
+    --chrome-light: 30 8% 60%;
+    --chrome-dark: 30 5% 35%;
+  }
+
+  .dark {
+    --background: 0 0% 6%;
+    --foreground: 0 0% 95%;
+
+    --card: 0 0% 8%;
+    --card-foreground: 0 0% 95%;
+
+    --popover: 0 0% 8%;
+    --popover-foreground: 0 0% 95%;
+
+    --primary: 0 0% 95%;
+    --primary-foreground: 0 0% 6%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 0 0% 95%;
+
+    --muted: 0 0% 15%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 30 5% 50%;
+    --accent-foreground: 0 0% 6%;
+
+    --destructive: 0 60% 40%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 18%;
+    --input: 0 0% 18%;
+    --ring: 0 0% 95%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    /* Safe area for mobile bottom nav */
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-light;
+  }
+
+  /* Hide scrollbar but keep functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  .font-display {
+    font-family: 'Cormorant Garamond', serif;
+  }
+
+  .font-sans {
+    font-family: 'Inter', sans-serif;
+  }
+
+  .text-chrome {
+    color: hsl(var(--chrome));
+  }
+
+  .bg-chrome {
+    background-color: hsl(var(--chrome));
+  }
+
+  .border-chrome {
+    border-color: hsl(var(--chrome));
+  }
+
+  .tracking-luxury {
+    letter-spacing: 0.2em;
+  }
+
+  .tracking-wide-custom {
+    letter-spacing: 0.1em;
+  }
+
+  /* Touch target sizing */
+  .touch-manipulation {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Safe area padding for mobile */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0);
+  }
+
+  .pt-safe-top {
+    padding-top: env(safe-area-inset-top, 0);
+  }
+
+  /* Premium hover effects */
+  .hover-lift {
+    @apply transition-all duration-300;
+  }
+  .hover-lift:hover {
+    @apply -translate-y-1 shadow-lg;
+  }
+
+  /* Pulse animation for favorites */
+  @keyframes heart-pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
+  }
+  .animate-heart-pulse {
+    animation: heart-pulse 0.3s ease-in-out;
+  }
+
+  /* Fade in animation */
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate-fade-in {
+    animation: fade-in 0.3s ease-out forwards;
+  }
+
+  /* Stagger animation for children */
+  .stagger-children > * {
+    opacity: 0;
+    animation: fade-in 0.4s ease-out forwards;
+  }
+  .stagger-children > *:nth-child(1) { animation-delay: 0.1s; }
+  .stagger-children > *:nth-child(2) { animation-delay: 0.2s; }
+  .stagger-children > *:nth-child(3) { animation-delay: 0.3s; }
+  .stagger-children > *:nth-child(4) { animation-delay: 0.4s; }
+  .stagger-children > *:nth-child(5) { animation-delay: 0.5s; }
+
+  /* Scale in animation */
+  @keyframes scale-in {
+    from { transform: scale(0.9); opacity: 0; }
+    to { transform: scale(1); opacity: 1; }
+  }
+  .animate-scale-in {
+    animation: scale-in 0.2s ease-out forwards;
+  }
+}
+
+/* Print styles for closing report */
+@media print {
+  body { background: white !important; }
+  aside, nav, .print\\:hidden, header, [data-sidebar], .mobile-bottom-nav { display: none !important; }
+  main { margin: 0 !important; padding: 0 !important; width: 100% !important; max-width: 100% !important; }
+  .recharts-wrapper { page-break-inside: avoid; }
+  table { font-size: 11px; }
+  @page { margin: 1cm; }
+}
