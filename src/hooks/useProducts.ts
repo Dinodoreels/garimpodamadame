@@ -44,6 +44,7 @@ export interface Product {
   status: string;
   is_available: boolean;
   expiry_date?: string | null;
+  is_lote?: boolean;
   created_at: string;
   updated_at: string;
   images: ProductImage[];

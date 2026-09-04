@@ -10,6 +10,7 @@ import { PixelProvider } from "@/components/providers/PixelProvider";
 import Index from "./pages/Index";
 import Catalog from "./pages/Catalog";
 import Releases from "./pages/Releases";
+import Lote from "./pages/Lote";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import ProductDetail from "./pages/ProductDetail";
@@ -100,6 +101,7 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/catalog" element={<Catalog />} />
             <Route path="/releases" element={<Releases />} />
+            <Route path="/lote" element={<Lote />} />
             <Route path="/about" element={<About />} />
             <Route path="/contact" element={<Contact />} />
             <Route path="/product/:handle" element={<ProductDetail />} />
