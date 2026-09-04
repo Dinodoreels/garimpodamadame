@@ -37,6 +37,7 @@ export interface ProductFormData {
   status?: 'active' | 'draft' | 'archived';
   is_available?: boolean;
   expiry_date?: string | null;
+  is_lote?: boolean;
   images?: { url: string; alt_text?: string; position: number }[];
   variants?: {
     title: string;

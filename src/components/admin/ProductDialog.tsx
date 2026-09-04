@@ -77,6 +77,7 @@ export interface ProductFormData {
   width_cm?: number;
   height_cm?: number;
   expiry_date?: string | null;
+  is_lote?: boolean;
   variants: Array<{
     price: string;
     sku: string;
@@ -114,6 +115,7 @@ const defaultFormData: ProductFormData = {
   fulfillment_type: 'in_stock',
   dropship_lead_time: 7,
   dropship_message: '',
+  is_lote: false,
   variants: [{ price: '', sku: '' }],
   options: [],
   images: [],
@@ -925,6 +927,20 @@ export function ProductDialog({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+
+              <div className="flex items-center justify-between rounded-md border p-3">
+                <div className="space-y-0.5">
+                  <Label htmlFor="is_lote" className="font-light">Vender em lote</Label>
+                  <p className="text-xs text-muted-foreground font-light">
+                    Aparece na aba LOTE da loja
+                  </p>
+                </div>
+                <Switch
+                  id="is_lote"
+                  checked={!!formData.is_lote}
+                  onCheckedChange={(v) => setFormData({ ...formData, is_lote: v })}
+                />
               </div>
 
               <div className="space-y-2">
