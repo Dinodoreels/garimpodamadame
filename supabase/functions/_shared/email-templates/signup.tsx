@@ -36,8 +36,7 @@ export const SignupEmail = ({
   recipient,
   confirmationUrl,
   branding,
-}: SignupEmailProps) => (
-) => {
+}: SignupEmailProps) => {
   const b = branding ?? { ...DEFAULT_BRANDING, storeName: siteName || DEFAULT_BRANDING.storeName, siteUrl: siteUrl || DEFAULT_BRANDING.siteUrl }
   const s = brandStyles(b)
   return (
