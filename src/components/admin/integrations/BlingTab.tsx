@@ -89,6 +89,46 @@ export function BlingTab() {
 
   useEffect(() => { load(); }, []);
 
+  // Handle the return from the Bling authorization window.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const result = params.get('bling');
+    if (!result) return;
+
+    const msg = params.get('bling_msg');
+
+    // If this is the popup, hand the result to the panel behind it and close.
+    if (window.opener && !window.opener.closed) {
+      try {
+        window.opener.postMessage({ type: 'bling-oauth', result, message: msg }, window.location.origin);
+      } catch { /* ignore */ }
+      window.close();
+      return;
+    }
+
+    if (result === 'ok') toast.success('Bling conectado com sucesso');
+    else toast.error('Não foi possível conectar', { description: msg || undefined });
+
+    params.delete('bling');
+    params.delete('bling_msg');
+    const query = params.toString();
+    window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+    load();
+  }, []);
+
+  // Listen for the result coming from the popup.
+  useEffect(() => {
+    const onMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type !== 'bling-oauth') return;
+      if (e.data.result === 'ok') toast.success('Bling conectado com sucesso');
+      else toast.error('Não foi possível conectar', { description: e.data.message || undefined });
+      load();
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
+
   const patch = async (values: Partial<Config>) => {
     if (!config) return;
     const { data, error } = await supabase.from('bling_config').update(values).eq('id', config.id).select('*').single();
