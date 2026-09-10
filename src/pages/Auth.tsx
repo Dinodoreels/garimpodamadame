@@ -55,9 +55,6 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResetForm, setShowResetForm] = useState(isReset);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [confirmedEmail, setConfirmedEmail] = useState('');
-  const [resendLoading, setResendLoading] = useState(false);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({
@@ -157,24 +154,9 @@ export default function Auth() {
     }
     
     toast.success('Conta criada!', {
-      description: 'Verifique seu email para confirmar o cadastro.'
+      description: 'Bem-vinda! Sua conta já está ativa.'
     });
-    setConfirmedEmail(signupData.email);
-    setShowEmailConfirmation(true);
-  };
-
-  const handleResendConfirmation = async () => {
-    setResendLoading(true);
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: confirmedEmail
-    });
-    setResendLoading(false);
-    if (error) {
-      toast.error('Erro ao reenviar email', { description: error.message });
-    } else {
-      toast.success('Email reenviado!', { description: 'Verifique sua caixa de entrada.' });
-    }
+    navigate('/');
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -296,68 +278,6 @@ export default function Auth() {
     );
   }
 
-  // Email Confirmation Screen
-  if (showEmailConfirmation) {
-    return (
-      <div className="min-h-screen flex">
-        <HeroSection />
-        <div className="w-full lg:w-1/2 flex items-center justify-center bg-white p-6 lg:p-12">
-          <div className="w-full max-w-md">
-            <Card className="border border-gray-200 shadow-sm">
-              <CardHeader className="text-center pb-2">
-                <div className="flex justify-center mb-4">
-                  <div className="w-16 h-16 rounded-full bg-green-50 flex items-center justify-center">
-                    <CheckCircle className="h-8 w-8 text-green-500" />
-                  </div>
-                </div>
-                <CardTitle className="font-display text-2xl text-gray-900">Confirme seu email</CardTitle>
-                <CardDescription className="text-gray-500 mt-2">
-                  Enviamos um link de confirmação para:
-                </CardDescription>
-                <p className="font-semibold text-gray-800 mt-1">{confirmedEmail}</p>
-              </CardHeader>
-              <CardContent className="pt-2 space-y-4">
-                <p className="text-sm text-gray-500 text-center">
-                  Clique no link no email para ativar sua conta e acessar a loja. Verifique também a pasta de spam.
-                </p>
-
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="w-full border-gray-200"
-                  onClick={handleResendConfirmation}
-                  disabled={resendLoading}
-                >
-                  {resendLoading ? (
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  ) : (
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                  )}
-                  Reenviar email
-                </Button>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="w-full text-gray-600 hover:text-gray-900"
-                  onClick={() => setShowEmailConfirmation(false)}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Voltar ao Login
-                </Button>
-              </CardContent>
-            </Card>
-
-            <p className="mt-6 text-center text-sm text-gray-500">
-              <Link to="/" className="hover:text-gray-900 transition-colors">
-                ← Voltar para a loja
-              </Link>
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex">
