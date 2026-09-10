@@ -718,7 +718,12 @@ export default function Settings() {
             <Plug className="h-4 w-4" />
             Shopify
           </TabsTrigger>
+          <TabsTrigger value="bling" className="gap-2">
+            <Plug className="h-4 w-4" />
+            Bling
+          </TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="general" className="mt-6">
           <GeneralTab />
