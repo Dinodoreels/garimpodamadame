@@ -10,7 +10,13 @@ Deno.serve(async (req) => {
     }
 
     const state = crypto.randomUUID();
-    await getSupabaseAdmin().from("bling_config").update({ oauth_state: state }).eq("id", cfg.id);
+    // Remember where to send the user back to after the Bling authorization.
+    const origin = req.headers.get("origin");
+    const redirect_origin = origin && /^https?:\/\//.test(origin) ? origin : cfg.redirect_origin ?? null;
+    await getSupabaseAdmin()
+      .from("bling_config")
+      .update({ oauth_state: state, redirect_origin })
+      .eq("id", cfg.id);
 
     const params = new URLSearchParams({
       response_type: "code",
