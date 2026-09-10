@@ -129,13 +129,14 @@ export async function syncProductToBling(productId: string) {
   const results: any[] = [];
 
   for (const u of units) {
-    const { data: link } = await supa
+    let linkQuery = supa
       .from("bling_product_links")
       .select("*")
-      .eq("product_id", productId)
-      .is("variant_id", u.variantId === null ? null : undefined)
-      .eq(u.variantId ? "variant_id" : "product_id", u.variantId ?? productId)
-      .maybeSingle();
+      .eq("product_id", productId);
+    linkQuery = u.variantId
+      ? linkQuery.eq("variant_id", u.variantId)
+      : linkQuery.is("variant_id", null);
+    const { data: link } = await linkQuery.maybeSingle();
 
     let blingId = link?.bling_product_id ?? null;
     if (!blingId) blingId = await findBlingProductBySku(u.sku);
