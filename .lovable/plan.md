@@ -1,24 +1,23 @@
-# Próximos passos no Bling (a partir da tela inicial)
+# Tornar madamedoluar4@gmail.com administrador
 
-Você já criou a conta (plano Cobalto em teste). A partir dessa tela, o caminho é:
+## O que muda
 
-## 1. Criar o aplicativo de API
-1. Clique na **engrenagem (⚙️)** no canto superior direito → **Todas as configurações**.
-2. Procure **Integrações → API para desenvolvedores** (ou "Cadastrar aplicativo").
-3. Clique em **Criar novo aplicativo**:
-   - **Nome:** Loja (ex.: "Garimpo da Madame")
-   - **URL de redirecionamento (callback):** copie da tela **Configurações → Bling** do painel da loja e cole aqui — precisa ser exatamente igual.
-   - **Escopos/permissões:** marque Produtos, Estoques, Pedidos de venda e Contatos.
-4. Salve e copie o **Client ID** e o **Client Secret** gerados.
+A conta `madamedoluar4@gmail.com` passa a ter acesso de administrador ao painel da loja (produtos, pedidos, financeiro, configurações e integrações).
 
-## 2. Verificar o plano
-- A API v3 pode exigir plano pago. Se o menu de API não aparecer ou bloquear no plano Cobalto de teste, será preciso ativar um plano com API (o próprio Bling avisa na tela).
+Hoje essa conta existe, mas não tem nenhuma função atribuída — por isso o painel fica bloqueado para ela.
 
-## 3. Conectar na loja
-- No painel da loja: **Configurações → Bling** → cole Client ID e Secret → **Conectar com o Bling** → autorize → **Testar conexão**.
+## Como será feito
 
-## 4. Conectar os marketplaces (depois)
-- No menu **Cadastros → Canais de venda** (ou **Configurações → Integrações de lojas virtuais/marketplaces**): conecte Mercado Livre, Shopee, Magalu, Amazon e TikTok Shop.
+Uma alteração no banco de dados adiciona a função `admin` para o usuário `d36dd0bc-57fb-483e-87fd-caf78a94faa2` na tabela de funções (`public.user_roles`), sem duplicar caso já exista:
 
-## Observação
-Sem alterações de código nesta etapa — é só configuração dentro do Bling. A loja já está pronta esperando as credenciais.
+```sql
+INSERT INTO public.user_roles (user_id, role)
+VALUES ('d36dd0bc-57fb-483e-87fd-caf78a94faa2', 'admin')
+ON CONFLICT (user_id, role) DO NOTHING;
+```
+
+Nenhum arquivo do site é alterado.
+
+## Depois
+
+Basta sair e entrar de novo com essa conta para o menu de administração aparecer.
