@@ -157,24 +157,9 @@ export default function Auth() {
     }
     
     toast.success('Conta criada!', {
-      description: 'Verifique seu email para confirmar o cadastro.'
+      description: 'Bem-vinda! Sua conta já está ativa.'
     });
-    setConfirmedEmail(signupData.email);
-    setShowEmailConfirmation(true);
-  };
-
-  const handleResendConfirmation = async () => {
-    setResendLoading(true);
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email: confirmedEmail
-    });
-    setResendLoading(false);
-    if (error) {
-      toast.error('Erro ao reenviar email', { description: error.message });
-    } else {
-      toast.success('Email reenviado!', { description: 'Verifique sua caixa de entrada.' });
-    }
+    navigate('/');
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
