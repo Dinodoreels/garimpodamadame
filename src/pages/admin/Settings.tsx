@@ -10,6 +10,8 @@ import { PixelsTab } from '@/components/admin/integrations/PixelsTab';
 import { PaymentTestTab } from '@/components/admin/integrations/PaymentTestTab';
 import { ReportsTab } from '@/components/admin/integrations/ReportsTab';
 import { ShopifyTab } from '@/components/admin/integrations/ShopifyTab';
+import { BlingTab } from '@/components/admin/integrations/BlingTab';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
