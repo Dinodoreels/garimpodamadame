@@ -55,9 +55,6 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResetForm, setShowResetForm] = useState(isReset);
-  const [showEmailConfirmation, setShowEmailConfirmation] = useState(false);
-  const [confirmedEmail, setConfirmedEmail] = useState('');
-  const [resendLoading, setResendLoading] = useState(false);
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({
