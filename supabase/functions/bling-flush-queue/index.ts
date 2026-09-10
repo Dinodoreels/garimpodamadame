@@ -1,15 +1,20 @@
 // Cron-triggered. Processes the pending Bling sync queue.
 import { assertAdmin, corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, logSync } from "../_shared/bling.ts";
-import { authenticateCronRequest } from "../_shared/cron-auth.ts";
 import { pushStockToBling, syncProductToBling } from "../_shared/bling-product-sync.ts";
 import { pushOrderToBling } from "../_shared/bling-orders.ts";
 
 const BATCH = 10;
 
+function isCronCaller(req: Request): boolean {
+  const token = Deno.env.get("BLING_CRON_TOKEN");
+  if (!token) return false;
+  return req.headers.get("authorization") === `Bearer ${token}`;
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    if (authenticateCronRequest(req) !== null) {
+    if (!isCronCaller(req)) {
       await assertAdmin(req);
     }
     const cfg = await getConfig();

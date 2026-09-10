@@ -1,13 +1,17 @@
 // Cron-triggered (and manually callable by admins). Imports marketplace orders from Bling.
 import { assertAdmin, corsHeaders, jsonResponse } from "../_shared/bling.ts";
-import { authenticateCronRequest } from "../_shared/cron-auth.ts";
 import { pullMarketplaceOrders } from "../_shared/bling-orders.ts";
+
+function isCronCaller(req: Request): boolean {
+  const token = Deno.env.get("BLING_CRON_TOKEN");
+  if (!token) return false;
+  return req.headers.get("authorization") === `Bearer ${token}`;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    if (authenticateCronRequest(req) !== null) {
-      // Not the cron caller — require an admin session instead.
+    if (!isCronCaller(req)) {
       await assertAdmin(req);
     }
     const body = await req.json().catch(() => ({} as any));
