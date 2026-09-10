@@ -10,6 +10,8 @@ import { PixelsTab } from '@/components/admin/integrations/PixelsTab';
 import { PaymentTestTab } from '@/components/admin/integrations/PaymentTestTab';
 import { ReportsTab } from '@/components/admin/integrations/ReportsTab';
 import { ShopifyTab } from '@/components/admin/integrations/ShopifyTab';
+import { BlingTab } from '@/components/admin/integrations/BlingTab';
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -718,7 +720,12 @@ export default function Settings() {
             <Plug className="h-4 w-4" />
             Shopify
           </TabsTrigger>
+          <TabsTrigger value="bling" className="gap-2">
+            <Plug className="h-4 w-4" />
+            Bling
+          </TabsTrigger>
         </TabsList>
+
 
         <TabsContent value="general" className="mt-6">
           <GeneralTab />
@@ -755,7 +762,12 @@ export default function Settings() {
         <TabsContent value="shopify" className="mt-6">
           <ShopifyTab />
         </TabsContent>
+
+        <TabsContent value="bling" className="mt-6">
+          <BlingTab />
+        </TabsContent>
       </Tabs>
+
     </div>
   );
 }

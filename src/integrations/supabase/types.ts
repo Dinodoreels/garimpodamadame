@@ -206,6 +206,303 @@ export type Database = {
         }
         Relationships: []
       }
+      bling_config: {
+        Row: {
+          access_token: string | null
+          client_id: string | null
+          client_secret: string | null
+          company_name: string | null
+          created_at: string
+          deposito_id: string | null
+          deposito_name: string | null
+          id: string
+          is_active: boolean
+          last_error: string | null
+          last_order_pull_at: string | null
+          last_sync_at: string | null
+          loja_id: string | null
+          loja_name: string | null
+          oauth_state: string | null
+          order_pull_interval_minutes: number
+          price_authority: string
+          pull_marketplace_orders: boolean
+          push_orders: boolean
+          refresh_token: string | null
+          stock_authority: string
+          sync_prices: boolean
+          sync_products: boolean
+          sync_stock: boolean
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          client_id?: string | null
+          client_secret?: string | null
+          company_name?: string | null
+          created_at?: string
+          deposito_id?: string | null
+          deposito_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_order_pull_at?: string | null
+          last_sync_at?: string | null
+          loja_id?: string | null
+          loja_name?: string | null
+          oauth_state?: string | null
+          order_pull_interval_minutes?: number
+          price_authority?: string
+          pull_marketplace_orders?: boolean
+          push_orders?: boolean
+          refresh_token?: string | null
+          stock_authority?: string
+          sync_prices?: boolean
+          sync_products?: boolean
+          sync_stock?: boolean
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          client_id?: string | null
+          client_secret?: string | null
+          company_name?: string | null
+          created_at?: string
+          deposito_id?: string | null
+          deposito_name?: string | null
+          id?: string
+          is_active?: boolean
+          last_error?: string | null
+          last_order_pull_at?: string | null
+          last_sync_at?: string | null
+          loja_id?: string | null
+          loja_name?: string | null
+          oauth_state?: string | null
+          order_pull_interval_minutes?: number
+          price_authority?: string
+          pull_marketplace_orders?: boolean
+          push_orders?: boolean
+          refresh_token?: string | null
+          stock_authority?: string
+          sync_prices?: boolean
+          sync_products?: boolean
+          sync_stock?: boolean
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      bling_order_links: {
+        Row: {
+          bling_order_id: string
+          bling_order_number: string | null
+          bling_status: string | null
+          channel: string | null
+          direction: string
+          id: string
+          imported_at: string
+          last_synced_at: string | null
+          order_id: string | null
+          raw_payload: Json | null
+        }
+        Insert: {
+          bling_order_id: string
+          bling_order_number?: string | null
+          bling_status?: string | null
+          channel?: string | null
+          direction?: string
+          id?: string
+          imported_at?: string
+          last_synced_at?: string | null
+          order_id?: string | null
+          raw_payload?: Json | null
+        }
+        Update: {
+          bling_order_id?: string
+          bling_order_number?: string | null
+          bling_status?: string | null
+          channel?: string | null
+          direction?: string
+          id?: string
+          imported_at?: string
+          last_synced_at?: string | null
+          order_id?: string | null
+          raw_payload?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_order_links_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bling_product_links: {
+        Row: {
+          bling_product_id: string | null
+          bling_sku: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          last_pulled_at: string | null
+          last_pushed_at: string | null
+          product_id: string
+          status: string
+          updated_at: string
+          variant_id: string | null
+        }
+        Insert: {
+          bling_product_id?: string | null
+          bling_sku?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_pulled_at?: string | null
+          last_pushed_at?: string | null
+          product_id: string
+          status?: string
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Update: {
+          bling_product_id?: string | null
+          bling_sku?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          last_pulled_at?: string | null
+          last_pushed_at?: string | null
+          product_id?: string
+          status?: string
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_product_links_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_product_links_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bling_sync_log: {
+        Row: {
+          action: string
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          error_message: string | null
+          id: string
+          payload: Json | null
+          response: Json | null
+          status: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          response?: Json | null
+          status: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          error_message?: string | null
+          id?: string
+          payload?: Json | null
+          response?: Json | null
+          status?: string
+        }
+        Relationships: []
+      }
+      bling_sync_queue: {
+        Row: {
+          action: string
+          attempts: number
+          created_at: string
+          id: string
+          last_error: string | null
+          order_id: string | null
+          payload: Json | null
+          processed_at: string | null
+          product_id: string | null
+          scheduled_for: string
+          status: string
+          updated_at: string
+          variant_id: string | null
+        }
+        Insert: {
+          action: string
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          product_id?: string | null
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Update: {
+          action?: string
+          attempts?: number
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          order_id?: string | null
+          payload?: Json | null
+          processed_at?: string | null
+          product_id?: string | null
+          scheduled_for?: string
+          status?: string
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_sync_queue_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_sync_queue_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_sync_queue_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cash_movements: {
         Row: {
           amount: number

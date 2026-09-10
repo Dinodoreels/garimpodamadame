@@ -1,0 +1,198 @@
+// Push a store product (and its variants) to Bling as one product per SKU.
+import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from "./bling.ts";
+
+interface SyncUnit {
+  variantId: string | null;
+  sku: string;
+  name: string;
+  price: number;
+  cost: number | null;
+  quantity: number;
+  images: string[];
+  weightGrams: number | null;
+  lengthCm: number | null;
+  widthCm: number | null;
+  heightCm: number | null;
+  description: string | null;
+}
+
+function slugSku(base: string, suffix: string | null) {
+  const clean = base.replace(/[^a-zA-Z0-9-_]/g, "").toUpperCase().slice(0, 20) || "PROD";
+  return suffix ? `${clean}-${suffix}` : clean;
+}
+
+async function findBlingProductBySku(sku: string): Promise<string | null> {
+  const { status, data } = await callBling({ path: "/produtos", query: { codigo: sku, limite: 1 } });
+  if (status >= 400) return null;
+  const found = (data?.data ?? []).find((p: any) => String(p.codigo) === sku);
+  return found ? String(found.id) : null;
+}
+
+function buildPayload(u: SyncUnit) {
+  return {
+    nome: u.name.slice(0, 120),
+    codigo: u.sku,
+    preco: Number(u.price.toFixed(2)),
+    tipo: "P",
+    situacao: "A",
+    formato: "S",
+    unidade: "UN",
+    ...(u.cost != null ? { estrutura: undefined, precoCusto: Number(u.cost.toFixed(2)) } : {}),
+    descricaoCurta: (u.description ?? u.name).slice(0, 500),
+    pesoLiquido: u.weightGrams ? u.weightGrams / 1000 : undefined,
+    pesoBruto: u.weightGrams ? u.weightGrams / 1000 : undefined,
+    dimensoes: (u.lengthCm || u.widthCm || u.heightCm)
+      ? {
+        largura: u.widthCm ?? 0,
+        altura: u.heightCm ?? 0,
+        profundidade: u.lengthCm ?? 0,
+        unidadeMedida: 1,
+      }
+      : undefined,
+    midia: u.images.length
+      ? { imagens: { externas: u.images.slice(0, 5).map((url) => ({ link: url })) } }
+      : undefined,
+  };
+}
+
+export async function pushStockToBling(blingProductId: string, quantity: number, price?: number) {
+  const cfg = await getConfig();
+  if (!cfg?.deposito_id) {
+    throw new Error("Escolha um depósito padrão do Bling antes de sincronizar o estoque.");
+  }
+  const { status, data } = await callBling({
+    path: "/estoques",
+    method: "POST",
+    body: {
+      produto: { id: Number(blingProductId) },
+      deposito: { id: Number(cfg.deposito_id) },
+      operacao: "B",
+      quantidade: Math.max(0, quantity),
+      ...(price != null ? { preco: Number(price.toFixed(2)) } : {}),
+    },
+    config: cfg,
+  });
+  if (status >= 400) throw new Error(blingError(status, data));
+  return data;
+}
+
+export async function syncProductToBling(productId: string) {
+  const supa = getSupabaseAdmin();
+  const cfg = await getConfig();
+  if (!cfg?.is_active || !cfg?.refresh_token) throw new Error("Bling não está conectado.");
+
+  const { data: product, error } = await supa
+    .from("products")
+    .select("*, product_variants(*), product_images(url, position)")
+    .eq("id", productId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!product) throw new Error("Produto não encontrado");
+
+  const images = (product.product_images ?? [])
+    .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
+    .map((i: any) => i.url);
+
+  const variants = (product.product_variants ?? []) as any[];
+  const units: SyncUnit[] = variants.length
+    ? variants.map((v, idx) => ({
+      variantId: v.id,
+      sku: v.sku?.trim() || slugSku(product.handle, String(idx + 1)),
+      name: variants.length > 1 && v.title && v.title !== "Default"
+        ? `${product.title} - ${v.title}`
+        : product.title,
+      price: Number(v.price ?? product.price ?? 0),
+      cost: v.cost != null ? Number(v.cost) : null,
+      quantity: Number(v.inventory_quantity ?? 0),
+      images,
+      weightGrams: product.weight_grams,
+      lengthCm: product.length_cm,
+      widthCm: product.width_cm,
+      heightCm: product.height_cm,
+      description: product.description,
+    }))
+    : [{
+      variantId: null,
+      sku: slugSku(product.handle, null),
+      name: product.title,
+      price: Number(product.price ?? 0),
+      cost: null,
+      quantity: 0,
+      images,
+      weightGrams: product.weight_grams,
+      lengthCm: product.length_cm,
+      widthCm: product.width_cm,
+      heightCm: product.height_cm,
+      description: product.description,
+    }];
+
+  const results: any[] = [];
+
+  for (const u of units) {
+    let linkQuery = supa
+      .from("bling_product_links")
+      .select("*")
+      .eq("product_id", productId);
+    linkQuery = u.variantId
+      ? linkQuery.eq("variant_id", u.variantId)
+      : linkQuery.is("variant_id", null);
+    const { data: link } = await linkQuery.maybeSingle();
+
+    let blingId = link?.bling_product_id ?? null;
+    if (!blingId) blingId = await findBlingProductBySku(u.sku);
+
+    const payload = buildPayload(u);
+    const isUpdate = !!blingId;
+    const { status, data } = await callBling({
+      path: isUpdate ? `/produtos/${blingId}` : "/produtos",
+      method: isUpdate ? "PUT" : "POST",
+      body: payload,
+      config: cfg,
+    });
+
+    if (status >= 400) {
+      const err = blingError(status, data);
+      await supa.from("bling_product_links").upsert({
+        product_id: productId,
+        variant_id: u.variantId,
+        bling_sku: u.sku,
+        bling_product_id: blingId,
+        status: "error",
+        last_error: err,
+      }, { onConflict: "product_id,variant_id" });
+      await logSync({ entity_type: "product", entity_id: productId, action: isUpdate ? "update" : "create", status: "error", payload, response: data, error_message: err });
+      results.push({ sku: u.sku, ok: false, error: err });
+      continue;
+    }
+
+    const newId = String(data?.data?.id ?? blingId);
+
+    await supa.from("bling_product_links").upsert({
+      product_id: productId,
+      variant_id: u.variantId,
+      bling_product_id: newId,
+      bling_sku: u.sku,
+      status: "synced",
+      last_pushed_at: new Date().toISOString(),
+      last_error: null,
+    }, { onConflict: "product_id,variant_id" });
+
+    // Push stock when the store is the authority
+    if (cfg.sync_stock && cfg.stock_authority === "store" && cfg.deposito_id && u.variantId) {
+      try {
+        await pushStockToBling(newId, u.quantity, cfg.sync_prices && cfg.price_authority === "store" ? u.price : undefined);
+      } catch (e) {
+        await logSync({ entity_type: "stock", entity_id: productId, action: "push", status: "error", error_message: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    await logSync({ entity_type: "product", entity_id: productId, action: isUpdate ? "update" : "create", status: "success", payload, response: data });
+    results.push({ sku: u.sku, ok: true, bling_product_id: newId });
+  }
+
+  const failed = results.filter((r) => !r.ok);
+  if (failed.length === results.length && results.length > 0) {
+    throw new Error(failed.map((f) => f.error).join(" | "));
+  }
+  return { results };
+}

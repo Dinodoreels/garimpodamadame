@@ -196,3 +196,18 @@ export const PAYMENT_GUIDES: Record<string, ProviderGuide> = {
     docsUrl: 'https://stripe.com/docs/keys',
   },
 };
+
+// ============= BLING (ERP) =============
+export const BLING_GUIDE: ProviderGuide = {
+  intro: 'O Bling é o ERP que conversa com Mercado Livre, Shopee, Magalu, Amazon e TikTok Shop. Você precisa de um plano do Bling que inclua acesso à API v3.',
+  steps: [
+    { text: 'Crie sua conta no Bling e escolha um plano com API (v3).', link: { label: 'Criar conta no Bling', url: 'https://www.bling.com.br/cadastro' } },
+    { text: 'Dentro do Bling, abra Preferências → Integrações → API para desenvolvedores → Cadastrar aplicativo.', link: { label: 'Abrir o Bling', url: 'https://www.bling.com.br/login' } },
+    { text: 'Dê um nome ao aplicativo (ex: "Minha Loja") e cole a URL de retorno mostrada nesta tela no campo "URL de redirecionamento".' },
+    { text: 'Marque os escopos de produtos, estoques, pedidos de venda e contatos.' },
+    { text: 'Salve e copie o Client ID e o Client Secret gerados; cole nos campos acima.' },
+    { text: 'Clique em "Conectar com o Bling" e autorize a sua empresa na janela que abrir.' },
+    { text: 'Depois, ligue as suas lojas de marketplace dentro do próprio Bling — a loja passa a receber esses pedidos automaticamente.', link: { label: 'Canais de venda no Bling', url: 'https://ajuda.bling.com.br/hc/pt-br/categories/360002518534' } },
+  ],
+  docsUrl: 'https://developer.bling.com.br/',
+};
