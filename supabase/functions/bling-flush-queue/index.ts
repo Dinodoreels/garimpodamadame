@@ -74,6 +74,7 @@ Deno.serve(async (req) => {
     }
     return jsonResponse({ processed: results.length, results });
   } catch (e) {
+    if (e instanceof Response) return e;
     return jsonResponse({ error: e instanceof Error ? e.message : String(e) }, 500);
   }
 });
