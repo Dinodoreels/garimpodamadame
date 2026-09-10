@@ -1,5 +1,6 @@
 // Cron-triggered. Processes the pending Bling sync queue.
-import { corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, logSync } from "../_shared/bling.ts";
+import { assertAdmin, corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, logSync } from "../_shared/bling.ts";
+import { authenticateCronRequest } from "../_shared/cron-auth.ts";
 import { pushStockToBling, syncProductToBling } from "../_shared/bling-product-sync.ts";
 import { pushOrderToBling } from "../_shared/bling-orders.ts";
 
@@ -8,6 +9,9 @@ const BATCH = 10;
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    if (authenticateCronRequest(req) !== null) {
+      await assertAdmin(req);
+    }
     const cfg = await getConfig();
     if (!cfg?.is_active) return jsonResponse({ skipped: true, reason: "integração desligada" });
 
