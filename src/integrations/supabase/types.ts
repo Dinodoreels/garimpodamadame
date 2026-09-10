@@ -227,6 +227,7 @@ export type Database = {
           price_authority: string
           pull_marketplace_orders: boolean
           push_orders: boolean
+          redirect_origin: string | null
           refresh_token: string | null
           stock_authority: string
           sync_prices: boolean
@@ -255,6 +256,7 @@ export type Database = {
           price_authority?: string
           pull_marketplace_orders?: boolean
           push_orders?: boolean
+          redirect_origin?: string | null
           refresh_token?: string | null
           stock_authority?: string
           sync_prices?: boolean
@@ -283,6 +285,7 @@ export type Database = {
           price_authority?: string
           pull_marketplace_orders?: boolean
           push_orders?: boolean
+          redirect_origin?: string | null
           refresh_token?: string | null
           stock_authority?: string
           sync_prices?: boolean
