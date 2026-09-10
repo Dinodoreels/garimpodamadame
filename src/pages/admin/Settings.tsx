@@ -760,7 +760,12 @@ export default function Settings() {
         <TabsContent value="shopify" className="mt-6">
           <ShopifyTab />
         </TabsContent>
+
+        <TabsContent value="bling" className="mt-6">
+          <BlingTab />
+        </TabsContent>
       </Tabs>
+
     </div>
   );
 }
