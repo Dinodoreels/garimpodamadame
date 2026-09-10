@@ -1,33 +1,47 @@
 import { callBling, corsHeaders, getCallbackUrl, getConfig, getSupabaseAdmin, logSync, requestToken } from "../_shared/bling.ts";
 
-function html(title: string, message: string, ok: boolean) {
-  return new Response(
-    `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><title>${title}</title>
-    <style>body{font-family:system-ui,sans-serif;background:#0b0b0d;color:#f5f5f5;display:flex;align-items:center;justify-content:center;height:100vh;margin:0}
-    .card{max-width:420px;text-align:center;padding:32px;border:1px solid #2a2a2e;border-radius:16px}
-    h1{font-size:20px;margin:0 0 12px}p{color:#a1a1aa;line-height:1.5}</style></head>
-    <body><div class="card"><h1>${ok ? "✅" : "⚠️"} ${title}</h1><p>${message}</p>
-    <p>Você já pode fechar esta janela e voltar ao painel.</p></div>
-    <script>setTimeout(()=>{try{window.close()}catch(e){}},2500)</script></body></html>`,
-    { status: ok ? 200 : 400, headers: { ...corsHeaders, "Content-Type": "text/html; charset=utf-8" } },
-  );
+// The edge gateway rewrites every response body's Content-Type to text/plain,
+// so an inline HTML page would be shown as raw source. Redirect back to the
+// admin panel instead and let the app render the result.
+function backToPanel(origin: string | null | undefined, status: "ok" | "error", message?: string) {
+  const base = origin && /^https?:\/\//.test(origin) ? origin : null;
+  const params = new URLSearchParams({ bling: status });
+  if (message) params.set("bling_msg", message);
+
+  if (!base) {
+    // No known app origin: fall back to a plain-text message the browser can read.
+    return new Response(
+      status === "ok"
+        ? "Bling conectado com sucesso. Feche esta janela e volte ao painel."
+        : `Nao foi possivel conectar: ${message ?? "erro desconhecido"}`,
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" } },
+    );
+  }
+
+  return new Response(null, {
+    status: 302,
+    headers: { ...corsHeaders, Location: `${base}/admin/settings?${params}` },
+  });
 }
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  let origin: string | null = null;
   try {
     const url = new URL(req.url);
-    if (url.searchParams.get("selftest") === "1") return html("Teste", "Página de teste.", true);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
-    if (!code) return html("Conexão cancelada", "O Bling não retornou o código de autorização.", false);
 
     const cfg = await getConfig();
+    origin = cfg?.redirect_origin ?? null;
+
+    if (!code) return backToPanel(origin, "error", "O Bling não retornou o código de autorização.");
     if (!cfg?.client_id || !cfg?.client_secret) {
-      return html("Configuração incompleta", "Cadastre o Client ID e o Client Secret no painel antes de conectar.", false);
+      return backToPanel(origin, "error", "Cadastre o Client ID e o Client Secret antes de conectar.");
     }
     if (cfg.oauth_state && state && cfg.oauth_state !== state) {
-      return html("Conexão inválida", "A verificação de segurança falhou. Tente conectar novamente pelo painel.", false);
+      return backToPanel(origin, "error", "A verificação de segurança falhou. Tente conectar novamente.");
     }
 
     const { status, data } = await requestToken(
@@ -36,7 +50,7 @@ Deno.serve(async (req) => {
     );
     if (status !== 200 || !data?.access_token) {
       await logSync({ entity_type: "oauth", action: "callback", status: "error", response: data, error_message: `HTTP ${status}` });
-      return html("Não foi possível conectar", `O Bling recusou a autorização (${status}). Verifique o Client ID, o Client Secret e a URL de retorno cadastrada no aplicativo.`, false);
+      return backToPanel(origin, "error", `O Bling recusou a autorização (${status}). Confira o Client ID, o Client Secret e a URL de retorno.`);
     }
 
     const supa = getSupabaseAdmin();
@@ -58,8 +72,8 @@ Deno.serve(async (req) => {
     } catch (_) { /* optional */ }
 
     await logSync({ entity_type: "oauth", action: "callback", status: "success" });
-    return html("Bling conectado", "A conexão foi concluída com sucesso.", true);
+    return backToPanel(origin, "ok");
   } catch (e) {
-    return html("Erro inesperado", e instanceof Error ? e.message : String(e), false);
+    return backToPanel(origin, "error", e instanceof Error ? e.message : String(e));
   }
 });

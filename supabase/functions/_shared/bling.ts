@@ -46,6 +46,7 @@ export interface BlingConfig {
   deposito_id: string | null;
   loja_id: string | null;
   last_order_pull_at: string | null;
+  redirect_origin: string | null;
 }
 
 export async function getConfig(): Promise<BlingConfig | null> {
