@@ -17,6 +17,7 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const url = new URL(req.url);
+    if (url.searchParams.get("selftest") === "1") return html("Teste", "Página de teste.", true);
     const code = url.searchParams.get("code");
     const state = url.searchParams.get("state");
     if (!code) return html("Conexão cancelada", "O Bling não retornou o código de autorização.", false);
