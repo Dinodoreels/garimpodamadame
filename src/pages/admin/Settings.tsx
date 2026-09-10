@@ -682,7 +682,10 @@ export default function Settings() {
         subtitle="Gerencie as configurações do painel e opções de frete"
       />
 
-      <Tabs defaultValue="general" className="w-full">
+      <Tabs
+        defaultValue={new URLSearchParams(window.location.search).has('bling') ? 'bling' : 'general'}
+        className="w-full"
+      >
         <TabsList className="w-full justify-start flex-wrap h-auto gap-1">
           <TabsTrigger value="general" className="gap-2">
             <SettingsIcon className="h-4 w-4" />

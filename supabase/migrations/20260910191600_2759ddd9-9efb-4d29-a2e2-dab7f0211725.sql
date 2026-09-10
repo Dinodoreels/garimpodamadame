@@ -1,0 +1,1 @@
+ALTER TABLE public.bling_config ADD COLUMN IF NOT EXISTS redirect_origin text;
