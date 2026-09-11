@@ -137,6 +137,7 @@ const menuItems: MenuItem[] = [
       { icon: MapPin, label: 'Endereçamento', path: '/admin/inbound/locations' },
       { icon: Tag, label: 'Etiquetas', path: '/admin/inbound/labels' },
       { icon: History, label: 'Histórico', path: '/admin/inbound/history' },
+      { icon: Users, label: 'Equipe do galpão', path: '/admin/inbound/team' },
     ]
   },
   { icon: StoreIcon, label: 'Lojas', path: '/admin/stores' },

@@ -69,11 +69,14 @@ const InboundDashboard = lazy(() => import("./pages/admin/inbound/Dashboard"));
 const InboundReceipts = lazy(() => import("./pages/admin/inbound/Receipts"));
 const InboundReceiptDetail = lazy(() => import("./pages/admin/inbound/ReceiptDetail"));
 const InboundLots = lazy(() => import("./pages/admin/inbound/Lots"));
-const InboundScan = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundScan })));
+const InboundScan = lazy(() => import("./pages/admin/inbound/Scan"));
+const InboundTeam = lazy(() => import("./pages/admin/inbound/Team"));
+const GalpaoLogin = lazy(() => import("./pages/GalpaoLogin"));
+const GalpaoScan = lazy(() => import("./pages/GalpaoScan"));
 const InboundTriage = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundTriage })));
 const InboundQC = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundQC })));
 const InboundIdentified = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundIdentified })));
-const InboundPending = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundPending })));
+const InboundPending = lazy(() => import("./pages/admin/inbound/Pendings"));
 const InboundStock = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundStock })));
 const InboundLocations = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLocations })));
 const InboundLabels = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLabels })));
@@ -183,6 +186,7 @@ const App = () => (
               <Route path="inbound/locations" element={<InboundLocations />} />
               <Route path="inbound/labels" element={<InboundLabels />} />
               <Route path="inbound/history" element={<InboundHistory />} />
+              <Route path="inbound/team" element={<InboundTeam />} />
                
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<AdminSettings />} />
