@@ -77,6 +77,23 @@ Deno.serve(async (req) => {
       const quantity = Math.max(1, Number(body.quantity ?? 1));
       const state = needsReview ? 'SCAN_PENDING' : 'IDENTIFIED';
 
+      // Foto da peça: guardada no balde privado inbound-docs.
+      let photoPath: string | null = body.photo_path ?? null;
+      if (!photoPath && typeof body.photo_base64 === 'string' && body.photo_base64.includes(',')) {
+        try {
+          const [meta, b64] = body.photo_base64.split(',');
+          const mime = meta.match(/data:(.*?);/)?.[1] ?? 'image/jpeg';
+          const ext = mime.includes('png') ? 'png' : 'jpg';
+          const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+          const path = `items/${lotId}/${crypto.randomUUID()}.${ext}`;
+          const { error: upErr } = await db.storage.from('inbound-docs')
+            .upload(path, bytes, { contentType: mime, upsert: false });
+          if (!upErr) photoPath = path;
+        } catch (err) {
+          console.warn('falha ao salvar foto', err);
+        }
+      }
+
       const { data: item, error } = await db.from('inbound_items').insert({
         lot_id: lotId,
         receipt_id: lot.receipt_id,
