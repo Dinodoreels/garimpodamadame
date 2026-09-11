@@ -1251,6 +1251,42 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          after_data: Json | null
+          before_data: Json | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          source: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          source?: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          after_data?: Json | null
+          before_data?: Json | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          source?: string
+        }
+        Relationships: []
+      }
       inventory_closing_items: {
         Row: {
           closing_id: string
@@ -1353,6 +1389,62 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lots: {
+        Row: {
+          closed_at: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          expected_units: number
+          id: string
+          notes: string | null
+          opened_at: string
+          processed_units: number
+          receipt_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          closed_at?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expected_units?: number
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          processed_units?: number
+          receipt_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          closed_at?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          expected_units?: number
+          id?: string
+          notes?: string | null
+          opened_at?: string
+          processed_units?: number
+          receipt_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lots_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "truck_receipts"
             referencedColumns: ["id"]
           },
         ]
@@ -2457,6 +2549,60 @@ export type Database = {
         }
         Relationships: []
       }
+      receipt_attachments: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          file_name: string | null
+          file_path: string
+          id: string
+          kind: string
+          lot_id: string | null
+          mime_type: string | null
+          receipt_id: string | null
+          size_bytes: number | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          file_path: string
+          id?: string
+          kind?: string
+          lot_id?: string | null
+          mime_type?: string | null
+          receipt_id?: string | null
+          size_bytes?: number | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          file_name?: string | null
+          file_path?: string
+          id?: string
+          kind?: string
+          lot_id?: string | null
+          mime_type?: string | null
+          receipt_id?: string | null
+          size_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipt_attachments_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "receipt_attachments_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "truck_receipts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refunds: {
         Row: {
           admin_notes: string | null
@@ -3315,6 +3461,77 @@ export type Database = {
         }
         Relationships: []
       }
+      truck_receipts: {
+        Row: {
+          carrier: string | null
+          code: string
+          created_at: string
+          created_by: string | null
+          document_number: string | null
+          driver_name: string | null
+          estimated_quantity: number
+          id: string
+          invoice_number: string | null
+          lot_value: number
+          notes: string | null
+          origin_name: string | null
+          received_date: string
+          received_time: string
+          status: string
+          supplier_id: string | null
+          truck_plate: string | null
+          updated_at: string
+        }
+        Insert: {
+          carrier?: string | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          document_number?: string | null
+          driver_name?: string | null
+          estimated_quantity?: number
+          id?: string
+          invoice_number?: string | null
+          lot_value?: number
+          notes?: string | null
+          origin_name?: string | null
+          received_date?: string
+          received_time?: string
+          status?: string
+          supplier_id?: string | null
+          truck_plate?: string | null
+          updated_at?: string
+        }
+        Update: {
+          carrier?: string | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          document_number?: string | null
+          driver_name?: string | null
+          estimated_quantity?: number
+          id?: string
+          invoice_number?: string | null
+          lot_value?: number
+          notes?: string | null
+          origin_name?: string | null
+          received_date?: string
+          received_time?: string
+          status?: string
+          supplier_id?: string | null
+          truck_plate?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "truck_receipts_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -3393,6 +3610,7 @@ export type Database = {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
       }
+      can_manage_inbound: { Args: { _user_id: string }; Returns: boolean }
       can_seller_access_order: {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
@@ -3401,6 +3619,7 @@ export type Database = {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
       }
+      can_view_inbound: { Args: { _user_id: string }; Returns: boolean }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -3444,6 +3663,8 @@ export type Database = {
         }
         Returns: number
       }
+      next_lot_code: { Args: never; Returns: string }
+      next_receipt_code: { Args: never; Returns: string }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
