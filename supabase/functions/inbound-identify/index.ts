@@ -41,6 +41,17 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {
+    // Só o galpão (token de operador) ou a equipe do CD (painel) podem usar a IA.
+    const db = adminClient();
+    const operator = await resolveOperator(req, db);
+    const user = operator ? null : await resolveAdminUser(req, db);
+    const allowed = operator
+      ? CD_SCAN_ROLES.includes(operator.role)
+      : !!user && user.roles.some((r: string) => CD_SCAN_ROLES.includes(r));
+    if (!allowed) {
+      return json({ ok: false, error: 'Sem permissão para identificar peças.' }, 403);
+    }
+
     const apiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!apiKey) {
       return json({ ok: false, error: 'IA não configurada no projeto.' }, 500);
