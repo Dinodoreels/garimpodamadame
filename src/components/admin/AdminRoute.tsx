@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -9,7 +9,8 @@ interface AdminRouteProps {
 
 export function AdminRoute({ children }: AdminRouteProps) {
   const { user, loading: authLoading } = useAuth();
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { isAdmin, canAccessInbound, loading: adminLoading } = useAdmin();
+  const location = useLocation();
 
   if (authLoading || adminLoading) {
     return (
@@ -28,7 +29,10 @@ export function AdminRoute({ children }: AdminRouteProps) {
     return <Navigate to="/auth" replace />;
   }
 
-  if (!isAdmin) {
+  const isInboundRoute = location.pathname === '/admin/inbound'
+    || location.pathname.startsWith('/admin/inbound/');
+
+  if (!isAdmin && !(isInboundRoute && canAccessInbound)) {
     return <Navigate to="/" replace />;
   }
 

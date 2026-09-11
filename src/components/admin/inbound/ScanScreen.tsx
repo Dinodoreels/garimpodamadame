@@ -39,6 +39,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
   const [aiWarning, setAiWarning] = useState<string | null>(null);
   const [times, setTimes] = useState<number[]>([]);
   const startedAt = useRef<number>(Date.now());
+  const saveInFlight = useRef(false);
   const photoInput = useRef<HTMLInputElement>(null);
   const barcodeInput = useRef<HTMLInputElement>(null);
 
@@ -125,8 +126,10 @@ export function ScanScreen({ fullscreen = false }: Props) {
   }
 
   async function handleSave() {
+    if (saveInFlight.current) return;
     if (!lotId) return toast.error('Escolha o lote.');
     if (!form.title.trim()) return toast.error('Informe o que é o produto.');
+    saveInFlight.current = true;
     setSaving(true);
     try {
       const match = identified?.source === 'catalog' ? identified.match : null;
@@ -159,6 +162,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Não foi possível gravar.');
     } finally {
+      saveInFlight.current = false;
       setSaving(false);
     }
   }
