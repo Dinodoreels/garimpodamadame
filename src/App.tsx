@@ -64,6 +64,21 @@ const EmailMarketing = lazy(() => import("./pages/admin/EmailMarketing"));
 const Expiry = lazy(() => import("./pages/admin/Expiry"));
 const TikTokShop = lazy(() => import("./pages/admin/TikTokShop"));
 
+// Inbound Intelligence / Garimpo Scan
+const InboundDashboard = lazy(() => import("./pages/admin/inbound/Dashboard"));
+const InboundReceipts = lazy(() => import("./pages/admin/inbound/Receipts"));
+const InboundReceiptDetail = lazy(() => import("./pages/admin/inbound/ReceiptDetail"));
+const InboundLots = lazy(() => import("./pages/admin/inbound/Lots"));
+const InboundScan = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundScan })));
+const InboundTriage = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundTriage })));
+const InboundQC = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundQC })));
+const InboundIdentified = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundIdentified })));
+const InboundPending = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundPending })));
+const InboundStock = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundStock })));
+const InboundLocations = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLocations })));
+const InboundLabels = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLabels })));
+const InboundHistory = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundHistory })));
+
 const SellerLayout = lazy(() => import("./pages/seller/SellerLayout"));
 const SellerDashboard = lazy(() => import("./pages/seller/Dashboard"));
 const SellerOrders = lazy(() => import("./pages/seller/Orders"));
