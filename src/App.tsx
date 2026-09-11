@@ -64,6 +64,21 @@ const EmailMarketing = lazy(() => import("./pages/admin/EmailMarketing"));
 const Expiry = lazy(() => import("./pages/admin/Expiry"));
 const TikTokShop = lazy(() => import("./pages/admin/TikTokShop"));
 
+// Inbound Intelligence / Garimpo Scan
+const InboundDashboard = lazy(() => import("./pages/admin/inbound/Dashboard"));
+const InboundReceipts = lazy(() => import("./pages/admin/inbound/Receipts"));
+const InboundReceiptDetail = lazy(() => import("./pages/admin/inbound/ReceiptDetail"));
+const InboundLots = lazy(() => import("./pages/admin/inbound/Lots"));
+const InboundScan = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundScan })));
+const InboundTriage = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundTriage })));
+const InboundQC = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundQC })));
+const InboundIdentified = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundIdentified })));
+const InboundPending = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundPending })));
+const InboundStock = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundStock })));
+const InboundLocations = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLocations })));
+const InboundLabels = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLabels })));
+const InboundHistory = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundHistory })));
+
 const SellerLayout = lazy(() => import("./pages/seller/SellerLayout"));
 const SellerDashboard = lazy(() => import("./pages/seller/Dashboard"));
 const SellerOrders = lazy(() => import("./pages/seller/Orders"));
@@ -153,6 +168,21 @@ const App = () => (
               <Route path="email-marketing" element={<EmailMarketing />} />
               <Route path="expiry" element={<Expiry />} />
               <Route path="integrations/tiktok-shop" element={<TikTokShop />} />
+
+              {/* Inbound Intelligence / Garimpo Scan */}
+              <Route path="inbound" element={<InboundDashboard />} />
+              <Route path="inbound/receipts" element={<InboundReceipts />} />
+              <Route path="inbound/receipts/:id" element={<InboundReceiptDetail />} />
+              <Route path="inbound/lots" element={<InboundLots />} />
+              <Route path="inbound/scan" element={<InboundScan />} />
+              <Route path="inbound/triage" element={<InboundTriage />} />
+              <Route path="inbound/qc" element={<InboundQC />} />
+              <Route path="inbound/identified" element={<InboundIdentified />} />
+              <Route path="inbound/pending" element={<InboundPending />} />
+              <Route path="inbound/stock" element={<InboundStock />} />
+              <Route path="inbound/locations" element={<InboundLocations />} />
+              <Route path="inbound/labels" element={<InboundLabels />} />
+              <Route path="inbound/history" element={<InboundHistory />} />
                
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<AdminSettings />} />
