@@ -168,6 +168,21 @@ const App = () => (
               <Route path="email-marketing" element={<EmailMarketing />} />
               <Route path="expiry" element={<Expiry />} />
               <Route path="integrations/tiktok-shop" element={<TikTokShop />} />
+
+              {/* Inbound Intelligence / Garimpo Scan */}
+              <Route path="inbound" element={<InboundDashboard />} />
+              <Route path="inbound/receipts" element={<InboundReceipts />} />
+              <Route path="inbound/receipts/:id" element={<InboundReceiptDetail />} />
+              <Route path="inbound/lots" element={<InboundLots />} />
+              <Route path="inbound/scan" element={<InboundScan />} />
+              <Route path="inbound/triage" element={<InboundTriage />} />
+              <Route path="inbound/qc" element={<InboundQC />} />
+              <Route path="inbound/identified" element={<InboundIdentified />} />
+              <Route path="inbound/pending" element={<InboundPending />} />
+              <Route path="inbound/stock" element={<InboundStock />} />
+              <Route path="inbound/locations" element={<InboundLocations />} />
+              <Route path="inbound/labels" element={<InboundLabels />} />
+              <Route path="inbound/history" element={<InboundHistory />} />
                
               <Route path="analytics" element={<Analytics />} />
               <Route path="settings" element={<AdminSettings />} />

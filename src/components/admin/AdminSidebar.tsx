@@ -118,6 +118,23 @@ const menuItems: MenuItem[] = [
       { icon: DollarSign, label: 'DRE & Dashboard', path: '/admin/accounting?tab=finance' },
     ]
   },
+  {
+    icon: Truck, label: 'Inbound',
+    children: [
+      { icon: LayoutDashboard, label: 'Dashboard', path: '/admin/inbound' },
+      { icon: Truck, label: 'Recebimentos', path: '/admin/inbound/receipts' },
+      { icon: Boxes, label: 'Lotes', path: '/admin/inbound/lots' },
+      { icon: ScanLine, label: 'Garimpo Scan', path: '/admin/inbound/scan' },
+      { icon: ClipboardCheck, label: 'Triagem', path: '/admin/inbound/triage' },
+      { icon: ClipboardCheck, label: 'QC', path: '/admin/inbound/qc' },
+      { icon: Package, label: 'Produtos identificados', path: '/admin/inbound/identified' },
+      { icon: FileText, label: 'Pendências', path: '/admin/inbound/pending' },
+      { icon: Boxes, label: 'Estoque', path: '/admin/inbound/stock' },
+      { icon: MapPin, label: 'Endereçamento', path: '/admin/inbound/locations' },
+      { icon: Tag, label: 'Etiquetas', path: '/admin/inbound/labels' },
+      { icon: History, label: 'Histórico', path: '/admin/inbound/history' },
+    ]
+  },
   { icon: StoreIcon, label: 'Lojas', path: '/admin/stores' },
   { icon: FileText, label: 'Conteúdo', path: '/admin/content' },
   { icon: Mail, label: 'Email Marketing', path: '/admin/email-marketing' },
