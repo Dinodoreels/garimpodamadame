@@ -137,6 +137,8 @@ const App = () => (
             <Route path="/privacidade" element={<Privacy />} />
             <Route path="/cookies" element={<CookiePolicy />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
+            <Route path="/galpao" element={<GalpaoLogin />} />
+            <Route path="/galpao/scan" element={<GalpaoScan />} />
             
              {/* CMS Dynamic Pages */}
              <Route path="/p/:slug" element={<CMSPage />} />
