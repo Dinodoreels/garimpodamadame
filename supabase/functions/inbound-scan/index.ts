@@ -41,15 +41,16 @@ Deno.serve(async (req) => {
 
     if (action === 'lot_stats') {
       const lotId = String(body.lot_id ?? '');
-      const { count } = await db
+      const { data: scannedItems } = await db
         .from('inbound_items')
-        .select('id', { count: 'exact', head: true })
+        .select('quantity')
         .eq('lot_id', lotId);
       const { count: pending } = await db
         .from('inbound_pendings')
         .select('id', { count: 'exact', head: true })
         .eq('lot_id', lotId).eq('status', 'open');
-      return jsonResponse({ ok: true, scanned: count ?? 0, pending: pending ?? 0 });
+      const scanned = (scannedItems ?? []).reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
+      return jsonResponse({ ok: true, scanned, pending: pending ?? 0 });
     }
 
     if (action === 'save') {
@@ -83,14 +84,25 @@ Deno.serve(async (req) => {
         try {
           const [meta, b64] = body.photo_base64.split(',');
           const mime = meta.match(/data:(.*?);/)?.[1] ?? 'image/jpeg';
+          if (!['image/jpeg', 'image/png', 'image/webp'].includes(mime)) {
+            return jsonResponse({ ok: false, error: 'A foto precisa ser JPG, PNG ou WebP.' }, 400);
+          }
+          if (b64.length > 7_000_000) {
+            return jsonResponse({ ok: false, error: 'A foto ultrapassa o limite de 5 MB.' }, 400);
+          }
           const ext = mime.includes('png') ? 'png' : 'jpg';
           const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+          if (bytes.byteLength > 5 * 1024 * 1024) {
+            return jsonResponse({ ok: false, error: 'A foto ultrapassa o limite de 5 MB.' }, 400);
+          }
           const path = `items/${lotId}/${crypto.randomUUID()}.${ext}`;
           const { error: upErr } = await db.storage.from('inbound-docs')
             .upload(path, bytes, { contentType: mime, upsert: false });
-          if (!upErr) photoPath = path;
+          if (upErr) return jsonResponse({ ok: false, error: 'Não foi possível salvar a foto.' }, 400);
+          photoPath = path;
         } catch (err) {
           console.warn('falha ao salvar foto', err);
+          return jsonResponse({ ok: false, error: 'A foto enviada é inválida.' }, 400);
         }
       }
 
@@ -131,9 +143,11 @@ Deno.serve(async (req) => {
         });
       }
 
-      await db.from('lots')
-        .update({ processed_units: (lot.processed_units ?? 0) + quantity, status: 'processing' })
-        .eq('id', lotId);
+      const { error: counterError } = await db.rpc('increment_lot_processed_units', {
+        target_lot_id: lotId,
+        units_to_add: quantity,
+      });
+      if (counterError) throw counterError;
 
       await db.from('inbound_events').insert({
         entity_type: 'inbound_item',

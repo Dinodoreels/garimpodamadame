@@ -8,10 +8,12 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileActionsFAB } from '@/components/admin/MobileActionsFAB';
 import { NotificationCenter } from '@/components/admin/NotificationCenter';
 import { useRealtimeInvalidator } from '@/hooks/useRealtimeInvalidator';
+import { useAdmin } from '@/hooks/useAdmin';
 
 export default function AdminLayout() {
   const { stats } = useAdminData();
   const isMobile = useIsMobile();
+  const { isAdmin } = useAdmin();
 
   // Mantém DRE, Contabilidade e demais painéis sincronizados em tempo real
   useRealtimeInvalidator(
@@ -54,6 +56,7 @@ export default function AdminLayout() {
           onOpenChange={setSidebarOpen}
           collapsed={sidebarCollapsed}
           onCollapsedChange={setSidebarCollapsed}
+          inboundOnly={!isAdmin}
         />
 
         {/* Main Content */}
@@ -70,13 +73,13 @@ export default function AdminLayout() {
         </main>
 
         {/* Mobile FAB */}
-        <MobileActionsFAB />
+        {isAdmin && <MobileActionsFAB />}
 
         {/* AI Chat */}
-        <AdminAIChat 
+        {isAdmin && <AdminAIChat
           stats={stats} 
           productCount={0} 
-        />
+        />}
       </div>
     </AdminRoute>
   );

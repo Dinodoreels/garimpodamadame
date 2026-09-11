@@ -153,6 +153,7 @@ interface AdminSidebarProps {
   onOpenChange?: (open: boolean) => void;
   collapsed?: boolean;
   onCollapsedChange?: (collapsed: boolean) => void;
+  inboundOnly?: boolean;
 }
 
 function basePathOf(p: string) {
@@ -179,7 +180,7 @@ function isGroupActive(item: MenuItem, pathname: string) {
   return item.children?.some(c => pathname.startsWith(basePathOf(c.path))) ?? false;
 }
 
-function SidebarContent({ onItemClick, collapsed }: { onItemClick?: () => void; collapsed?: boolean }) {
+function SidebarContent({ onItemClick, collapsed, inboundOnly }: { onItemClick?: () => void; collapsed?: boolean; inboundOnly?: boolean }) {
   const location = useLocation();
   const [expanded, setExpanded] = useState<string[]>(() => {
     // Auto-expand group containing current route
@@ -196,7 +197,7 @@ function SidebarContent({ onItemClick, collapsed }: { onItemClick?: () => void; 
     <>
       <nav className={cn("flex-1", collapsed ? "p-2" : "p-4")}>
         <ul className={cn("space-y-0.5", collapsed && "space-y-1")}>
-          {menuItems.map((item) => {
+          {(inboundOnly ? menuItems.filter(item => item.label === 'Inbound') : menuItems).map((item) => {
             const active = isGroupActive(item, location.pathname);
 
             // Simple link (no children)
@@ -369,7 +370,7 @@ function SidebarContent({ onItemClick, collapsed }: { onItemClick?: () => void; 
   );
 }
 
-export function AdminSidebar({ open, onOpenChange, collapsed, onCollapsedChange }: AdminSidebarProps) {
+export function AdminSidebar({ open, onOpenChange, collapsed, onCollapsedChange, inboundOnly }: AdminSidebarProps) {
   const isMobile = useIsMobile();
 
   if (isMobile) {
@@ -379,7 +380,7 @@ export function AdminSidebar({ open, onOpenChange, collapsed, onCollapsedChange 
           <div className="p-6 border-b border-background/10 flex items-center justify-between">
             <h1 className="text-lg font-light tracking-[0.2em] uppercase">Admin</h1>
           </div>
-          <SidebarContent onItemClick={() => onOpenChange?.(false)} />
+          <SidebarContent onItemClick={() => onOpenChange?.(false)} inboundOnly={inboundOnly} />
         </SheetContent>
       </Sheet>
     );
@@ -409,7 +410,7 @@ export function AdminSidebar({ open, onOpenChange, collapsed, onCollapsedChange 
           </Button>
         </div>
       </div>
-      <SidebarContent collapsed={collapsed} />
+      <SidebarContent collapsed={collapsed} inboundOnly={inboundOnly} />
     </aside>
   );
 }

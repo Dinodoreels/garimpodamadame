@@ -19,19 +19,34 @@ async function sha256(value: string) {
   return Array.from(new Uint8Array(digest)).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 
+async function pbkdf2(pin: string, salt: string) {
+  const key = await crypto.subtle.importKey(
+    'raw', new TextEncoder().encode(pin), 'PBKDF2', false, ['deriveBits'],
+  );
+  const bits = await crypto.subtle.deriveBits({
+    name: 'PBKDF2', hash: 'SHA-256', salt: new TextEncoder().encode(salt), iterations: 120_000,
+  }, key, 256);
+  return Array.from(new Uint8Array(bits)).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** Hash do PIN no formato salt$hash — o PIN nunca é guardado em texto. */
 export async function hashPin(pin: string, salt?: string) {
   const s = salt ?? crypto.randomUUID().replace(/-/g, '');
-  const h = await sha256(`${s}:${pin}`);
-  return `${s}$${h}`;
+  const h = await pbkdf2(pin, s);
+  return `pbkdf2$${s}$${h}`;
 }
 
 export async function verifyPin(pin: string, stored: string) {
-  const [salt] = stored.split('$');
-  if (!salt) return false;
-  const candidate = await hashPin(pin, salt);
-  return candidate === stored;
+  const parts = stored.split('$');
+  if (parts[0] === 'pbkdf2' && parts.length === 3) {
+    return (await hashPin(pin, parts[1])) === stored;
+  }
+  // Compatibilidade temporária: hashes antigos são atualizados no próximo login válido.
+  if (parts.length === 2) return (await sha256(`${parts[0]}:${pin}`)) === parts[1];
+  return false;
 }
+
+export const pinHashNeedsUpgrade = (stored: string) => !stored.startsWith('pbkdf2$');
 
 export const hashToken = (token: string) => sha256(token);
 

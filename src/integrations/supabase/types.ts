@@ -1856,9 +1856,11 @@ export type Database = {
           code: string
           created_at: string
           created_by: string | null
+          failed_login_attempts: number
           id: string
           is_active: boolean
           last_login_at: string | null
+          locked_until: string | null
           name: string
           pin_hash: string
           role: string
@@ -1868,9 +1870,11 @@ export type Database = {
           code: string
           created_at?: string
           created_by?: string | null
+          failed_login_attempts?: number
           id?: string
           is_active?: boolean
           last_login_at?: string | null
+          locked_until?: string | null
           name: string
           pin_hash: string
           role?: string
@@ -1880,9 +1884,11 @@ export type Database = {
           code?: string
           created_at?: string
           created_by?: string | null
+          failed_login_attempts?: number
           id?: string
           is_active?: boolean
           last_login_at?: string | null
+          locked_until?: string | null
           name?: string
           pin_hash?: string
           role?: string
@@ -3903,6 +3909,10 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      increment_lot_processed_units: {
+        Args: { target_lot_id: string; units_to_add: number }
+        Returns: undefined
       }
       is_cd_manager: { Args: { _user_id: string }; Returns: boolean }
       is_store_manager: {

@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { CMSThemeProvider } from "@/providers/CMSThemeProvider";
 import { PixelProvider } from "@/components/providers/PixelProvider";
@@ -102,6 +102,12 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function StorefrontOverlays() {
+  const { pathname } = useLocation();
+  if (pathname === '/galpao' || pathname.startsWith('/galpao/') || pathname.startsWith('/admin')) return null;
+  return <><CookieConsent /><BackToTop /><CustomerSupportChat /></>;
+}
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="admin-theme">
@@ -214,9 +220,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
-          <CookieConsent />
-          <BackToTop />
-          <CustomerSupportChat />
+          <StorefrontOverlays />
            </PixelProvider>
            </PushNotificationProvider>
            </AnalyticsProvider>
