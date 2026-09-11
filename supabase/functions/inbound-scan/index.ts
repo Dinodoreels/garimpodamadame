@@ -108,7 +108,7 @@ Deno.serve(async (req) => {
         brand: body.brand ?? null,
         category: body.category ?? null,
         attributes: body.attributes ?? {},
-        photo_path: body.photo_path ?? null,
+        photo_path: photoPath,
         ai_source: source,
         ai_confidence: confidence,
         ai_data: body.ai_data ?? null,
