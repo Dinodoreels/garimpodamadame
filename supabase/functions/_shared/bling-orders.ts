@@ -86,7 +86,7 @@ export async function pushOrderToBling(orderId: string) {
   }
 
   const blingOrderId = String(data?.data?.id);
-  await supa.from("bling_order_links").upsert({
+  const { error: linkError } = await supa.from("bling_order_links").upsert({
     order_id: orderId,
     bling_order_id: blingOrderId,
     bling_order_number: order.order_number,
@@ -94,7 +94,12 @@ export async function pushOrderToBling(orderId: string) {
     direction: "push",
     raw_payload: data,
     last_synced_at: new Date().toISOString(),
-  }, { onConflict: "bling_order_id" });
+  }, { onConflict: "order_id" });
+  if (linkError) {
+    const { data: raced } = await supa.from('bling_order_links').select('bling_order_id').eq('order_id', orderId).maybeSingle();
+    if (raced?.bling_order_id) return { bling_order_id: raced.bling_order_id, skipped: true };
+    throw linkError;
+  }
 
   await logSync({ entity_type: "order", entity_id: orderId, action: "push", status: "success", payload, response: data });
   return { bling_order_id: blingOrderId };

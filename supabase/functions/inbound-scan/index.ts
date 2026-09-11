@@ -71,7 +71,7 @@ Deno.serve(async (req) => {
         : Number(body.ai_confidence);
       const source = String(body.ai_source ?? 'manual');
       const hasProduct = !!body.product_id || !!body.variant_id;
-      const needsReview = source === 'ai'
+      const needsReview = !hasProduct && source !== 'manual'
         && !hasProduct
         && (confidence === null || confidence < CONFIDENCE_THRESHOLD);
 
@@ -140,6 +140,19 @@ Deno.serve(async (req) => {
           reason: 'low_confidence',
           ai_suggestions: body.ai_data ?? null,
           created_by: user?.id ?? null,
+        });
+      }
+
+      if (Array.isArray(body.identification_result_ids) && body.identification_result_ids.length) {
+        await db.from('inbound_identification_results')
+          .update({ item_id: item.id })
+          .in('id', body.identification_result_ids.map(String));
+      }
+
+      if (photoPath) {
+        await db.from('inbound_item_photos').insert({
+          item_id: item.id, kind: 'product', file_path: photoPath,
+          caption: 'Foto do Garimpo Scan', created_by: user?.id ?? null,
         });
       }
 

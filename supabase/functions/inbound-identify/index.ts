@@ -1,208 +1,144 @@
-// Identificação automática de produto (Garimpo Scan) via Lovable AI Gateway.
-// Recebe código de barras e/ou foto e devolve identificação estruturada + confiança.
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
-import { adminClient, resolveOperator, resolveAdminUser, CD_SCAN_ROLES } from "../_shared/operator.ts";
+// Identificação em camadas: catálogo Vanguard, base brasileira de GTIN e busca visual.
+import { adminClient, resolveOperator, resolveAdminUser, CD_SCAN_ROLES, jsonResponse } from "../_shared/operator.ts";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-operator-token',
-};
+const normalizeCode = (value: string) => value.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
 
-const SCHEMA = {
-  type: "object",
-  additionalProperties: false,
-  properties: {
-    title: { type: "string", description: "Nome comercial do produto em português" },
-    brand: { type: ["string", "null"] },
-    category: { type: ["string", "null"] },
-    description: { type: ["string", "null"] },
-    color: { type: ["string", "null"] },
-    size: { type: ["string", "null"] },
-    condition_guess: { type: ["string", "null"], enum: ["T1", "T2", "O1", "U1", "R1", "D1", null] },
-    estimated_price_brl: { type: ["number", "null"] },
-    confidence: { type: "number", description: "0 a 1" },
-    reasoning_note: { type: ["string", "null"] },
-  },
-  required: [
-    "title", "brand", "category", "description", "color", "size",
-    "condition_guess", "estimated_price_brl", "confidence", "reasoning_note",
-  ],
-};
+async function record(db: ReturnType<typeof adminClient>, row: Record<string, unknown>) {
+  const { data } = await db.from('inbound_identification_results').insert(row).select('id').single();
+  return data?.id ?? null;
+}
 
-const SYSTEM = `Você identifica produtos de logística reversa em um centro de distribuição brasileiro.
-Receba código de barras (EAN/GTIN) e/ou foto e responda o que o produto é.
-Regras:
-- Responda sempre em português do Brasil.
-- Nunca invente marca ou modelo: se não tiver certeza, use confiança baixa e explique em reasoning_note.
-- confidence é de 0 a 1: acima de 0.75 significa que você reconhece o produto com segurança.
-- estimated_price_brl é um preço de varejo aproximado no Brasil, ou null.`;
+async function cosmosLookup(barcode: string) {
+  const token = Deno.env.get('COSMOS_API_TOKEN');
+  if (!token) return { configured: false, candidates: [] as Record<string, unknown>[] };
+  const started = Date.now();
+  const res = await fetch(`https://api.cosmos.bluesoft.com.br/gtins/${encodeURIComponent(barcode)}.json`, {
+    headers: { 'X-Cosmos-Token': token, 'User-Agent': 'Vanguard Store Inbound/1.0', Accept: 'application/json' },
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(`Cosmos ${res.status}: ${JSON.stringify(body).slice(0, 240)}`);
+  const item = body as Record<string, any>;
+  return {
+    configured: true,
+    duration: Date.now() - started,
+    raw: item,
+    candidates: [{
+      title: item.description ?? item.product?.description ?? null,
+      brand: item.brand?.name ?? item.brand ?? null,
+      category: item.ncm?.description ?? item.category?.description ?? null,
+      gtin: String(item.gtin ?? barcode),
+      image_url: item.thumbnail ?? item.image ?? null,
+      product_url: item.url ?? null,
+      confidence: item.description ? 0.92 : 0.55,
+      source: 'cosmos',
+    }],
+  };
+}
+
+async function visualLookup(imageBase64: string, db: ReturnType<typeof adminClient>) {
+  const key = Deno.env.get('SERPAPI_API_KEY');
+  if (!key) return { configured: false, candidates: [] as Record<string, unknown>[] };
+  const match = imageBase64.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+  if (!match) throw new Error('Imagem inválida para pesquisa visual.');
+  const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+  if (bytes.byteLength > 5 * 1024 * 1024) throw new Error('A foto ultrapassa 5 MB.');
+  const ext = match[1].includes('png') ? 'png' : match[1].includes('webp') ? 'webp' : 'jpg';
+  const path = `identification-temp/${crypto.randomUUID()}.${ext}`;
+  const uploaded = await db.storage.from('inbound-docs').upload(path, bytes, { contentType: match[1] });
+  if (uploaded.error) throw uploaded.error;
+  try {
+    const signed = await db.storage.from('inbound-docs').createSignedUrl(path, 300);
+    if (!signed.data?.signedUrl) throw new Error('Não foi possível preparar a foto.');
+    const started = Date.now();
+    const params = new URLSearchParams({ engine: 'google_lens', url: signed.data.signedUrl, api_key: key, country: 'br', hl: 'pt-br' });
+    const res = await fetch(`https://serpapi.com/search.json?${params}`);
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(`Busca visual ${res.status}: ${JSON.stringify(body).slice(0, 240)}`);
+    const rows = [...(body.visual_matches ?? []), ...(body.products ?? [])].slice(0, 8);
+    return {
+      configured: true,
+      duration: Date.now() - started,
+      raw: body,
+      candidates: rows.map((row: Record<string, any>, index: number) => ({
+        title: row.title ?? null,
+        brand: row.source ?? null,
+        category: null,
+        gtin: null,
+        image_url: row.thumbnail ?? row.image ?? null,
+        product_url: row.link ?? null,
+        price: row.extracted_price ?? null,
+        confidence: Math.max(0.35, 0.78 - index * 0.06),
+        source: 'google_lens',
+      })),
+    };
+  } finally {
+    await db.storage.from('inbound-docs').remove([path]);
+  }
+}
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-operator-token' } });
+  const db = adminClient();
+  const operator = await resolveOperator(req, db);
+  const user = operator ? null : await resolveAdminUser(req, db);
+  const allowed = operator ? CD_SCAN_ROLES.includes(operator.role) : !!user && user.roles.some((role: string) => CD_SCAN_ROLES.includes(role));
+  if (!allowed) return jsonResponse({ ok: false, error: 'Sem permissão para identificar peças.' }, 403);
+
+  const body = await req.json().catch(() => ({}));
+  const barcode = body?.barcode ? normalizeCode(String(body.barcode)) : '';
+  const imageBase64 = typeof body?.image_base64 === 'string' ? body.image_base64 : '';
+  if (!barcode && !imageBase64) return jsonResponse({ ok: false, error: 'Informe um código de barras ou uma foto.' }, 400);
+  const cacheKey = barcode ? `barcode:${barcode}` : null;
 
   try {
-    // Só o galpão (token de operador) ou a equipe do CD (painel) podem usar a IA.
-    const db = adminClient();
-    const operator = await resolveOperator(req, db);
-    const user = operator ? null : await resolveAdminUser(req, db);
-    const allowed = operator
-      ? CD_SCAN_ROLES.includes(operator.role)
-      : !!user && user.roles.some((r: string) => CD_SCAN_ROLES.includes(r));
-    if (!allowed) {
-      return json({ ok: false, error: 'Sem permissão para identificar peças.' }, 403);
-    }
-
-    const apiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!apiKey) {
-      return json({ ok: false, error: 'IA não configurada no projeto.' }, 500);
-    }
-
-    const body = await req.json().catch(() => ({}));
-    const barcode: string | undefined = body?.barcode?.toString().trim() || undefined;
-    const imageBase64: string | undefined = body?.image_base64 || undefined;
-    const hint: string | undefined = body?.hint || undefined;
-
-    if (!barcode && !imageBase64) {
-      return json({ ok: false, error: 'Informe um código de barras ou uma foto.' }, 400);
-    }
-
-    // Antes da IA: se o código já existe no catálogo, reaproveita o SKU criado.
-    let match: Record<string, unknown> | null = null;
     if (barcode) {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL')!,
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
-      );
-      const { data } = await supabase
-        .from('product_variants')
+      const { data: local } = await db.from('product_variants')
         .select('id, title, sku, barcode, price, cost, product_id, products(id, title, vendor, product_type)')
-        .or(`barcode.eq.${barcode},sku.eq.${barcode}`)
-        .limit(1)
-        .maybeSingle();
-      if (data) match = data as Record<string, unknown>;
-    }
+        .or(`barcode.eq.${barcode},sku.eq.${barcode}`).limit(1).maybeSingle();
+      if (local) {
+        const product = (local.products ?? {}) as Record<string, unknown>;
+        const result = { product_id: local.product_id, variant_id: local.id, sku: local.sku, title: product.title ?? local.title, brand: product.vendor ?? null, category: product.product_type ?? null, price: local.price, cost: local.cost };
+        const resultId = await record(db, { cache_key: cacheKey, source: 'catalog', query_type: 'barcode', query_value: barcode, title: result.title, brand: result.brand, category: result.category, gtin: barcode, confidence: 1, is_selected: true, raw_data: result });
+        return jsonResponse({ ok: true, source: 'catalog', confidence: 1, match: result, candidates: [{ ...result, source: 'catalog', confidence: 1 }], result_ids: [resultId].filter(Boolean) });
+      }
 
-    if (match) {
-      const p = (match.products ?? {}) as Record<string, unknown>;
-      return json({
-        ok: true,
-        source: 'catalog',
-        confidence: 1,
-        match: {
-          product_id: match.product_id,
-          variant_id: match.id,
-          sku: match.sku,
-          title: p.title ?? match.title,
-          brand: p.vendor ?? null,
-          category: p.product_type ?? null,
-          price: match.price ?? null,
-          cost: match.cost ?? null,
-        },
-      });
-    }
-
-    const content: Record<string, unknown>[] = [{
-      type: 'input_text',
-      text: [
-        barcode ? `Código de barras lido: ${barcode}` : 'Sem código de barras legível.',
-        hint ? `Observação do operador: ${hint}` : '',
-        'Identifique o produto.',
-      ].filter(Boolean).join('\n'),
-    }];
-    if (imageBase64) {
-      content.push({ type: 'input_image', image_url: imageBase64 });
-    }
-
-    const res = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Lovable-API-Key': apiKey,
-        'X-Lovable-AIG-SDK': 'fetch',
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-6-astra',
-        instructions: SYSTEM,
-        input: [{ role: 'user', content }],
-        stream: true,
-        reasoning: { effort: 'low' },
-        text: {
-          format: {
-            type: 'json_schema',
-            name: 'product_identification',
-            strict: true,
-            schema: SCHEMA,
-          },
-        },
-      }),
-    });
-
-    if (!res.ok || !res.body) {
-      const detail = await res.text().catch(() => '');
-      return json({ ok: false, status: res.status, error: gatewayMessage(res.status, detail) }, res.status === 429 ? 429 : 502);
-    }
-
-    const text = await readStream(res.body);
-    let parsed: Record<string, unknown>;
-    try {
-      parsed = JSON.parse(text);
-    } catch {
-      return json({ ok: false, error: 'A IA não devolveu um resultado válido. Cadastre manualmente.' }, 502);
-    }
-
-    return json({ ok: true, source: 'ai', confidence: Number(parsed.confidence ?? 0), result: parsed });
-  } catch (e) {
-    console.error('inbound-identify error', e);
-    return json({ ok: false, error: 'Falha ao identificar o produto. Tente de novo ou cadastre manualmente.' }, 500);
-  }
-});
-
-async function readStream(body: ReadableStream<Uint8Array>) {
-  const reader = body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let out = '';
-  let completed = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-    for (const line of lines) {
-      if (!line.startsWith('data:')) continue;
-      const payload = line.slice(5).trim();
-      if (!payload || payload === '[DONE]') continue;
-      try {
-        const evt = JSON.parse(payload);
-        if (evt.type === 'response.output_text.delta' && typeof evt.delta === 'string') {
-          out += evt.delta;
-        } else if (evt.type === 'response.completed') {
-          const arr = evt.response?.output ?? [];
-          for (const item of arr) {
-            for (const c of item?.content ?? []) {
-              if (typeof c?.text === 'string') completed += c.text;
-            }
-          }
-        }
-      } catch {
-        // ignora eventos parciais
+      const { data: cached } = await db.from('inbound_identification_results').select('*').eq('cache_key', cacheKey).is('error_message', null).gte('created_at', new Date(Date.now() - 30 * 86400000).toISOString()).order('confidence', { ascending: false }).limit(5);
+      if (cached?.length) {
+        const candidates = cached.map(row => ({ title: row.title, brand: row.brand, category: row.category, gtin: row.gtin, image_url: row.image_url, product_url: row.product_url, confidence: row.confidence, source: row.source }));
+        return jsonResponse({ ok: true, source: cached[0].source, confidence: Number(cached[0].confidence ?? 0), result: candidates[0], candidates, result_ids: cached.map(row => row.id), cached: true });
       }
     }
+
+    const candidates: Record<string, any>[] = [];
+    const ids: string[] = [];
+    const errors: string[] = [];
+    if (barcode) {
+      try {
+        const found = await cosmosLookup(barcode);
+        for (const candidate of found.candidates) {
+          candidates.push(candidate);
+          const id = await record(db, { cache_key: cacheKey, source: 'cosmos', query_type: 'barcode', query_value: barcode, ...candidate, duration_ms: found.duration, raw_data: found.raw });
+          if (id) ids.push(id);
+        }
+        if (!found.configured) errors.push('Cosmos não configurado');
+      } catch (error) { errors.push(error instanceof Error ? error.message : 'Falha na consulta GTIN'); }
+    }
+    if (imageBase64) {
+      try {
+        const found = await visualLookup(imageBase64, db);
+        for (const candidate of found.candidates) {
+          candidates.push(candidate);
+          const id = await record(db, { source: 'google_lens', query_type: 'image', ...candidate, duration_ms: found.duration, raw_data: candidate });
+          if (id) ids.push(id);
+        }
+        if (!found.configured) errors.push('Busca visual não configurada');
+      } catch (error) { errors.push(error instanceof Error ? error.message : 'Falha na busca visual'); }
+    }
+    candidates.sort((a, b) => Number(b.confidence ?? 0) - Number(a.confidence ?? 0));
+    const best = candidates[0] ?? null;
+    return jsonResponse({ ok: true, source: best?.source ?? 'external', confidence: Number(best?.confidence ?? 0), result: best, candidates, result_ids: ids, needs_review: !best || Number(best.confidence ?? 0) < 0.75, warnings: errors });
+  } catch (error) {
+    console.error('inbound-identify', error);
+    return jsonResponse({ ok: false, error: 'Não foi possível consultar as fontes de identificação. Envie para Pendências.' }, 502);
   }
-  return (out || completed).trim();
-}
-
-function gatewayMessage(status: number, detail: string) {
-  if (status === 402) return 'Os créditos de IA acabaram. Adicione créditos para voltar a identificar automaticamente.';
-  if (status === 403) return 'A IA está bloqueada nas configurações do espaço de trabalho.';
-  if (status === 429) return 'Muitas identificações ao mesmo tempo. Aguarde alguns segundos.';
-  return `A IA não respondeu (${status}). Cadastre manualmente. ${detail.slice(0, 180)}`;
-}
-
-function json(payload: unknown, status = 200) {
-  return new Response(JSON.stringify(payload), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
+});

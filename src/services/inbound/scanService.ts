@@ -15,7 +15,7 @@ export interface ScanLot {
 
 export interface IdentifyResult {
   ok: boolean;
-  source?: 'catalog' | 'ai';
+  source?: 'catalog' | 'cosmos' | 'google_lens' | 'external';
   confidence?: number;
   error?: string;
   match?: {
@@ -40,6 +40,10 @@ export interface IdentifyResult {
     confidence: number;
     reasoning_note: string | null;
   };
+  candidates?: Array<Record<string, unknown>>;
+  result_ids?: string[];
+  needs_review?: boolean;
+  warnings?: string[];
 }
 
 export interface SaveItemInput {
@@ -55,10 +59,11 @@ export interface SaveItemInput {
   variant_id?: string | null;
   suggested_price?: number | null;
   notes?: string | null;
-  ai_source: 'catalog' | 'ai' | 'manual';
+  ai_source: 'catalog' | 'cosmos' | 'google_lens' | 'external' | 'manual';
   ai_confidence?: number | null;
   ai_data?: unknown;
   photo_base64?: string | null;
+  identification_result_ids?: string[];
 }
 
 function operatorHeaders() {
