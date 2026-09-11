@@ -66,6 +66,7 @@ export interface SaveItemInput {
   ai_data?: unknown;
   photo_base64?: string | null;
   identification_result_ids?: string[];
+  force_review?: boolean;
 }
 
 function operatorHeaders() {

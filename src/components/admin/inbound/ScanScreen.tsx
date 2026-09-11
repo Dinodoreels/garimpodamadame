@@ -125,10 +125,10 @@ export function ScanScreen({ fullscreen = false }: Props) {
     }
   }
 
-  async function handleSave() {
+  async function handleSave(forceReview = false) {
     if (saveInFlight.current) return;
     if (!lotId) return toast.error('Escolha o lote.');
-    if (!form.title.trim()) return toast.error('Informe o que é o produto.');
+    if (!forceReview && !form.title.trim()) return toast.error('Informe o que é o produto ou envie para análise manual.');
     saveInFlight.current = true;
     setSaving(true);
     try {
@@ -151,6 +151,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
         ai_data: identified?.result ?? identified?.match ?? null,
         photo_base64: photo,
         identification_result_ids: identified?.result_ids,
+        force_review: forceReview,
       });
       setTimes(t => [...t.slice(-19), Math.round((Date.now() - startedAt.current) / 1000)]);
       if (res.pending) {
@@ -319,7 +320,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
           </div>
 
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-            <Button size="lg" className="h-16 text-base" onClick={handleSave} disabled={saving || !lotId}>
+            <Button size="lg" className="h-16 text-base" onClick={()=>handleSave(false)} disabled={saving || !lotId}>
               {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
               Gravar e ir para a próxima peça
             </Button>
@@ -327,6 +328,11 @@ export function ScanScreen({ fullscreen = false }: Props) {
               <RotateCcw className="mr-2 h-5 w-5" /> Limpar
             </Button>
           </div>
+          {!barcode.trim() && !photo && (
+            <Button size="lg" variant="secondary" className="h-14 w-full" onClick={()=>handleSave(true)} disabled={saving || !lotId}>
+              <AlertTriangle className="mr-2 h-5 w-5" /> Enviar para análise manual
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>

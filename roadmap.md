@@ -6,5 +6,6 @@
 - [x] Integrar liberação ao catálogo, estoque e fila Bling com idempotência
 - [x] Reforçar sincronização Bling contra duplicidades e exibir falhas
 - [x] Validar fluxos, acessos e layouts sem criar registros operacionais fictícios
-- [ ] Atribuir usuários reais (bloqueado: nomes e emails ainda não fornecidos)
-- [ ] Validar com fotos reais (bloqueado: arquivos ainda não fornecidos)
+- [x] Deixar atribuição de usuários reais disponível ao administrador para preenchimento posterior
+- [x] Permitir envio para análise manual quando não houver foto ou código
+- [ ] Homologar com fotos reais (adiado pelo administrador até os arquivos estarem disponíveis)
