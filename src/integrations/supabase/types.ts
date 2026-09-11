@@ -1287,6 +1287,179 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_items: {
+        Row: {
+          ai_confidence: number | null
+          ai_data: Json | null
+          ai_source: string | null
+          attributes: Json
+          barcode: string | null
+          brand: string | null
+          category: string | null
+          condition_code: string
+          cost: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          lot_id: string | null
+          notes: string | null
+          operator_code: string | null
+          photo_path: string | null
+          product_id: string | null
+          quantity: number
+          receipt_id: string | null
+          sku: string | null
+          state: string
+          suggested_price: number | null
+          title: string | null
+          updated_at: string
+          variant_id: string | null
+        }
+        Insert: {
+          ai_confidence?: number | null
+          ai_data?: Json | null
+          ai_source?: string | null
+          attributes?: Json
+          barcode?: string | null
+          brand?: string | null
+          category?: string | null
+          condition_code?: string
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lot_id?: string | null
+          notes?: string | null
+          operator_code?: string | null
+          photo_path?: string | null
+          product_id?: string | null
+          quantity?: number
+          receipt_id?: string | null
+          sku?: string | null
+          state?: string
+          suggested_price?: number | null
+          title?: string | null
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Update: {
+          ai_confidence?: number | null
+          ai_data?: Json | null
+          ai_source?: string | null
+          attributes?: Json
+          barcode?: string | null
+          brand?: string | null
+          category?: string | null
+          condition_code?: string
+          cost?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          lot_id?: string | null
+          notes?: string | null
+          operator_code?: string | null
+          photo_path?: string | null
+          product_id?: string | null
+          quantity?: number
+          receipt_id?: string | null
+          sku?: string | null
+          state?: string
+          suggested_price?: number | null
+          title?: string | null
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_items_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_items_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "truck_receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbound_pendings: {
+        Row: {
+          ai_suggestions: Json | null
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string | null
+          lot_id: string | null
+          reason: string
+          resolution: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ai_suggestions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string | null
+          lot_id?: string | null
+          reason?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ai_suggestions?: Json | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string | null
+          lot_id?: string | null
+          reason?: string
+          resolution?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_pendings_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_pendings_lot_id_fkey"
+            columns: ["lot_id"]
+            isOneToOne: false
+            referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_closing_items: {
         Row: {
           closing_id: string
@@ -1640,6 +1813,80 @@ export type Database = {
           type?: string
           updated_at?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      operator_sessions: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          operator_id: string
+          revoked_at: string | null
+          token_hash: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          operator_id: string
+          revoked_at?: string | null
+          token_hash: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          operator_id?: string
+          revoked_at?: string | null
+          token_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "operator_sessions_operator_id_fkey"
+            columns: ["operator_id"]
+            isOneToOne: false
+            referencedRelation: "operators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      operators: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          last_login_at: string | null
+          name: string
+          pin_hash: string
+          role: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          name: string
+          pin_hash: string
+          role?: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          last_login_at?: string | null
+          name?: string
+          pin_hash?: string
+          role?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -3606,15 +3853,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_commerce_inbound: { Args: { _user_id: string }; Returns: boolean }
       can_consignor_access_order: {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
       }
       can_manage_inbound: { Args: { _user_id: string }; Returns: boolean }
+      can_qc_inbound: { Args: { _user_id: string }; Returns: boolean }
       can_seller_access_order: {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
       }
+      can_stock_inbound: { Args: { _user_id: string }; Returns: boolean }
       can_user_access_order: {
         Args: { _order_id: string; _user_id: string }
         Returns: boolean
@@ -3643,6 +3893,10 @@ export type Database = {
           tracking_url: string
         }[]
       }
+      has_any_role: {
+        Args: { _roles: string[]; _user_id: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -3650,6 +3904,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_cd_manager: { Args: { _user_id: string }; Returns: boolean }
       is_store_manager: {
         Args: { _store_id: string; _user_id: string }
         Returns: boolean
