@@ -115,11 +115,11 @@ export function ScanScreen({ fullscreen = false }: Props) {
           suggested_price: res.result!.estimated_price_brl != null ? String(res.result!.estimated_price_brl) : '',
         }));
         if ((res.confidence ?? 0) < 0.75) {
-          setAiWarning('A IA não teve certeza. Ao gravar, a peça vai para Pendências.');
+          setAiWarning('As fontes não deram certeza suficiente. Ao gravar, a peça vai para Pendências.');
         }
       }
     } catch (e) {
-      setAiWarning(e instanceof Error ? e.message : 'A IA não respondeu. Preencha manualmente.');
+      setAiWarning(e instanceof Error ? e.message : 'As fontes não responderam. Preencha manualmente.');
     } finally {
       setIdentifying(false);
     }

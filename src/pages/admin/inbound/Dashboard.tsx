@@ -85,8 +85,7 @@ export default function InboundDashboard() {
 
       <Card>
         <CardContent className="py-6 text-sm text-muted-foreground">
-          Indicadores de triagem, qualidade, identificação por IA e estoque aparecerão aqui conforme as próximas fases forem entregues.
-          Nenhum número é exibido sem dado real.
+          Qualidade, identificação, estoque e liberação usam apenas os registros reais do fluxo. Nenhum número é exibido sem dado real.
         </CardContent>
       </Card>
     </div>

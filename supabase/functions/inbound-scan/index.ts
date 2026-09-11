@@ -144,9 +144,22 @@ Deno.serve(async (req) => {
       }
 
       if (Array.isArray(body.identification_result_ids) && body.identification_result_ids.length) {
+        const resultIds = body.identification_result_ids.map(String);
         await db.from('inbound_identification_results')
           .update({ item_id: item.id })
-          .in('id', body.identification_result_ids.map(String));
+          .in('id', resultIds);
+        const { data: refs } = await db.from('inbound_identification_results')
+          .select('source,title,product_url,image_url,raw_data')
+          .in('id', resultIds)
+          .not('product_url', 'is', null);
+        if (refs?.length) {
+          await db.from('inbound_market_references').insert(refs.map((ref) => ({
+            item_id: item.id, source: ref.source, title: ref.title,
+            url: ref.product_url, image_url: ref.image_url,
+            price: Number((ref.raw_data as Record<string, unknown> | null)?.price ?? 0) || null,
+            created_by: user?.id ?? null,
+          })));
+        }
       }
 
       if (photoPath) {

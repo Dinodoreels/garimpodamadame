@@ -12,6 +12,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Copy, KeyRound, Trash2, UserPlus } from 'lucide-react';
 import { operatorService } from '@/services/inbound/scanService';
+import { workflowService } from '@/services/inbound/workflowService';
+import { useAdmin } from '@/hooks/useAdmin';
 
 const ROLES: Record<string, string> = {
   inbound: 'Recebimento e Scan',
@@ -31,12 +33,16 @@ const PERMISSIONS = [
 
 export default function InboundTeam() {
   const qc = useQueryClient();
+  const { isAdmin } = useAdmin();
   const [form, setForm] = useState({ code: '', name: '', pin: '', role: 'inbound' });
   const [pinEdit, setPinEdit] = useState<Record<string, string>>({});
 
   const { data: operators = [], isLoading } = useQuery({
     queryKey: ['inbound', 'operators'],
     queryFn: operatorService.list,
+  });
+  const { data: users = [] } = useQuery({
+    queryKey: ['inbound', 'real-users'], queryFn: workflowService.users, enabled: isAdmin,
   });
 
   const refresh = () => qc.invalidateQueries({ queryKey: ['inbound', 'operators'] });
@@ -57,6 +63,11 @@ export default function InboundTeam() {
     mutationFn: (id: string) => operatorService.remove(id),
     onSuccess: () => { refresh(); toast.success('Operador removido'); },
     onError: (e: Error) => toast.error('Não foi possível remover', { description: e.message }),
+  });
+  const assignRole = useMutation({
+    mutationFn: ({ user_id, role }: { user_id: string; role: string }) => workflowService.assignRole(user_id, role),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ['inbound', 'real-users'] }); toast.success('Perfil atualizado'); },
+    onError: (e: Error) => toast.error('Não foi possível atribuir', { description: e.message }),
   });
 
   const galpaoUrl = `${window.location.origin}/galpao`;
@@ -83,6 +94,19 @@ export default function InboundTeam() {
           </div>
         </CardContent>
       </Card>
+
+      {isAdmin && <Card>
+        <CardHeader><CardTitle className="text-base">Usuários reais do painel</CardTitle></CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">Atribua cada conta existente à função real da operação. Uma conta exerce uma função operacional por vez.</p>
+          {users.map(user => <div key={user.id} className="grid gap-2 border-b py-3 last:border-0 sm:grid-cols-[1fr_15rem] sm:items-center">
+            <div><p className="font-medium">{user.full_name || user.email || 'Usuário'}</p>{user.full_name && <p className="text-xs text-muted-foreground">{user.email}</p>}</div>
+            <Select value={user.role} onValueChange={role => assignRole.mutate({ user_id: user.id, role })} disabled={user.role === 'admin' || assignRole.isPending}>
+              <SelectTrigger><SelectValue placeholder={user.role === 'user' ? 'Escolha a função' : undefined} /></SelectTrigger><SelectContent><SelectItem value="admin">Administrador</SelectItem><SelectItem value="inbound">Inbound — cadastra</SelectItem><SelectItem value="qc">QC — aprova</SelectItem><SelectItem value="estoque">Estoque — endereça</SelectItem><SelectItem value="commerce">Comercial — libera</SelectItem><SelectItem value="gestor_cd">Gestor do CD</SelectItem></SelectContent>
+            </Select>
+          </div>)}
+        </CardContent>
+      </Card>}
 
       <Card>
         <CardHeader><CardTitle className="text-base">Novo operador</CardTitle></CardHeader>
