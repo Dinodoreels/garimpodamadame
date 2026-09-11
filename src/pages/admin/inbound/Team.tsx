@@ -102,7 +102,7 @@ export default function InboundTeam() {
           {users.map(user => <div key={user.id} className="grid gap-2 border-b py-3 last:border-0 sm:grid-cols-[1fr_15rem] sm:items-center">
             <div><p className="font-medium">{user.full_name || user.email || 'Usuário'}</p>{user.full_name && <p className="text-xs text-muted-foreground">{user.email}</p>}</div>
             <Select value={user.role} onValueChange={role => assignRole.mutate({ user_id: user.id, role })} disabled={user.role === 'admin' || assignRole.isPending}>
-              <SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="admin">Administrador</SelectItem><SelectItem value="user">Cliente</SelectItem><SelectItem value="inbound">Inbound — cadastra</SelectItem><SelectItem value="qc">QC — aprova</SelectItem><SelectItem value="estoque">Estoque — endereça</SelectItem><SelectItem value="commerce">Comercial — libera</SelectItem><SelectItem value="gestor_cd">Gestor do CD</SelectItem></SelectContent>
+              <SelectTrigger><SelectValue placeholder={user.role === 'user' ? 'Escolha a função' : undefined} /></SelectTrigger><SelectContent><SelectItem value="admin">Administrador</SelectItem><SelectItem value="inbound">Inbound — cadastra</SelectItem><SelectItem value="qc">QC — aprova</SelectItem><SelectItem value="estoque">Estoque — endereça</SelectItem><SelectItem value="commerce">Comercial — libera</SelectItem><SelectItem value="gestor_cd">Gestor do CD</SelectItem></SelectContent>
             </Select>
           </div>)}
         </CardContent>

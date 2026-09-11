@@ -26,7 +26,7 @@ interface PendingRow {
 }
 
 const REASONS: Record<string, string> = {
-  low_confidence: 'IA sem certeza',
+  low_confidence: 'Identificação sem certeza',
   no_match: 'Sem correspondência no catálogo',
   manual: 'Enviado para conferência',
 };
@@ -61,7 +61,7 @@ export default function InboundPendings() {
 
   return (
     <div className="space-y-6">
-      <AdminPageHeader title="Pendências" subtitle="Peças que a IA não conseguiu identificar com segurança" />
+      <AdminPageHeader title="Pendências" subtitle="Peças que as fontes de produto não identificaram com segurança" />
 
       {isLoading ? (
         <div className="space-y-2">{[0, 1, 2].map(i => <Skeleton key={i} className="h-28 w-full" />)}</div>
