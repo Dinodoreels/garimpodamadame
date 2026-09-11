@@ -13,6 +13,7 @@ const roleFor: Record<string, string[]> = {
   resolve_pending: ['admin','gestor_cd','inbound','qc'],
   users: ['admin'],
   assign_role: ['admin'],
+  upload_photo: ['admin','gestor_cd','inbound','qc','estoque'],
 };
 
 Deno.serve(async (req) => {
@@ -78,7 +79,27 @@ Deno.serve(async (req) => {
         db.from('inbound_stock_movements').select('*,warehouse_locations(code)').eq('item_id', itemId).order('created_at', { ascending: false }),
         db.from('inbound_events').select('*').eq('entity_id', itemId).order('created_at', { ascending: false }),
       ]);
-      return jsonResponse({ ok: true, item: before, photos: photos.data ?? [], identification: identification.data ?? [], market: market.data ?? [], prices: prices.data ?? [], qc: qc.data ?? [], movements: movements.data ?? [], events: events.data ?? [] });
+      const signedPhotos = await Promise.all((photos.data ?? []).map(async photo => {
+        const { data: signed } = await db.storage.from('inbound-docs').createSignedUrl(photo.file_path, 900);
+        return { ...photo, signed_url: signed?.signedUrl ?? null };
+      }));
+      return jsonResponse({ ok: true, item: before, photos: signedPhotos, identification: identification.data ?? [], market: market.data ?? [], prices: prices.data ?? [], qc: qc.data ?? [], movements: movements.data ?? [], events: events.data ?? [] });
+    }
+    if (action === 'upload_photo') {
+      const encoded = String(body.photo_base64 ?? '');
+      const match = encoded.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+      if (!match) return jsonResponse({ ok: false, error: 'Envie uma foto JPG, PNG ou WebP.' }, 400);
+      const bytes = Uint8Array.from(atob(match[2]), c => c.charCodeAt(0));
+      if (bytes.byteLength > 5 * 1024 * 1024) return jsonResponse({ ok: false, error: 'A foto ultrapassa 5 MB.' }, 400);
+      const kind = ['product','evidence','qc','label'].includes(String(body.kind)) ? String(body.kind) : 'evidence';
+      const ext = match[1].includes('png') ? 'png' : match[1].includes('webp') ? 'webp' : 'jpg';
+      const path = `items/${itemId}/${crypto.randomUUID()}.${ext}`;
+      const upload = await db.storage.from('inbound-docs').upload(path, bytes, { contentType: match[1] });
+      if (upload.error) throw upload.error;
+      const { data: photo, error } = await db.from('inbound_item_photos').insert({ item_id: itemId, kind, file_path: path, caption: String(body.caption ?? '').trim() || null, mime_type: match[1], size_bytes: bytes.byteLength, created_by: user.id }).select().single();
+      if (error) { await db.storage.from('inbound-docs').remove([path]); throw error; }
+      await event(db, itemId, 'photo_added', null, { photo_id: photo.id, kind, caption: photo.caption }, user.id);
+      return jsonResponse({ ok: true, photo });
     }
     if (action === 'qc') {
       if (!['IDENTIFIED','QC_PENDING'].includes(before.state)) return jsonResponse({ ok: false, error: 'Este item não está aguardando qualidade.' }, 409);

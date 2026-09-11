@@ -71,16 +71,18 @@ const InboundReceiptDetail = lazy(() => import("./pages/admin/inbound/ReceiptDet
 const InboundLots = lazy(() => import("./pages/admin/inbound/Lots"));
 const InboundScan = lazy(() => import("./pages/admin/inbound/Scan"));
 const InboundTeam = lazy(() => import("./pages/admin/inbound/Team"));
+const InboundItems = lazy(() => import("./pages/admin/inbound/Items"));
+const InboundItemDetail = lazy(() => import("./pages/admin/inbound/ItemDetail"));
+const InboundLocations = lazy(() => import("./pages/admin/inbound/Locations"));
+const InboundHistory = lazy(() => import("./pages/admin/inbound/History"));
 const GalpaoLogin = lazy(() => import("./pages/GalpaoLogin"));
 const GalpaoScan = lazy(() => import("./pages/GalpaoScan"));
 const InboundTriage = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundTriage })));
-const InboundQC = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundQC })));
-const InboundIdentified = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundIdentified })));
+const InboundQC = lazy(() => import("./pages/admin/inbound/Items").then(m => ({ default: () => <m.default states={['IDENTIFIED','QC_PENDING']} title="Controle de qualidade" subtitle="Produtos aguardando aprovação, quarentena ou reprovação" /> })));
+const InboundIdentified = lazy(() => import("./pages/admin/inbound/Items"));
 const InboundPending = lazy(() => import("./pages/admin/inbound/Pendings"));
-const InboundStock = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundStock })));
-const InboundLocations = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLocations })));
+const InboundStock = lazy(() => import("./pages/admin/inbound/Items").then(m => ({ default: () => <m.default states={['QC_APPROVED','PRICED','ADDRESS_PENDING','STOCKED','AVAILABLE']} title="Estoque Inbound" subtitle="Endereçamento, guarda e liberação para os canais de venda" /> })));
 const InboundLabels = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLabels })));
-const InboundHistory = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundHistory })));
 
 const SellerLayout = lazy(() => import("./pages/seller/SellerLayout"));
 const SellerDashboard = lazy(() => import("./pages/seller/Dashboard"));
@@ -189,6 +191,7 @@ const App = () => (
               <Route path="inbound/triage" element={<InboundTriage />} />
               <Route path="inbound/qc" element={<InboundQC />} />
               <Route path="inbound/identified" element={<InboundIdentified />} />
+              <Route path="inbound/items/:id" element={<InboundItemDetail />} />
               <Route path="inbound/pending" element={<InboundPending />} />
               <Route path="inbound/stock" element={<InboundStock />} />
               <Route path="inbound/locations" element={<InboundLocations />} />

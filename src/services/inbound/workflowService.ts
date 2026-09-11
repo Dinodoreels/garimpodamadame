@@ -42,4 +42,5 @@ export const workflowService = {
   resolvePending: (pending_id: string, item_id: string, title: string, sku: string) => call({ action: 'resolve_pending', pending_id, item_id, title, sku }),
   users: () => call<{ users: InboundUser[] }>({ action: 'users' }).then(r => r.users),
   assignRole: (user_id: string, role: string) => call({ action: 'assign_role', user_id, role }),
+  uploadPhoto: (item_id: string, photo_base64: string, kind: string, caption?: string) => call({ action: 'upload_photo', item_id, photo_base64, kind, caption }),
 };

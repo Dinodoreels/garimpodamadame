@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { ArrowLeft, CheckCircle2, MapPin, PackageCheck, Send, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Camera, CheckCircle2, MapPin, PackageCheck, Send, ShieldCheck } from 'lucide-react';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { ItemStateBadge } from '@/components/admin/inbound/ItemStateBadge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { workflowService } from '@/services/inbound/workflowService';
 import { useAdmin } from '@/hooks/useAdmin';
+import { fileToCompressedDataUrl } from '@/lib/imageCapture';
 
 const money=(v:number|null|undefined)=>v==null?'—':v.toLocaleString('pt-BR',{style:'currency',currency:'BRL'});
 export default function InboundItemDetail(){
@@ -21,6 +22,7 @@ export default function InboundItemDetail(){
   const {data,isLoading}=useQuery({queryKey:['inbound','item',id],queryFn:()=>workflowService.detail(String(id)),enabled:!!id});
   const {data:locations=[]}=useQuery({queryKey:['inbound','locations'],queryFn:workflowService.locations});
   const item=data?.item; const [notes,setNotes]=useState(''); const [location,setLocation]=useState(''); const [price,setPrice]=useState(''); const [sku,setSku]=useState(''); const [title,setTitle]=useState('');
+  const [photoCaption,setPhotoCaption]=useState('');
   const allowed=(list:string[])=>roles.some(role=>list.includes(role));
   const refresh=()=>{qc.invalidateQueries({queryKey:['inbound','item',id]});qc.invalidateQueries({queryKey:['inbound','items']});};
   const action=useMutation({mutationFn:async(input:{kind:string;decision?:string})=>{if(!item)throw new Error('Item não encontrado');if(input.kind==='qc')return workflowService.qc(item.id,String(input.decision),notes);if(input.kind==='price')return workflowService.price(item.id,Number(price||item.approved_price||item.suggested_price),notes);if(input.kind==='address')return workflowService.address(item.id,location||item.location_id||'');if(input.kind==='stock')return workflowService.stock(item.id);return workflowService.release(item.id,title||item.title||'',sku||item.sku||'',Number(price||item.approved_price||item.suggested_price),notes);},onSuccess:()=>{refresh();toast.success('Etapa concluída');},onError:(e:Error)=>toast.error('Não foi possível concluir',{description:e.message})});
