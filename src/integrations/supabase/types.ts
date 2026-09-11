@@ -3904,6 +3904,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_lot_processed_units: {
+        Args: { target_lot_id: string; units_to_add: number }
+        Returns: undefined
+      }
       is_cd_manager: { Args: { _user_id: string }; Returns: boolean }
       is_store_manager: {
         Args: { _store_id: string; _user_id: string }
