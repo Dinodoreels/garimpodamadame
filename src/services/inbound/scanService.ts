@@ -39,6 +39,8 @@ export interface IdentifyResult {
     estimated_price_brl: number | null;
     confidence: number;
     reasoning_note: string | null;
+    price?: number | null;
+    source?: string;
   };
   candidates?: Array<Record<string, unknown>>;
   result_ids?: string[];

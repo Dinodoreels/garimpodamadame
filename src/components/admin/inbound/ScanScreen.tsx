@@ -150,6 +150,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
         ai_confidence: identified?.confidence ?? null,
         ai_data: identified?.result ?? identified?.match ?? null,
         photo_base64: photo,
+        identification_result_ids: identified?.result_ids,
       });
       setTimes(t => [...t.slice(-19), Math.round((Date.now() - startedAt.current) / 1000)]);
       if (res.pending) {
@@ -260,9 +261,9 @@ export function ScanScreen({ fullscreen = false }: Props) {
           {identified?.source === 'catalog' && (
             <Badge variant="secondary" className="text-sm">Encontrado no catálogo · SKU {identified.match?.sku ?? '—'}</Badge>
           )}
-          {identified?.source === 'ai' && (
+          {identified && identified.source !== 'catalog' && (
             <Badge variant="secondary" className="text-sm">
-              IA · confiança {Math.round((identified.confidence ?? 0) * 100)}%
+              {identified.source === 'cosmos' ? 'Base GTIN' : identified.source === 'google_lens' ? 'Busca visual' : 'Fontes externas'} · confiança {Math.round((identified.confidence ?? 0) * 100)}%
             </Badge>
           )}
           {aiWarning && (
