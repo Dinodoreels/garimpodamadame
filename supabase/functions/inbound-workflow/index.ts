@@ -10,6 +10,9 @@ const roleFor: Record<string, string[]> = {
   address: ['admin','gestor_cd','estoque'],
   stock: ['admin','gestor_cd','estoque'],
   release: ['admin','gestor_cd','commerce'],
+  resolve_pending: ['admin','gestor_cd','inbound','qc'],
+  users: ['admin'],
+  assign_role: ['admin'],
 };
 
 Deno.serve(async (req) => {
@@ -21,6 +24,26 @@ Deno.serve(async (req) => {
   if (!user || !(roleFor[action] ?? []).some(role => user.roles.includes(role))) return jsonResponse({ ok: false, error: 'Sem permissão para esta etapa.' }, 403);
 
   try {
+    if (action === 'users') {
+      const { data: authData, error: authError } = await db.auth.admin.listUsers({ page: 1, perPage: 200 });
+      if (authError) throw authError;
+      const ids = authData.users.map(account => account.id);
+      const [{ data: profiles }, { data: roles }] = await Promise.all([
+        db.from('profiles').select('id,full_name').in('id', ids),
+        db.from('user_roles').select('user_id,role').in('user_id', ids),
+      ]);
+      return jsonResponse({ ok: true, users: authData.users.map(account => ({ id: account.id, email: account.email, full_name: profiles?.find(profile => profile.id === account.id)?.full_name ?? null, role: roles?.find(role => role.user_id === account.id)?.role ?? 'user' })) });
+    }
+    if (action === 'assign_role') {
+      const allowedRoles = ['inbound','qc','estoque','commerce','gestor_cd'];
+      const role = String(body.role ?? '');
+      const target = String(body.user_id ?? '');
+      if (!allowedRoles.includes(role) || !target) return jsonResponse({ ok: false, error: 'Usuário ou perfil inválido.' }, 400);
+      const { error } = await db.from('user_roles').upsert({ user_id: target, role }, { onConflict: 'user_id' });
+      if (error) throw error;
+      await db.from('inbound_events').insert({ entity_type: 'user_role', entity_id: target, action: 'role_assigned', after_data: { role }, actor_id: user.id, source: 'workflow' });
+      return jsonResponse({ ok: true });
+    }
     if (action === 'list') {
       let query = db.from('inbound_items').select('id,lot_id,receipt_id,state,condition_code,barcode,quantity,sku,title,brand,category,photo_path,ai_source,ai_confidence,cost,suggested_price,approved_price,location_id,created_at,updated_at,lots(code),warehouse_locations(code)').order('created_at', { ascending: false }).limit(500);
       if (body.states?.length) query = query.in('state', body.states);
@@ -96,6 +119,16 @@ Deno.serve(async (req) => {
       const { data, error } = await db.rpc('release_inbound_item', { p_item_id: itemId, p_actor_id: user.id, p_title: body.title, p_sku: body.sku, p_price: Number(body.price), p_notes: body.notes ?? null });
       if (error) throw error;
       return jsonResponse({ ok: true, release: data });
+    }
+    if (action === 'resolve_pending') {
+      if (before.state !== 'SCAN_PENDING') return jsonResponse({ ok: false, error: 'Esta pendência já foi tratada.' }, 409);
+      const title = String(body.title ?? '').trim();
+      const sku = String(body.sku ?? '').trim().toUpperCase();
+      if (!title) return jsonResponse({ ok: false, error: 'Informe o produto identificado.' }, 400);
+      await db.from('inbound_items').update({ title, sku: sku || null, state: 'IDENTIFIED' }).eq('id', itemId);
+      await db.from('inbound_pendings').update({ status: 'resolved', resolution: 'Identificado manualmente', resolved_by: user.id, resolved_at: new Date().toISOString() }).eq('id', body.pending_id).eq('item_id', itemId).eq('status', 'open');
+      await event(db, itemId, 'pending_resolved', before, { state: 'IDENTIFIED', title, sku: sku || null }, user.id);
+      return jsonResponse({ ok: true, state: 'IDENTIFIED' });
     }
     return jsonResponse({ ok: false, error: 'Ação desconhecida.' }, 400);
   } catch (error) {

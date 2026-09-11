@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { workflowService } from '@/services/inbound/workflowService';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -49,30 +50,7 @@ export default function InboundPendings() {
 
   const resolve = useMutation({
     mutationFn: async ({ row, title, sku }: { row: PendingRow; title: string; sku: string }) => {
-      const { data: user } = await supabase.auth.getUser();
-      const up = await supabase
-        .from('inbound_items' as never)
-        .update({ title, sku: sku || null, state: 'IDENTIFIED' } as never)
-        .eq('id', row.item_id);
-      if (up.error) throw up.error;
-      const pd = await supabase
-        .from('inbound_pendings' as never)
-        .update({
-          status: 'resolved',
-          resolution: 'Identificado manualmente',
-          resolved_by: user.user?.id ?? null,
-          resolved_at: new Date().toISOString(),
-        } as never)
-        .eq('id', row.id);
-      if (pd.error) throw pd.error;
-      await supabase.from('inbound_events' as never).insert({
-        entity_type: 'inbound_item',
-        entity_id: row.item_id,
-        action: 'pending_resolved',
-        after_data: { title, sku },
-        actor_id: user.user?.id ?? null,
-        source: 'painel',
-      } as never);
+      await workflowService.resolvePending(row.id, row.item_id, title, sku);
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['inbound'] });

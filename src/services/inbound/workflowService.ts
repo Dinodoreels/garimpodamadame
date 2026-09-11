@@ -14,6 +14,8 @@ export interface WarehouseLocation {
   shelf: string | null; bin: string | null; description: string | null; capacity: number | null; is_active: boolean;
 }
 
+export interface InboundUser { id: string; email: string | null; full_name: string | null; role: string }
+
 async function call<T>(body: Record<string, unknown>): Promise<T> {
   const { data, error } = await supabase.functions.invoke('inbound-workflow', { body });
   if (error) {
@@ -38,4 +40,6 @@ export const workflowService = {
   stock: (item_id: string) => call({ action: 'stock', item_id }),
   release: (item_id: string, title: string, sku: string, price: number, notes?: string) => call({ action: 'release', item_id, title, sku, price, notes }),
   resolvePending: (pending_id: string, item_id: string, title: string, sku: string) => call({ action: 'resolve_pending', pending_id, item_id, title, sku }),
+  users: () => call<{ users: InboundUser[] }>({ action: 'users' }).then(r => r.users),
+  assignRole: (user_id: string, role: string) => call({ action: 'assign_role', user_id, role }),
 };
