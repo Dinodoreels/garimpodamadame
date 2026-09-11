@@ -1,6 +1,7 @@
 // Identificação automática de produto (Garimpo Scan) via Lovable AI Gateway.
 // Recebe código de barras e/ou foto e devolve identificação estruturada + confiança.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.89.0";
+import { adminClient, resolveOperator, resolveAdminUser, CD_SCAN_ROLES } from "../_shared/operator.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
