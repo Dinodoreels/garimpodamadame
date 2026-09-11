@@ -6,6 +6,7 @@ export function useAdmin() {
   const { user, loading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
   const [canAccessInbound, setCanAccessInbound] = useState(false);
+  const [roles, setRoles] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -13,6 +14,7 @@ export function useAdmin() {
       if (!user) {
         setIsAdmin(false);
         setCanAccessInbound(false);
+        setRoles([]);
         setLoading(false);
         return;
       }
@@ -28,8 +30,10 @@ export function useAdmin() {
           console.warn('Non-blocking: Error checking admin role:', error.message);
           setIsAdmin(false);
           setCanAccessInbound(false);
+          setRoles([]);
         } else {
           const roles = (data ?? []).map(({ role }) => String(role));
+          setRoles(roles);
           setIsAdmin(roles.includes('admin'));
           setCanAccessInbound(roles.length > 0);
         }
@@ -37,6 +41,7 @@ export function useAdmin() {
         console.warn('Non-blocking: Error checking admin role');
         setIsAdmin(false);
         setCanAccessInbound(false);
+        setRoles([]);
       } finally {
         setLoading(false);
       }
@@ -47,5 +52,5 @@ export function useAdmin() {
     }
   }, [user, authLoading]);
 
-  return { isAdmin, canAccessInbound, loading: loading || authLoading };
+  return { isAdmin, canAccessInbound, roles, loading: loading || authLoading };
 }

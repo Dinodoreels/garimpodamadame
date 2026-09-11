@@ -1287,11 +1287,129 @@ export type Database = {
         }
         Relationships: []
       }
+      inbound_identification_results: {
+        Row: {
+          brand: string | null
+          cache_key: string | null
+          category: string | null
+          confidence: number | null
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          gtin: string | null
+          id: string
+          image_url: string | null
+          is_selected: boolean
+          item_id: string | null
+          product_url: string | null
+          query_type: string
+          query_value: string | null
+          raw_data: Json | null
+          source: string
+          title: string | null
+        }
+        Insert: {
+          brand?: string | null
+          cache_key?: string | null
+          category?: string | null
+          confidence?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          gtin?: string | null
+          id?: string
+          image_url?: string | null
+          is_selected?: boolean
+          item_id?: string | null
+          product_url?: string | null
+          query_type: string
+          query_value?: string | null
+          raw_data?: Json | null
+          source: string
+          title?: string | null
+        }
+        Update: {
+          brand?: string | null
+          cache_key?: string | null
+          category?: string | null
+          confidence?: number | null
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          gtin?: string | null
+          id?: string
+          image_url?: string | null
+          is_selected?: boolean
+          item_id?: string | null
+          product_url?: string | null
+          query_type?: string
+          query_value?: string | null
+          raw_data?: Json | null
+          source?: string
+          title?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_identification_results_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbound_item_photos: {
+        Row: {
+          caption: string | null
+          created_at: string
+          created_by: string | null
+          file_path: string
+          id: string
+          item_id: string
+          kind: string
+          mime_type: string | null
+          size_bytes: number | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_path: string
+          id?: string
+          item_id: string
+          kind?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          created_by?: string | null
+          file_path?: string
+          id?: string
+          item_id?: string
+          kind?: string
+          mime_type?: string | null
+          size_bytes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_item_photos_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inbound_items: {
         Row: {
           ai_confidence: number | null
           ai_data: Json | null
           ai_source: string | null
+          approved_at: string | null
+          approved_by: string | null
+          approved_price: number | null
           attributes: Json
           barcode: string | null
           brand: string | null
@@ -1301,15 +1419,21 @@ export type Database = {
           created_at: string
           created_by: string | null
           id: string
+          location_id: string | null
           lot_id: string | null
           notes: string | null
           operator_code: string | null
           photo_path: string | null
           product_id: string | null
+          qc_at: string | null
+          qc_by: string | null
           quantity: number
           receipt_id: string | null
+          released_at: string | null
+          released_by: string | null
           sku: string | null
           state: string
+          stocked_at: string | null
           suggested_price: number | null
           title: string | null
           updated_at: string
@@ -1319,6 +1443,9 @@ export type Database = {
           ai_confidence?: number | null
           ai_data?: Json | null
           ai_source?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_price?: number | null
           attributes?: Json
           barcode?: string | null
           brand?: string | null
@@ -1328,15 +1455,21 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          location_id?: string | null
           lot_id?: string | null
           notes?: string | null
           operator_code?: string | null
           photo_path?: string | null
           product_id?: string | null
+          qc_at?: string | null
+          qc_by?: string | null
           quantity?: number
           receipt_id?: string | null
+          released_at?: string | null
+          released_by?: string | null
           sku?: string | null
           state?: string
+          stocked_at?: string | null
           suggested_price?: number | null
           title?: string | null
           updated_at?: string
@@ -1346,6 +1479,9 @@ export type Database = {
           ai_confidence?: number | null
           ai_data?: Json | null
           ai_source?: string | null
+          approved_at?: string | null
+          approved_by?: string | null
+          approved_price?: number | null
           attributes?: Json
           barcode?: string | null
           brand?: string | null
@@ -1355,21 +1491,34 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           id?: string
+          location_id?: string | null
           lot_id?: string | null
           notes?: string | null
           operator_code?: string | null
           photo_path?: string | null
           product_id?: string | null
+          qc_at?: string | null
+          qc_by?: string | null
           quantity?: number
           receipt_id?: string | null
+          released_at?: string | null
+          released_by?: string | null
           sku?: string | null
           state?: string
+          stocked_at?: string | null
           suggested_price?: number | null
           title?: string | null
           updated_at?: string
           variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "inbound_items_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "inbound_items_lot_id_fkey"
             columns: ["lot_id"]
@@ -1396,6 +1545,56 @@ export type Database = {
             columns: ["variant_id"]
             isOneToOne: false
             referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbound_market_references: {
+        Row: {
+          captured_at: string
+          condition: string | null
+          created_by: string | null
+          currency: string
+          id: string
+          image_url: string | null
+          item_id: string
+          price: number | null
+          source: string
+          title: string | null
+          url: string | null
+        }
+        Insert: {
+          captured_at?: string
+          condition?: string | null
+          created_by?: string | null
+          currency?: string
+          id?: string
+          image_url?: string | null
+          item_id: string
+          price?: number | null
+          source: string
+          title?: string | null
+          url?: string | null
+        }
+        Update: {
+          captured_at?: string
+          condition?: string | null
+          created_by?: string | null
+          currency?: string
+          id?: string
+          image_url?: string | null
+          item_id?: string
+          price?: number | null
+          source?: string
+          title?: string | null
+          url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_market_references_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_items"
             referencedColumns: ["id"]
           },
         ]
@@ -1456,6 +1655,149 @@ export type Database = {
             columns: ["lot_id"]
             isOneToOne: false
             referencedRelation: "lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbound_price_history: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          item_id: string
+          new_value: number
+          old_value: number | null
+          price_type: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id: string
+          new_value: number
+          old_value?: number | null
+          price_type: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          item_id?: string
+          new_value?: number
+          old_value?: number | null
+          price_type?: string
+          reason?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_price_history_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbound_qc_checks: {
+        Row: {
+          checklist: Json
+          created_at: string
+          created_by: string | null
+          decision: string
+          id: string
+          item_id: string
+          notes: string | null
+        }
+        Insert: {
+          checklist?: Json
+          created_at?: string
+          created_by?: string | null
+          decision: string
+          id?: string
+          item_id: string
+          notes?: string | null
+        }
+        Update: {
+          checklist?: Json
+          created_at?: string
+          created_by?: string | null
+          decision?: string
+          id?: string
+          item_id?: string
+          notes?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_qc_checks_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inbound_stock_movements: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          from_state: string | null
+          id: string
+          item_id: string
+          location_id: string | null
+          movement_type: string
+          notes: string | null
+          quantity: number
+          to_state: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          from_state?: string | null
+          id?: string
+          item_id: string
+          location_id?: string | null
+          movement_type: string
+          notes?: string | null
+          quantity: number
+          to_state?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          from_state?: string | null
+          id?: string
+          item_id?: string
+          location_id?: string | null
+          movement_type?: string
+          notes?: string | null
+          quantity?: number
+          to_state?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inbound_stock_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inbound_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_stock_movements_location_id_fkey"
+            columns: ["location_id"]
+            isOneToOne: false
+            referencedRelation: "warehouse_locations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inbound_stock_movements_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
         ]
@@ -3854,6 +4196,54 @@ export type Database = {
         }
         Relationships: []
       }
+      warehouse_locations: {
+        Row: {
+          aisle: string | null
+          bin: string | null
+          capacity: number | null
+          code: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          id: string
+          is_active: boolean
+          rack: string | null
+          shelf: string | null
+          updated_at: string
+          zone: string | null
+        }
+        Insert: {
+          aisle?: string | null
+          bin?: string | null
+          capacity?: number | null
+          code: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          rack?: string | null
+          shelf?: string | null
+          updated_at?: string
+          zone?: string | null
+        }
+        Update: {
+          aisle?: string | null
+          bin?: string | null
+          capacity?: number | null
+          code?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          rack?: string | null
+          shelf?: string | null
+          updated_at?: string
+          zone?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -3937,6 +4327,17 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      release_inbound_item: {
+        Args: {
+          p_actor_id: string
+          p_item_id: string
+          p_notes?: string
+          p_price: number
+          p_sku: string
+          p_title: string
+        }
+        Returns: Json
       }
       shopify_is_enabled: { Args: never; Returns: boolean }
       validate_discount_code: {

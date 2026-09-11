@@ -21,10 +21,13 @@ function slugSku(base: string, suffix: string | null) {
   return suffix ? `${clean}-${suffix}` : clean;
 }
 
+const normalizeSku = (value: string) => value.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+
 async function findBlingProductBySku(sku: string): Promise<string | null> {
   const { status, data } = await callBling({ path: "/produtos", query: { codigo: sku, limite: 1 } });
   if (status >= 400) return null;
-  const found = (data?.data ?? []).find((p: any) => String(p.codigo) === sku);
+  const normalized = normalizeSku(sku);
+  const found = (data?.data ?? []).find((p: any) => normalizeSku(String(p.codigo ?? '')) === normalized);
   return found ? String(found.id) : null;
 }
 
