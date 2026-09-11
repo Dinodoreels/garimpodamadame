@@ -71,9 +71,9 @@ Deno.serve(async (req) => {
         : Number(body.ai_confidence);
       const source = String(body.ai_source ?? 'manual');
       const hasProduct = !!body.product_id || !!body.variant_id;
-      const needsReview = !hasProduct && source !== 'manual'
-        && !hasProduct
-        && (confidence === null || confidence < CONFIDENCE_THRESHOLD);
+      const forceReview = body.force_review === true;
+      const needsReview = forceReview || (!hasProduct && source !== 'manual'
+        && (confidence === null || confidence < CONFIDENCE_THRESHOLD));
 
       const quantity = Math.max(1, Number(body.quantity ?? 1));
       const state = needsReview ? 'SCAN_PENDING' : 'IDENTIFIED';
@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
         await db.from('inbound_pendings').insert({
           item_id: item.id,
           lot_id: lotId,
-          reason: 'low_confidence',
+          reason: forceReview ? 'manual' : 'low_confidence',
           ai_suggestions: body.ai_data ?? null,
           created_by: user?.id ?? null,
         });
