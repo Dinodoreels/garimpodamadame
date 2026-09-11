@@ -30,6 +30,10 @@ import {
   CalendarClock,
   Music2,
   Wallet,
+  Truck,
+  ScanLine,
+  MapPin,
+  History,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
