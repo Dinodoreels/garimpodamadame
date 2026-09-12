@@ -162,7 +162,7 @@ export function Header() {
             <img 
               src={cmsTheme.logo_url} 
               alt={siteName}
-             className="h-8 lg:h-10 w-auto group-hover:opacity-70 transition-opacity dark:invert"
+             className="h-8 lg:h-10 w-auto group-hover:opacity-70 transition-opacity"
            />
          ) : (
            <span className="font-display text-xl lg:text-2xl tracking-wider font-light group-hover:opacity-70 transition-opacity">

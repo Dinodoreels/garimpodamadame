@@ -74,7 +74,7 @@ export function Footer() {
           {/* Brand */}
           <div className="space-y-4 sm:col-span-2 lg:col-span-1">
             <Link to="/" className="flex items-center gap-2">
-             <img src={logoUrl} alt={siteName} className="h-12 w-auto invert dark:invert-0" />
+              <img src={logoUrl} alt={siteName} className="h-12 w-auto" />
               <span className="font-display text-lg font-semibold">
                {siteName}
               </span>
