@@ -35,9 +35,6 @@ export function Header() {
     const { theme: colorMode, setTheme: setColorMode } = useTheme();
     const toggleColorMode = () => setColorMode(colorMode === 'dark' ? 'light' : 'dark');
  
-    // Use theme name or default
-     const siteName = cmsTheme?.name || 'VANGUARD STORE';
-    
      // Dynamic navigation from theme texts
      const themeTexts = (cmsTheme as unknown as Record<string, unknown>)?.texts as Record<string, unknown> | undefined;
     const navigation = (themeTexts?.nav_items as Array<{ name: string; href: string }>) || defaultNavigation;
@@ -158,17 +155,9 @@ export function Header() {
 
         {/* Logo */}
         <Link to="/" className="flex items-center group">
-         {cmsTheme?.logo_url ? (
-            <img 
-              src={cmsTheme.logo_url} 
-              alt={siteName}
-             className="h-8 lg:h-10 w-auto group-hover:opacity-70 transition-opacity"
-           />
-         ) : (
-           <span className="font-display text-xl lg:text-2xl tracking-wider font-light group-hover:opacity-70 transition-opacity">
-             {siteName}
-           </span>
-         )}
+          <span className="font-display text-lg sm:text-xl lg:text-2xl font-medium group-hover:opacity-70 transition-opacity whitespace-nowrap">
+            Garimpo da Madame
+          </span>
         </Link>
 
         {/* Desktop navigation */}
