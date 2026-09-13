@@ -9,7 +9,8 @@ import { useAdmin } from '@/hooks/useAdmin';
 import { useUserRole } from '@/hooks/useUserRole';
 import { CartDrawer } from '@/components/cart/CartDrawer';
 import { cn } from '@/lib/utils';
- import { useCMSThemeContext } from '@/providers/CMSThemeProvider';
+import logo from '@/assets/logo.png';
+import { useCMSThemeContext } from '@/providers/CMSThemeProvider';
 import { useTheme } from 'next-themes';
 
 const defaultNavigation = [
@@ -38,6 +39,7 @@ export function Header() {
      // Dynamic navigation from theme texts
      const themeTexts = (cmsTheme as unknown as Record<string, unknown>)?.texts as Record<string, unknown> | undefined;
     const navigation = (themeTexts?.nav_items as Array<{ name: string; href: string }>) || defaultNavigation;
+    const logoUrl = cmsTheme?.logo_url || logo;
 
   // Handle scroll for blur effect
   useEffect(() => {
@@ -153,11 +155,16 @@ export function Header() {
           </SheetContent>
         </Sheet>
 
-        {/* Logo */}
+        {/* Brand */}
         <Link to="/" className="flex items-center group">
-          <span className="font-display text-lg sm:text-xl lg:text-2xl font-medium group-hover:opacity-70 transition-opacity whitespace-nowrap">
+          <span className="font-display text-lg sm:text-xl font-medium group-hover:opacity-70 transition-opacity whitespace-nowrap lg:hidden">
             Garimpo da Madame
           </span>
+          <img
+            src={logoUrl}
+            alt="Garimpo da Madame"
+            className="hidden lg:block h-14 w-auto object-contain group-hover:opacity-70 transition-opacity"
+          />
         </Link>
 
         {/* Desktop navigation */}
