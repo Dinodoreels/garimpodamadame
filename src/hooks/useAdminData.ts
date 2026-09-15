@@ -18,6 +18,7 @@ export interface AdminOrder {
   profile?: {
     full_name: string | null;
     phone: string | null;
+    cpf?: string | null;
   };
   source?: string;
   created_by?: string | null;
@@ -60,7 +61,7 @@ export function useAdminData() {
       .select(`
         *,
         order_items (*),
-        profiles:user_id (full_name, phone)
+        profiles:user_id (full_name, phone, cpf)
       `)
       .order('created_at', { ascending: false });
 
@@ -202,7 +203,7 @@ export function useAdminData() {
 
   // Atualiza automaticamente quando vendas/itens/estoque mudam em qualquer canal
   useRealtimeRefetch(
-    ['orders', 'order_items', 'product_variants'],
+    ['orders', 'order_items', 'product_variants', 'fiscal_documents'],
     () => {
       if (!isVendedor) return;
       fetchOrders();

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Truck, Gift, Search, Edit2, Save, X, Loader2, Package, Settings as SettingsIcon, Plug, Bell, Eye, EyeOff, CheckCircle2, Settings2, Power, Sparkles, BarChart3, CreditCard, MessageSquare } from 'lucide-react';
+import { UserPlus, Truck, Gift, Search, Edit2, Save, X, Loader2, Package, Settings as SettingsIcon, Plug, Bell, Eye, EyeOff, CheckCircle2, Settings2, Power, Sparkles, BarChart3, CreditCard, MessageSquare, FileCheck2 } from 'lucide-react';
 import { useIntegrations, useSaveIntegrations, type IntegrationsConfig } from '@/hooks/useIntegrations';
 import { PaymentTab } from '@/components/admin/integrations/PaymentTab';
 import { WhatsAppTab } from '@/components/admin/integrations/WhatsAppTab';
@@ -11,6 +11,7 @@ import { PaymentTestTab } from '@/components/admin/integrations/PaymentTestTab';
 import { ReportsTab } from '@/components/admin/integrations/ReportsTab';
 import { ShopifyTab } from '@/components/admin/integrations/ShopifyTab';
 import { BlingTab } from '@/components/admin/integrations/BlingTab';
+import { FiscalTab } from '@/components/admin/integrations/FiscalTab';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -715,6 +716,10 @@ export default function Settings() {
             <CreditCard className="h-4 w-4" />
             Teste Pagamento
           </TabsTrigger>
+          <TabsTrigger value="fiscal" className="gap-2">
+            <FileCheck2 className="h-4 w-4" />
+            Fiscal
+          </TabsTrigger>
           <TabsTrigger value="reports" className="gap-2">
             <MessageSquare className="h-4 w-4" />
             Relatórios
@@ -756,6 +761,10 @@ export default function Settings() {
 
         <TabsContent value="payment-test" className="mt-6">
           <PaymentTestTab />
+        </TabsContent>
+
+        <TabsContent value="fiscal" className="mt-6">
+          <FiscalTab />
         </TabsContent>
 
         <TabsContent value="reports" className="mt-6">

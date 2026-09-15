@@ -77,10 +77,24 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Calculate totals with discount
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    const discountValue = discount_amount || 0
-    const total = subtotal - discountValue + (shipping_cost || 0)
+    if (items.length > 100 || items.some((item) => !item.variant_id || !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 100)) {
+      return new Response(JSON.stringify({ success: false, error: 'Itens do pedido inválidos' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const variantIds = [...new Set(items.map((item) => item.variant_id))]
+    const { data: variants, error: variantsError } = await supabase.from('product_variants').select('id, product_id, title, price, inventory_quantity, is_available, products(title, product_images(url, position))').in('id', variantIds)
+    if (variantsError || !variants || variants.length !== variantIds.length) throw new Error('Não foi possível conferir os produtos')
+    const variantsById = new Map(variants.map((variant: any) => [variant.id, variant]))
+    const verifiedItems = items.map((item) => {
+      const variant: any = variantsById.get(item.variant_id)
+      if (!variant || !variant.is_available || Number(variant.inventory_quantity) < item.quantity) throw new Error('Um produto está indisponível ou sem estoque')
+      return { ...item, product_id: variant.product_id, title: variant.products?.title ?? item.title, variant_title: variant.title, price: Number(variant.price), image_url: variant.products?.product_images?.sort((a: any, b: any) => a.position - b.position)?.[0]?.url ?? item.image_url }
+    })
+    // Calculate totals from prices stored by the shop, never from browser values
+    const subtotal = verifiedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const discountValue = Math.max(0, Number(discount_amount || 0))
+    const shippingValue = Math.max(0, Number(shipping_cost || 0))
+    if (discountValue > subtotal || !Number.isFinite(shippingValue)) throw new Error('Valores de desconto ou frete inválidos')
+    const total = subtotal - discountValue + shippingValue
 
     // Generate order number
     const { data: orderNumberData, error: orderNumberError } = await supabase
@@ -101,7 +115,7 @@ Deno.serve(async (req) => {
         order_number: orderNumber,
         status: 'pending',
         subtotal,
-        shipping_cost: shipping_cost || 0,
+        shipping_cost: shippingValue,
         total,
         shipping_address,
         discount_code: discount_code || null,
@@ -153,7 +167,7 @@ Deno.serve(async (req) => {
     }
 
     // Create order items
-    const orderItems = items.map(item => ({
+    const orderItems = verifiedItems.map(item => ({
       order_id: order.id,
       product_id: item.product_id,
       variant_id: item.variant_id,
@@ -184,7 +198,7 @@ Deno.serve(async (req) => {
       throw new Error('Token do Mercado Pago não configurado')
     }
 
-    const preferenceItems = items.map(item => {
+    const preferenceItems = verifiedItems.map(item => {
       // Only include picture_url if it's a valid URL (not base64)
       const isValidUrl = item.image_url && item.image_url.startsWith('http');
       return {
@@ -198,18 +212,20 @@ Deno.serve(async (req) => {
     })
 
     // Add shipping as an item if present
-    if (shipping_cost && shipping_cost > 0) {
+    if (shippingValue > 0) {
       preferenceItems.push({
         id: 'shipping',
         title: 'Frete',
         quantity: 1,
-        unit_price: shipping_cost,
+        unit_price: shippingValue,
         currency_id: 'BRL',
         picture_url: undefined,
       })
     }
 
-    const projectUrl = req.headers.get('origin') || 'https://storenatalhapardal.lovable.app'
+    const requestOrigin = req.headers.get('origin') || ''
+    const allowedOrigins = ['https://ogarimpodigital.com.br', 'https://www.ogarimpodigital.com.br', 'https://garimpodamadame.lovable.app']
+    const projectUrl = allowedOrigins.includes(requestOrigin) || requestOrigin.endsWith('.lovable.app') ? requestOrigin : 'https://ogarimpodigital.com.br'
 
     const preference = {
       items: preferenceItems,
@@ -221,7 +237,7 @@ Deno.serve(async (req) => {
         pending: `${projectUrl}/checkout/pending?order=${orderNumber}`,
       },
       auto_return: 'approved',
-      statement_descriptor: 'VANGUARD STORE',
+      statement_descriptor: 'GARIMPO MADAME',
       payment_methods: {
         excluded_payment_methods: [],
         excluded_payment_types: [{ id: 'ticket' }],
@@ -231,8 +247,6 @@ Deno.serve(async (req) => {
         email: claimsData.user.email,
       },
     }
-
-    console.log('Creating Mercado Pago preference:', JSON.stringify(preference, null, 2))
 
     const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
@@ -257,10 +271,8 @@ Deno.serve(async (req) => {
     // Update order with Mercado Pago preference ID
     await supabase
       .from('orders')
-      .update({ shopify_checkout_id: mpData.id }) // Reusing field for MP preference ID
+      .update({ shopify_checkout_id: mpData.id, mercadopago_preference_id: mpData.id, payment_attempts: 1 })
       .eq('id', order.id)
-
-    console.log('Checkout created successfully:', mpData.id)
 
     return new Response(
       JSON.stringify({

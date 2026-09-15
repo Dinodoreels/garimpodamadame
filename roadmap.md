@@ -18,8 +18,18 @@
 - [x] Gerar automaticamente SKUs ausentes no Bling e liberar os produtos na revisão
 - [x] Exibir o padrão único de sincronização para TikTok Shop, Mercado Livre, Shopee e Amazon
 - [x] Validar a automação com os produtos reais da conta conectada
-- [ ] Corrigir a atualização de estoque por depósito e importar imagens dos 52 produtos vinculados
+- [x] Corrigir a atualização de estoque por depósito e importar imagens dos 52 produtos vinculados
 - [x] Importar e atualizar pedidos reais dos marketplaces via Bling, com cliente, itens, frete, situação e histórico
 - [x] Exigir aprovação por lote com motivo e histórico antes de aplicar produtos e estoque
 - [x] Sincronizar o estoque no Bling e no painel imediatamente após aplicar o lote
 - [x] Mostrar fotos importadas e acesso direto aos produtos vinculados no painel
+
+# Mercado Pago e Fiscal
+
+- [x] Proteger a credencial do Mercado Pago fora das configurações visíveis
+- [x] Conferir preço, disponibilidade e valor pago antes de confirmar o pedido
+- [x] Criar dados fiscais, documentos e histórico com acessos por função
+- [x] Criar configuração fiscal e situação da nota dentro de cada pedido
+- [x] Preparar emissão e consulta da NF-e pelo Bling para o cliente final
+- [ ] Cadastrar a credencial segura do Mercado Pago (aguardando preenchimento do administrador)
+- [ ] Preencher os dados fiscais reais e validar impostos/certificado no Bling

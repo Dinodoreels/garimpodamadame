@@ -18,8 +18,6 @@ Deno.serve(async (req) => {
     )
 
     const body = await req.json()
-    console.log('Webhook received:', JSON.stringify(body, null, 2))
-
     const { type, data } = body
 
     // Handle payment notification
@@ -48,8 +46,6 @@ Deno.serve(async (req) => {
       }
 
       const payment = await paymentResponse.json()
-      console.log('Payment details:', JSON.stringify(payment, null, 2))
-
       const orderId = payment.external_reference
       if (!orderId) {
         console.log('No external_reference (order_id) in payment')
@@ -85,11 +81,24 @@ Deno.serve(async (req) => {
       const paymentMethod = payment.payment_method_id || payment.payment_type_id || null
       const rejectionReason = payment.status_detail || null
 
+      const { data: currentOrder } = await supabase.from('orders').select('status, total, payment_attempts, mercadopago_payment_id').eq('id', orderId).maybeSingle()
+      if (!currentOrder) return new Response('OK', { headers: corsHeaders })
+      const paidAmount = Number(payment.transaction_amount ?? 0)
+      if (payment.status === 'approved' && Math.abs(paidAmount - Number(currentOrder.total)) > 0.01) {
+        await supabase.from('orders').update({ last_payment_error: 'Valor recebido diferente do total do pedido', payment_status_detail: 'amount_mismatch', mercadopago_payment_id: String(paymentId) }).eq('id', orderId)
+        return new Response('OK', { headers: corsHeaders })
+      }
+      const alreadyProcessed = currentOrder.mercadopago_payment_id === String(paymentId) && currentOrder.status === orderStatus
+      if (alreadyProcessed) return new Response('OK', { headers: corsHeaders })
+
       // Update order status
       const updateData: Record<string, any> = { 
         status: orderStatus,
         updated_at: new Date().toISOString(),
         payment_method: paymentMethod,
+        mercadopago_payment_id: String(paymentId),
+        payment_status_detail: rejectionReason,
+        paid_amount: payment.status === 'approved' ? paidAmount : null,
       }
       
       if (paidAt) {
@@ -98,12 +107,7 @@ Deno.serve(async (req) => {
       
       if (orderStatus === 'payment_failed' && rejectionReason) {
         updateData.last_payment_error = rejectionReason
-        updateData.payment_attempts = (await supabase
-          .from('orders')
-          .select('payment_attempts')
-          .eq('id', orderId)
-          .single()
-        ).data?.payment_attempts || 0 + 1
+        updateData.payment_attempts = Number(currentOrder.payment_attempts || 0) + 1
       }
 
       const { error: updateError } = await supabase
