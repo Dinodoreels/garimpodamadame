@@ -264,6 +264,7 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
       .single();
     if (createErr) {
       await logSync({ entity_type: "order", entity_id: blingId, action: "pull", status: "error", error_message: createErr.message });
+      errors.push({ id: blingId, error: createErr.message });
       continue;
     }
 
@@ -288,7 +289,7 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
       if (itemsError) await logSync({ entity_type: 'order', entity_id: blingId, action: 'pull_items', status: 'error', error_message: itemsError.message });
     }
 
-    await supa.from("bling_order_links").insert({
+    const { error: linkError } = await supa.from("bling_order_links").upsert({
       order_id: created.id,
       bling_order_id: blingId,
       bling_order_number: String(o?.numero ?? ""),
@@ -297,7 +298,12 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
       bling_status: mapped.id,
       raw_payload: o,
       last_synced_at: new Date().toISOString(),
-    });
+    }, { onConflict: 'bling_order_id' });
+    if (linkError) {
+      errors.push({ id: blingId, error: linkError.message });
+      await logSync({ entity_type: 'order', entity_id: blingId, action: 'pull_link', status: 'error', error_message: linkError.message });
+      continue;
+    }
 
     await supa.from('order_status_history').insert({ order_id: created.id, status: mapped.status, note: `Importado do Bling (${channelName})` });
 

@@ -324,7 +324,7 @@ export function BlingTab() {
     const orders = config?.pull_marketplace_orders ? await call('bling-pull-orders') : null;
     if (orders) await supabase.from('bling_import_runs').update({ orders_result: orders }).eq('id', preview.run_id);
     await load(true);
-    toast.success('Dados do Bling prontos para revisão', { description: `${preview.totals?.total ?? 0} produtos encontrados${preview.totals?.auto_sku_generated ? ` · ${preview.totals.auto_sku_generated} SKUs criados` : ''}${orders ? ` · ${orders.imported ?? 0} pedidos novos` : ''}.` });
+    toast.success('Dados do Bling prontos para revisão', { description: `${preview.totals?.total ?? 0} produtos encontrados${preview.totals?.auto_sku_generated ? ` · ${preview.totals.auto_sku_generated} SKUs criados` : ''}${orders ? ` · ${orders.imported ?? 0} pedidos novos · ${orders.updated ?? 0} atualizados${orders.errors ? ` · ${orders.errors} com erro` : ''}` : ''}.` });
   };
 
   const toggleImportItem = async (item: ImportItem, selected: boolean) => {
@@ -685,7 +685,7 @@ export function BlingTab() {
             {busy === 'bling-flush-queue' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
             Processar fila agora
           </Button>
-          <Button variant="outline" onClick={async () => { const r = await call('bling-pull-orders'); if (r) toast.success(`${r.imported ?? 0} pedidos importados`); await load(); }} disabled={!connected || busy === 'bling-pull-orders'}>
+          <Button variant="outline" onClick={async () => { const r = await call('bling-pull-orders'); if (r) toast.success(`${r.imported ?? 0} pedidos novos`, { description: `${r.updated ?? 0} atualizados${r.errors ? ` · ${r.errors} com erro` : ''}` }); await load(); }} disabled={!connected || busy === 'bling-pull-orders'}>
             {busy === 'bling-pull-orders' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Download className="h-4 w-4 mr-2" />}
             Buscar pedidos agora
           </Button>
