@@ -109,10 +109,6 @@ Deno.serve(async (req) => {
             }).select('id').single();
             if (variantError) throw variantError;
             variantId = variant.id;
-            if (remote.images.length) {
-              const { error: imageError } = await supa.from('product_images').insert(remote.images.map((url: string, position: number) => ({ product_id: productId, url, position, alt_text: remote.name })));
-              if (imageError) throw imageError;
-            }
           }
           applyStatus = 'created';
         } else {
@@ -123,6 +119,22 @@ Deno.serve(async (req) => {
             await supa.from('product_variants').update(variantUpdates).eq('id', variantId);
             if (cfg.price_authority === 'bling') await supa.from('products').update({ price: remote.price }).eq('id', productId);
             applyStatus = 'updated';
+          }
+        }
+
+        if (remote.images.length) {
+          const { data: existingImages, error: existingImagesError } = await supa
+            .from('product_images')
+            .select('url')
+            .eq('product_id', productId);
+          if (existingImagesError) throw existingImagesError;
+          const existingUrls = new Set((existingImages ?? []).map((image: { url: string }) => image.url));
+          const missingImages = remote.images
+            .filter((url: string) => !existingUrls.has(url))
+            .map((url: string, index: number) => ({ product_id: productId, url, position: existingUrls.size + index, alt_text: remote.name }));
+          if (missingImages.length) {
+            const { error: imageError } = await supa.from('product_images').insert(missingImages);
+            if (imageError) throw imageError;
           }
         }
 

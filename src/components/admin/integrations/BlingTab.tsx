@@ -47,7 +47,7 @@ type Config = {
 type LogRow = { id: string; entity_type: string; action: string; status: string; error_message: string | null; created_at: string };
 type LinkRow = { id: string; bling_sku: string | null; bling_product_id: string | null; status: string; last_error: string | null };
 type ImportRun = { id: string; status: string; totals: Record<string, number>; orders_result: Record<string, number> | null; created_at: string; error_message: string | null };
-type ImportItem = { id: string; bling_product_id: string; bling_sku: string | null; classification: 'new' | 'linked' | 'different' | 'conflict'; selected: boolean; bling_data: { name?: string; price?: number; stock?: number | null; auto_sku_generated?: boolean; auto_sku_error?: string | null }; differences: Record<string, unknown>; apply_status: string; error_message: string | null };
+type ImportItem = { id: string; bling_product_id: string; bling_sku: string | null; classification: 'new' | 'linked' | 'different' | 'conflict'; selected: boolean; bling_data: { name?: string; price?: number; stock?: number | null; images?: string[]; auto_sku_generated?: boolean; auto_sku_error?: string | null }; differences: Record<string, unknown>; apply_status: string; error_message: string | null };
 
 const AUTHORITY_LABEL: Record<Authority, string> = {
   bling: 'O Bling manda',
@@ -300,6 +300,15 @@ export function BlingTab() {
   };
 
   const fetchEverything = async () => {
+    if (!config?.deposito_id) {
+      const options = await call('bling-list-depositos');
+      if (options) {
+        setDepositos(options.depositos || []);
+        setCanais(options.canais || []);
+      }
+      toast.error('Escolha o depósito do Bling', { description: 'O estoque será buscado no depósito selecionado.' });
+      return;
+    }
     const preview = await call('bling-import-preview');
     if (!preview?.run_id) return;
     const orders = config?.pull_marketplace_orders ? await call('bling-pull-orders') : null;
@@ -480,6 +489,12 @@ export function BlingTab() {
             {importRun && <Badge variant="secondary">Prévia de {new Date(importRun.created_at).toLocaleString('pt-BR')}</Badge>}
           </div>
 
+          {!config?.deposito_id && (
+            <Alert>
+              <AlertDescription>Escolha o depósito do Bling em <strong>O que sincronizar</strong> para trazer o saldo correto.</AlertDescription>
+            </Alert>
+          )}
+
           {importRun?.error_message && <Alert variant="destructive"><AlertDescription>{importRun.error_message}</AlertDescription></Alert>}
 
           {importRun && (
@@ -510,7 +525,7 @@ export function BlingTab() {
                         <TableCell><Checkbox checked={item.selected} disabled={item.classification === 'conflict' || ['created', 'linked', 'updated'].includes(item.apply_status)} onCheckedChange={(value) => toggleImportItem(item, value === true)} aria-label={`Selecionar ${item.bling_data?.name ?? item.bling_sku ?? 'produto'}`} /></TableCell>
                         <TableCell><p className="font-medium">{item.bling_data?.name || 'Sem nome'}</p>{item.error_message && <p className="text-xs text-destructive">{item.error_message}</p>}</TableCell>
                          <TableCell className="font-mono text-xs"><span>{item.bling_sku || 'Sem SKU'}</span>{item.bling_data?.auto_sku_generated && <Badge variant="outline" className="ml-2 font-sans">Automático</Badge>}</TableCell>
-                        <TableCell><p>{Number(item.bling_data?.price ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p><p className="text-xs text-muted-foreground">Estoque: {item.bling_data?.stock ?? 'não informado'}</p></TableCell>
+                        <TableCell><p>{Number(item.bling_data?.price ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p><p className="text-xs text-muted-foreground">Estoque: {item.bling_data?.stock ?? 'não informado'} · Fotos: {item.bling_data?.images?.length ?? 0}</p></TableCell>
                          <TableCell><Badge variant={item.classification === 'conflict' ? 'destructive' : 'secondary'}>{item.apply_status !== 'pending' ? item.apply_status : item.bling_data?.auto_sku_generated ? 'SKU criado no Bling' : ({ new: 'Novo rascunho', linked: 'Já vinculado', different: 'Com diferenças', conflict: 'Revisar conflito' } as const)[item.classification]}</Badge></TableCell>
                       </TableRow>
                     ))}
