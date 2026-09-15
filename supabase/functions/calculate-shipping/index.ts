@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getValidAccessToken } from '../_shared/melhor-envio.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -162,7 +163,7 @@ Deno.serve(async (req) => {
     // ── Route to active provider ──
     if (activeProvider === 'melhor_envio') {
       try {
-        const melhorEnvioToken = Deno.env.get('MELHOR_ENVIO_TOKEN') || '';
+        const melhorEnvioToken = await getValidAccessToken();
         options = await fetchMelhorEnvioQuotes(
           melhorEnvioToken, originZip, cleanZip,
           totalWeight, maxLength, maxWidth, totalHeight,

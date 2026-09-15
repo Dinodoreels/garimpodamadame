@@ -1,22 +1,18 @@
-# Concluir o cadastro do aplicativo Melhor Envio
+# Finalizar a conexão do Melhor Envio
 
-## Correção imediata do formulário
-- **Nome:** Garimpo da Madame
-- **Site:** `https://ogarimpodigital.com.br`
-- **E-mail de contato:** `mktgarimpodamadame@gmail.com`
-- **E-mail técnico:** `mktgarimpodamadame@gmail.com`
-- **URL de testes:** `https://ogarimpodigital.com.br/integracoes/melhor-envio/callback`
-- **URL de redirecionamento:** `https://ogarimpodigital.com.br/integracoes/melhor-envio/callback`
-- Manter a descrição já preenchida.
+## Agora
+- Guardar o Client ID e o Client Secret enviados no cofre seguro, sem mostrá-los no painel ou no código.
+- Publicar e validar o retorno em `https://ogarimpodigital.com.br/integracoes/melhor-envio/callback`.
+- Ativar no painel o botão **Conectar com Melhor Envio** e mostrar a conta autorizada.
 
-## Próximas ações
-1. Criar e publicar a página de retorno no endereço informado.
-2. Completar a autorização segura no servidor, com proteção contra tentativas indevidas e renovação automática.
-3. Adicionar no painel o estado da conta e o botão “Conectar com Melhor Envio”.
-4. Solicitar Client ID e Client Secret pelo formulário seguro depois que o aplicativo for cadastrado.
-5. Testar a conta e uma cotação, sem comprar etiqueta.
+## Validação
+1. Confirmar que a página de retorno abre no domínio oficial.
+2. Iniciar a autorização usando as permissões mínimas para cotação, etiqueta, impressão, cancelamento e rastreio.
+3. Confirmar a renovação automática do acesso.
+4. Testar a conta e uma cotação sem comprar etiqueta nem consumir saldo.
+5. Registrar a conclusão no acompanhamento do projeto.
 
-## Segurança e limites
-- Nenhuma credencial será exibida no painel ou salva no navegador.
-- O Melhor Envio continuará exclusivo para pedidos feitos no site.
-- Pedidos do Bling e marketplaces continuarão separados; somente o estoque será compartilhado.
+## Limites preservados
+- Melhor Envio somente para pedidos feitos no site Garimpo da Madame.
+- Pedidos vindos do Bling e marketplaces não serão enviados ao Melhor Envio.
+- A compra da etiqueta continuará manual, com confirmação do administrador.
