@@ -145,11 +145,37 @@ async function refreshAccessToken(cfg: BlingConfig): Promise<string> {
   if (!cfg.client_id || !cfg.client_secret || !cfg.refresh_token) {
     throw new Error("Bling não conectado. Faça a conexão no painel.");
   }
+
+  const originalRefreshToken = cfg.refresh_token;
+  const latestBeforeRefresh = await getConfig();
+  if (
+    latestBeforeRefresh?.refresh_token &&
+    latestBeforeRefresh.refresh_token !== originalRefreshToken &&
+    latestBeforeRefresh.access_token
+  ) {
+    const latestExpiry = latestBeforeRefresh.token_expires_at
+      ? Date.parse(latestBeforeRefresh.token_expires_at)
+      : 0;
+    if (latestExpiry - Date.now() >= 120_000) return latestBeforeRefresh.access_token;
+  }
+
   const { status, data } = await requestToken(
     { client_id: cfg.client_id, client_secret: cfg.client_secret },
-    { grant_type: "refresh_token", refresh_token: cfg.refresh_token },
+    { grant_type: "refresh_token", refresh_token: originalRefreshToken },
   );
   if (status !== 200 || !data?.access_token) {
+    const latestAfterFailure = await getConfig();
+    if (
+      latestAfterFailure?.refresh_token &&
+      latestAfterFailure.refresh_token !== originalRefreshToken &&
+      latestAfterFailure.access_token
+    ) {
+      const latestExpiry = latestAfterFailure.token_expires_at
+        ? Date.parse(latestAfterFailure.token_expires_at)
+        : 0;
+      if (latestExpiry - Date.now() >= 120_000) return latestAfterFailure.access_token;
+    }
+
     const msg = friendlyBlingAuthError(data);
     await getSupabaseAdmin()
       .from("bling_config")

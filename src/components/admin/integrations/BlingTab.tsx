@@ -245,6 +245,7 @@ export function BlingTab() {
   }
 
   const connected = !!config?.refresh_token && !hasAuthorizationError(config?.last_error);
+  const hasStoredAuthorization = !!config?.refresh_token && !!config?.access_token;
 
   return (
     <div className="space-y-6">
@@ -341,7 +342,7 @@ export function BlingTab() {
               const r = await call('bling-test');
               if (r?.ok) toast.success('Conexão com o Bling funcionando', { description: r.company ? `Empresa: ${r.company}` : undefined });
               await load();
-            }} disabled={!connected || busy === 'bling-test'}>
+            }} disabled={!hasStoredAuthorization || busy === 'bling-test'}>
               {busy === 'bling-test' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
               Testar conexão
             </Button>
