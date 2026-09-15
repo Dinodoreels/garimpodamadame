@@ -9,3 +9,4 @@
 - [x] Deixar atribuição de usuários reais disponível ao administrador para preenchimento posterior
 - [x] Permitir envio para análise manual quando não houver foto ou código
 - [ ] Homologar com fotos reais (adiado pelo administrador até os arquivos estarem disponíveis)
+- [ ] Orientar o administrador com o link oficial para criar o aplicativo da API Bling
