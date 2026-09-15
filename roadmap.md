@@ -33,3 +33,5 @@
 - [x] Preparar emissão e consulta da NF-e pelo Bling para o cliente final
 - [ ] Cadastrar a credencial segura do Mercado Pago (aguardando preenchimento do administrador)
 - [ ] Preencher os dados fiscais reais e validar impostos/certificado no Bling
+- [x] Bloquear emissão real e mostrar checklist fiscal por empresa, Bling, produtos, cliente, pedido e pagamento
+- [ ] Homologar regras tributárias com o contador e liberar produção explicitamente

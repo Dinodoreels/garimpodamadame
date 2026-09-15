@@ -4,6 +4,34 @@ import { assertAdmin, blingError, callBling, corsHeaders, getSupabaseAdmin, json
 const BodySchema = z.object({ order_id: z.string().uuid(), action: z.enum(['prepare', 'issue', 'sync']) });
 const digits = (value: unknown) => String(value ?? '').replace(/\D/g, '');
 
+type ValidationItem = { category: 'empresa' | 'bling' | 'produto' | 'cliente' | 'pedido' | 'pagamento'; label: string; fix_path?: string };
+const problemLabels = (items: ValidationItem[]) => items.map((item) => item.label);
+const nonEmpty = (value: unknown) => String(value ?? '').trim().length > 0;
+
+async function validateFiscalProduct(productId: string, title: string, supa: ReturnType<typeof getSupabaseAdmin>): Promise<ValidationItem[]> {
+  const problems: ValidationItem[] = [];
+  const { data: link } = await supa.from('bling_product_links').select('bling_product_id, bling_sku, status').eq('product_id', productId).not('bling_product_id', 'is', null).limit(1).maybeSingle();
+  if (!link?.bling_product_id || link.status === 'error') {
+    return [{ category: 'produto', label: `${title}: produto sem vínculo válido com o Bling`, fix_path: `/admin/products?product=${productId}` }];
+  }
+  const fetched = await callBling({ path: `/produtos/${link.bling_product_id}` });
+  if (fetched.status >= 400) {
+    return [{ category: 'produto', label: `${title}: não foi possível conferir o cadastro fiscal no Bling`, fix_path: `/admin/products?product=${productId}` }];
+  }
+  const product = fetched.data?.data ?? fetched.data ?? {};
+  const taxation = product.tributacao ?? product.dadosTributarios ?? {};
+  const ncm = taxation.ncm ?? product.ncm;
+  const origin = taxation.origem ?? product.origem;
+  const unit = product.unidade ?? product.unidadeMedida;
+  const missing: string[] = [];
+  if (digits(ncm).length !== 8) missing.push('NCM');
+  if (!nonEmpty(origin) && origin !== 0) missing.push('origem da mercadoria');
+  if (!nonEmpty(unit)) missing.push('unidade');
+  if (!nonEmpty(link.bling_sku)) missing.push('SKU');
+  if (missing.length) problems.push({ category: 'produto', label: `${title}: falta ${missing.join(', ')} no Bling`, fix_path: `/admin/products?product=${productId}` });
+  return problems;
+}
+
 function fiscalFields(raw: any) {
   const data = raw?.data ?? raw ?? {};
   const situation = String(data?.situacao?.valor ?? data?.situacao?.nome ?? data?.situacao ?? '').toLowerCase();
@@ -33,31 +61,56 @@ Deno.serve(async (req) => {
     const profile = order.profiles ?? {};
     const address = order.shipping_address ?? {};
     const recipient = { name: profile.full_name ?? guest.name ?? address.recipient_name, document: profile.cpf ?? guest.cpf, email: guest.email ?? null, phone: profile.phone ?? guest.phone ?? null, address };
-    const problems: string[] = [];
-    if (!recipient.name) problems.push('Nome do cliente');
-    if (![11, 14].includes(digits(recipient.document).length)) problems.push('CPF ou CNPJ válido do cliente');
-    for (const [key, label] of Object.entries({ street: 'Rua', number: 'Número', neighborhood: 'Bairro', city: 'Cidade', state: 'Estado', zip_code: 'CEP' })) if (!address[key]) problems.push(`${label} do endereço`);
-    if (!Array.isArray(order.order_items) || !order.order_items.length) problems.push('Itens do pedido');
+    const problems: ValidationItem[] = [];
+    if (!recipient.name) problems.push({ category: 'cliente', label: 'Nome do cliente', fix_path: '/admin/customers' });
+    if (![11, 14].includes(digits(recipient.document).length)) problems.push({ category: 'cliente', label: 'CPF ou CNPJ válido do cliente', fix_path: '/admin/customers' });
+    for (const [key, label] of Object.entries({ street: 'Rua', number: 'Número', neighborhood: 'Bairro', city: 'Cidade', state: 'Estado', zip_code: 'CEP' })) if (!address[key]) problems.push({ category: 'cliente', label: `${label} do endereço`, fix_path: '/admin/customers' });
+    if (!Array.isArray(order.order_items) || !order.order_items.length) problems.push({ category: 'pedido', label: 'Itens do pedido' });
+    if (!Number.isFinite(Number(order.total)) || Number(order.total) <= 0) problems.push({ category: 'pedido', label: 'Total válido do pedido' });
+    if (!['paid', 'processing', 'shipped', 'delivered'].includes(order.status)) problems.push({ category: 'pagamento', label: 'Pagamento confirmado' });
     const { data: settings } = await supa.from('fiscal_settings').select('*').limit(1).maybeSingle();
-    if (!settings?.tax_id || !settings?.legal_name || !settings?.tax_regime) problems.push('Dados fiscais da empresa nas Configurações');
+    if (!settings) {
+      problems.push({ category: 'empresa', label: 'Cadastre os dados fiscais da empresa', fix_path: '/admin/settings?section=fiscal' });
+    } else {
+      if (digits(settings.tax_id).length !== 14) problems.push({ category: 'empresa', label: 'CNPJ válido da empresa', fix_path: '/admin/settings?section=fiscal' });
+      for (const [key, label] of Object.entries({ legal_name: 'Razão social', tax_regime: 'Regime tributário', street: 'Rua da empresa', number: 'Número da empresa', neighborhood: 'Bairro da empresa', city: 'Cidade da empresa', state: 'UF da empresa', zip_code: 'CEP da empresa', invoice_series: 'Série da NF-e', operation_nature: 'Natureza da operação' })) if (!nonEmpty(settings[key])) problems.push({ category: 'empresa', label, fix_path: '/admin/settings?section=fiscal' });
+      if (settings.fiscal_environment !== 'live' || !settings.production_enabled || !settings.homologation_confirmed_at) problems.push({ category: 'empresa', label: 'Homologação fiscal e liberação explícita da emissão real', fix_path: '/admin/settings?section=fiscal' });
+    }
+    const { data: blingConfig } = await supa.from('bling_config').select('is_active, access_token, refresh_token, company_name').limit(1).maybeSingle();
+    if (!blingConfig?.is_active || !blingConfig?.access_token || !blingConfig?.refresh_token) problems.push({ category: 'bling', label: 'Conexão ativa com o Bling', fix_path: '/admin/settings?bling=1' });
+    if (!blingConfig?.company_name) problems.push({ category: 'bling', label: 'Empresa emissora identificada no Bling', fix_path: '/admin/settings?bling=1' });
+    const { data: orderLink } = await supa.from('bling_order_links').select('bling_order_id').eq('order_id', order_id).maybeSingle();
+    if (!orderLink?.bling_order_id) problems.push({ category: 'bling', label: 'Pedido enviado e vinculado ao Bling', fix_path: '/admin/settings?bling=1' });
+    if (Array.isArray(order.order_items)) {
+      for (const item of order.order_items) {
+        if (!item.product_id) problems.push({ category: 'produto', label: `${item.product_title}: produto local não identificado` });
+        else problems.push(...await validateFiscalProduct(item.product_id, item.product_title, supa));
+      }
+    }
+
+    const validationDetails = {
+      checked_at: new Date().toISOString(),
+      safe_read_only: action === 'prepare',
+      categories: ['empresa', 'bling', 'produto', 'cliente', 'pedido', 'pagamento'].map((category) => ({ category, pending: problems.filter((item) => item.category === category).length })),
+    };
 
     let { data: doc } = await supa.from('fiscal_documents').select('*').eq('order_id', order_id).maybeSingle();
     const initialStatus = problems.length ? 'pending_data' : 'ready';
     if (!doc) {
-      const created = await supa.from('fiscal_documents').insert({ order_id, status: initialStatus, recipient_snapshot: recipient, validation_errors: problems, requested_by: actor }).select().single();
+      const created = await supa.from('fiscal_documents').insert({ order_id, status: initialStatus, recipient_snapshot: recipient, validation_errors: problems, validation_details: validationDetails, validated_at: validationDetails.checked_at, fiscal_environment: settings?.fiscal_environment ?? 'test', requested_by: actor }).select().single();
       if (created.error) throw created.error;
       doc = created.data;
     } else if (action === 'prepare') {
-      const updated = await supa.from('fiscal_documents').update({ status: initialStatus, recipient_snapshot: recipient, validation_errors: problems, error_message: null }).eq('id', doc.id).select().single();
+      const updated = await supa.from('fiscal_documents').update({ status: initialStatus, recipient_snapshot: recipient, validation_errors: problems, validation_details: validationDetails, validated_at: validationDetails.checked_at, fiscal_environment: settings?.fiscal_environment ?? 'test', error_message: null }).eq('id', doc.id).select().single();
       if (updated.error) throw updated.error;
       doc = updated.data;
     }
 
     if (action === 'prepare') {
-      await supa.from('fiscal_document_events').insert({ fiscal_document_id: doc.id, event_type: 'validation', status: initialStatus, message: problems.length ? `Pendências: ${problems.join(', ')}` : 'Dados prontos para emissão', created_by: actor });
+      await supa.from('fiscal_document_events').insert({ fiscal_document_id: doc.id, event_type: 'validation', status: initialStatus, message: problems.length ? `Pendências: ${problemLabels(problems).join(', ')}` : 'Dados prontos para emissão', provider_payload: validationDetails, created_by: actor });
       return jsonResponse({ ok: true, document: doc });
     }
-    if (problems.length) return jsonResponse({ ok: false, error: `Corrija: ${problems.join(', ')}` }, 409);
+    if (problems.length) return jsonResponse({ ok: false, error: `Corrija: ${problemLabels(problems).join(', ')}` }, 409);
     if (!['paid', 'processing', 'shipped', 'delivered'].includes(order.status)) return jsonResponse({ ok: false, error: 'A nota só pode ser emitida após a confirmação do pagamento.' }, 409);
 
     let invoiceId = doc.bling_invoice_id;
