@@ -111,6 +111,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, document: doc });
     }
     if (problems.length) return jsonResponse({ ok: false, error: `Corrija: ${problemLabels(problems).join(', ')}` }, 409);
+    if (action === 'issue' && (settings?.fiscal_environment !== 'live' || settings?.production_enabled !== true || !settings?.homologation_confirmed_at)) {
+      return jsonResponse({ ok: false, error: 'A emissão real está bloqueada. Conclua a homologação e libere a produção nas configurações fiscais.' }, 409);
+    }
     if (!['paid', 'processing', 'shipped', 'delivered'].includes(order.status)) return jsonResponse({ ok: false, error: 'A nota só pode ser emitida após a confirmação do pagamento.' }, 409);
 
     let invoiceId = doc.bling_invoice_id;

@@ -51,7 +51,7 @@ export function FiscalTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [blingReady, setBlingReady] = useState(false);
-  const [productStats, setProductStats] = useState({ total: 0, linked: 0, fiscalKnown: 0 });
+  const [productStats, setProductStats] = useState({ total: 0, linked: 0 });
   const { toast } = useToast();
 
   useEffect(() => {
@@ -60,16 +60,11 @@ export function FiscalTab() {
       supabase.from('bling_config').select('is_active, access_token, refresh_token, company_name').limit(1).maybeSingle(),
       supabase.from('products').select('id', { count: 'exact', head: true }),
       supabase.from('bling_product_links').select('product_id'),
-      supabase.from('bling_import_items').select('local_product_id, bling_data').not('local_product_id', 'is', null),
-    ]).then(([settings, bling, products, links, imported]) => {
+    ]).then(([settings, bling, products, links]) => {
       if (settings.data) setForm({ ...EMPTY, ...settings.data } as FiscalSettings);
       setBlingReady(Boolean(bling.data?.is_active && bling.data?.access_token && bling.data?.refresh_token && bling.data?.company_name));
       const linked = new Set((links.data ?? []).map((row) => row.product_id)).size;
-      const fiscalKnown = new Set((imported.data ?? []).filter((row) => {
-        const raw = row.bling_data as Record<string, unknown> | null;
-        return raw && String(raw.ncm ?? '').replace(/\D/g, '').length === 8 && raw.origem !== undefined;
-      }).map((row) => row.local_product_id)).size;
-      setProductStats({ total: products.count ?? 0, linked, fiscalKnown });
+      setProductStats({ total: products.count ?? 0, linked });
       setLoading(false);
     });
   }, []);
@@ -77,7 +72,8 @@ export function FiscalTab() {
   const update = (key: keyof FiscalSettings, value: string | boolean) => setForm((current) => ({ ...current, [key]: value }));
   const complete = requiredFields.every((key) => String(form[key] ?? '').trim()) && form.tax_id.replace(/\D/g, '').length === 14;
   const homologated = Boolean(form.homologation_confirmed_at);
-  const productionReady = complete && blingReady && productStats.total > 0 && productStats.fiscalKnown === productStats.total && homologated;
+  const productsLinked = productStats.total > 0 && productStats.linked === productStats.total;
+  const productionReady = complete && blingReady && productsLinked && homologated;
 
   const save = async () => {
     setSaving(true);
@@ -106,8 +102,8 @@ export function FiscalTab() {
       <CardContent className="grid gap-3 sm:grid-cols-2">
         <ReadinessItem ready={complete} label="Empresa e regras da nota" detail={complete ? 'Campos obrigatórios preenchidos' : 'Preencha e confira os dados abaixo'} />
         <ReadinessItem ready={blingReady} label="Conta do Bling" detail={blingReady ? 'Conectada e identificada' : 'Conecte e teste a empresa emissora'} />
-        <ReadinessItem ready={productStats.linked === productStats.total && productStats.total > 0} label="Produtos vinculados" detail={`${productStats.linked} de ${productStats.total} vinculados ao Bling`} />
-        <ReadinessItem ready={productStats.fiscalKnown === productStats.total && productStats.total > 0} label="Tributação dos produtos" detail={`${productStats.fiscalKnown} de ${productStats.total} com NCM e origem confirmados na importação`} />
+        <ReadinessItem ready={productsLinked} label="Produtos vinculados" detail={`${productStats.linked} de ${productStats.total} vinculados ao Bling`} />
+        <ReadinessItem ready={false} label="Tributação dos produtos" detail="NCM, origem, unidade e SKU são conferidos no Bling ao validar cada pedido" />
         <ReadinessItem ready={homologated} label="Homologação" detail={homologated ? 'Confirmada pelo administrador' : 'Aguardando validação com contador e Bling'} />
         <ReadinessItem ready={form.production_enabled && productionReady} label="Emissão real" detail={form.production_enabled && productionReady ? 'Liberada explicitamente' : 'Bloqueada com segurança'} />
       </CardContent>
