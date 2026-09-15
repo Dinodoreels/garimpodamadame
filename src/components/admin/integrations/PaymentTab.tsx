@@ -337,7 +337,7 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
                   {isSaving ? (
                     <><Loader2 className="h-4 w-4 animate-spin" />Salvando...</>
                   ) : (
-                    'Salvar Credenciais'
+                    selectedGateway.id === 'mercadopago' ? 'Salvar configuração' : 'Salvar credenciais'
                   )}
                 </Button>
               </div>
