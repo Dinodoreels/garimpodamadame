@@ -52,6 +52,7 @@ export interface ShippingResult {
   freeShippingMinValue?: number;
   amountToFreeShipping?: number;
   dropshipExtraDays?: number;
+  option: ShippingOption;
 }
 
 export interface ShippingCalcResponse {
@@ -133,6 +134,7 @@ export async function calculateShipping(
     freeShippingMinValue: result.free_shipping_info?.min_value,
     amountToFreeShipping: result.free_shipping_info?.amount_remaining,
     dropshipExtraDays: result.dropship_extra_days || undefined,
+    option: cheapest,
   };
 }
 

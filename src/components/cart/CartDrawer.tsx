@@ -192,7 +192,9 @@ export function CartDrawer() {
               city: defaultAddress.city,
               state: defaultAddress.state,
               zip_code: defaultAddress.zip_code,
-            }
+            },
+            result.option.service,
+            result.option
           );
 
           // Proceed to checkout

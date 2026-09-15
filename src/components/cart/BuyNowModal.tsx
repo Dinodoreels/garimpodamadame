@@ -228,7 +228,9 @@ export function BuyNowModal({ open, onOpenChange, item, mode, whatsappNumber }: 
         city: selectedAddress.city,
         state: selectedAddress.state,
         zip_code: selectedAddress.zip_code,
-      }
+      },
+      shippingResult.option.service,
+      shippingResult.option
     );
 
     setProcessing(true);

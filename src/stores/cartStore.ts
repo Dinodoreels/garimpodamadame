@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductVariant } from '@/hooks/useProducts';
+import type { ShippingOption } from '@/lib/shipping';
 
 export interface CartItem {
   product: Product;
@@ -50,6 +51,7 @@ interface CartStore {
   shippingZipCode: string | null;
   shippingEstimate: string | null;
   shippingService: string | null;
+  shippingOption: ShippingOption | null;
   selectedAddress: SelectedAddress | null;
   
   // Discount states
@@ -76,7 +78,7 @@ interface CartStore {
   createDirectCheckout: (item: CartItem) => Promise<string | null>;
   
   // Shipping actions
-  setShipping: (cost: number, state: string, city: string, zipCode: string, estimate: string, address?: SelectedAddress, service?: string) => void;
+  setShipping: (cost: number, state: string, city: string, zipCode: string, estimate: string, address?: SelectedAddress, service?: string, option?: ShippingOption) => void;
   clearShipping: () => void;
   
   // Pickup actions
@@ -109,6 +111,7 @@ export const useCartStore = create<CartStore>()(
       shippingZipCode: null,
       shippingEstimate: null,
       shippingService: null,
+      shippingOption: null,
       selectedAddress: null,
       
       // Discount initial state
@@ -177,6 +180,7 @@ export const useCartStore = create<CartStore>()(
           shippingZipCode: null,
           shippingEstimate: null,
           shippingService: null,
+          shippingOption: null,
           selectedAddress: null,
           appliedDiscount: null,
           loyaltyPointsUsed: 0,
@@ -196,6 +200,7 @@ export const useCartStore = create<CartStore>()(
           shippingZipCode: null,
           shippingEstimate: null,
           shippingService: null,
+          shippingOption: null,
           selectedAddress: null,
           appliedDiscount: null,
           loyaltyPointsUsed: 0,
@@ -229,13 +234,14 @@ export const useCartStore = create<CartStore>()(
         return get().getDiscountedPrice() + shippingCost;
       },
 
-      setShipping: (cost, state, city, zipCode, estimate, address, service) => set({
+      setShipping: (cost, state, city, zipCode, estimate, address, service, option) => set({
         shippingCost: cost,
         shippingState: state,
         shippingCity: city,
         shippingZipCode: zipCode,
         shippingEstimate: estimate,
         shippingService: service || null,
+        shippingOption: option || null,
         selectedAddress: address || null
       }),
 
@@ -246,6 +252,7 @@ export const useCartStore = create<CartStore>()(
         shippingZipCode: null,
         shippingEstimate: null,
         shippingService: null,
+        shippingOption: null,
         selectedAddress: null
       }),
 
@@ -259,6 +266,7 @@ export const useCartStore = create<CartStore>()(
         shippingZipCode: null,
         shippingEstimate: null,
         shippingService: null,
+        shippingOption: null,
         selectedAddress: null,
       }),
 
@@ -278,7 +286,7 @@ export const useCartStore = create<CartStore>()(
       clearLoyaltyRedemption: () => set({ loyaltyPointsUsed: 0, loyaltyDiscount: 0 }),
 
       createCheckout: async () => {
-        const { items, setLoading, shippingCost, selectedAddress, appliedDiscount, loyaltyPointsUsed, loyaltyDiscount } = get();
+        const { items, setLoading, shippingCost, shippingOption, selectedAddress, appliedDiscount, loyaltyPointsUsed, loyaltyDiscount } = get();
         const activeItems = items.filter(i => !i.savedForLater);
         if (activeItems.length === 0) return null;
 
@@ -306,6 +314,7 @@ export const useCartStore = create<CartStore>()(
             body: {
               items: checkoutItems,
               shipping_cost: shippingCost,
+              shipping_option: shippingOption || undefined,
               shipping_address: selectedAddress || undefined,
               discount_code: appliedDiscount?.code || undefined,
               discount_amount: (appliedDiscount?.discountAmount || 0) + loyaltyDiscount,
@@ -333,7 +342,7 @@ export const useCartStore = create<CartStore>()(
       },
 
       createDirectCheckout: async (item: CartItem) => {
-        const { setLoading } = get();
+        const { setLoading, shippingCost, shippingOption, selectedAddress } = get();
         setLoading(true);
         
         try {
@@ -356,7 +365,9 @@ export const useCartStore = create<CartStore>()(
           const { data, error } = await supabase.functions.invoke('create-checkout', {
             body: {
               items: checkoutItems,
-              shipping_cost: 0,
+              shipping_cost: shippingCost,
+              shipping_address: selectedAddress || undefined,
+              shipping_option: shippingOption || undefined,
             },
           });
 

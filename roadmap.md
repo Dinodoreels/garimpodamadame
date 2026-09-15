@@ -39,6 +39,7 @@
 
 # Melhor Envio
 
-- [ ] Conectar o Melhor Envio somente às vendas do site, mantendo fretes de marketplaces separados e estoque compartilhado
-- [ ] Cotação real, opção escolhida, etiqueta, impressão, rastreio e histórico
+- [x] Conectar o Melhor Envio somente às vendas do site, mantendo fretes de marketplaces separados e estoque compartilhado
+- [x] Cotação real e persistência da opção escolhida no pedido
+- [ ] Compra de etiqueta, impressão, rastreio e histórico
 - [ ] Validar em produção sem comprar etiqueta automaticamente

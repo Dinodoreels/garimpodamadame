@@ -100,7 +100,10 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
           result.address?.state || '', 
           result.address?.city || '', 
           formatZipCode(cleanZip), 
-          cheapest.estimated_text
+          cheapest.estimated_text,
+          undefined,
+          cheapest.service,
+          cheapest
         );
       } else {
         setError('CEP não encontrado ou sem opções de frete');
@@ -132,7 +135,10 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
       calcResponse.address?.state || '',
       calcResponse.address?.city || '',
       zipInput,
-      option.estimated_text
+      option.estimated_text,
+      undefined,
+      option.service,
+      option
     );
   };
 
@@ -152,7 +158,7 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
           // Update selected option
           const current = result.options.find(o => o.service_code === selectedService);
           if (current) {
-            setShipping(current.cost, result.address?.state || '', result.address?.city || '', shippingZipCode, current.estimated_text);
+            setShipping(current.cost, result.address?.state || '', result.address?.city || '', shippingZipCode, current.estimated_text, undefined, current.service, current);
           }
         }
       });

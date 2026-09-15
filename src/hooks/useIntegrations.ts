@@ -43,8 +43,8 @@ export interface ShippingCorreiosConfig {
 }
 
 export interface ShippingMelhorEnvioConfig {
-  token: string;
   origin_zip: string;
+  credential_configured?: boolean;
 }
 
 export interface ShippingIntegrationConfig {
@@ -355,7 +355,7 @@ const DEFAULT_CONFIG: IntegrationsConfig = {
   shipping: {
     active_provider: '',
     correios: { origin_zip: '' },
-    melhor_envio: { token: '', origin_zip: '' },
+    melhor_envio: { origin_zip: '', credential_configured: false },
   },
   throttling: {
     enabled: true,
@@ -394,6 +394,11 @@ export function useIntegrations() {
       if (!data) return DEFAULT_CONFIG;
 
       const raw = data.value as any;
+
+      // Never expose or keep legacy shipping credentials in browser-managed settings.
+      if (raw?.shipping?.melhor_envio) {
+        delete raw.shipping.melhor_envio.token;
+      }
 
       // Merge non-automations config normally
       const merged = mergeDeep(DEFAULT_CONFIG, raw);
