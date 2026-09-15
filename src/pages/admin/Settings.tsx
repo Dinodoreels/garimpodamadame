@@ -684,7 +684,7 @@ export default function Settings() {
       />
 
       <Tabs
-        defaultValue={new URLSearchParams(window.location.search).has('bling') ? 'bling' : 'general'}
+        defaultValue={new URLSearchParams(window.location.search).get('section') === 'fiscal' ? 'fiscal' : new URLSearchParams(window.location.search).has('bling') ? 'bling' : 'general'}
         className="w-full"
       >
         <TabsList className="w-full justify-start flex-wrap h-auto gap-1">
