@@ -171,7 +171,8 @@ export async function prepareImportRun(userId: string) {
           preparedRemote.push({ raw: { ...raw, ...detailed }, generated: false });
         } catch (error) {
           const message = error instanceof Error ? error.message : String(error);
-          preparedRemote.push({ raw, generated: false, generationError: message });
+          preparedRemote.push({ raw, generated: false });
+          await logSync({ entity_type: 'product', entity_id: String(raw?.id ?? ''), action: 'fetch_detail', status: 'error', error_message: message });
         }
         continue;
       }
