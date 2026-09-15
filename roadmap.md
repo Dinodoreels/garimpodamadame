@@ -10,4 +10,4 @@
 - [x] Permitir envio para análise manual quando não houver foto ou código
 - [ ] Homologar com fotos reais (adiado pelo administrador até os arquivos estarem disponíveis)
 - [x] Orientar o administrador com o link oficial para criar o aplicativo da API Bling
-- [ ] Impedir nova autorização desnecessária e limpar o estado preso do Bling sem derrubar a conexão válida
+- [x] Impedir nova autorização desnecessária e limpar o estado preso do Bling sem derrubar a conexão válida
