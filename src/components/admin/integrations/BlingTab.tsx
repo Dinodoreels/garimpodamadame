@@ -335,12 +335,18 @@ export function BlingTab() {
 
   const applySelected = async () => {
     if (!importRun) return;
-    const itemIds = importItems.filter((item) => item.selected && !['created', 'linked', 'updated'].includes(item.apply_status)).slice(0, 50).map((item) => item.id);
-    if (!itemIds.length) return toast.info('Nenhum produto pendente foi selecionado.');
-    const result = await call('bling-import-apply', { run_id: importRun.id, item_ids: itemIds });
-    if (!result) return;
+    const pendingIds = importItems.filter((item) => item.selected && item.classification !== 'conflict' && !['created', 'linked', 'updated'].includes(item.apply_status)).map((item) => item.id);
+    if (!pendingIds.length) return toast.info('Nenhum produto pendente foi selecionado.');
+    let processed = 0;
+    let failed = 0;
+    for (let index = 0; index < pendingIds.length; index += 50) {
+      const result = await call('bling-import-apply', { run_id: importRun.id, item_ids: pendingIds.slice(index, index + 50) });
+      if (!result) break;
+      processed += Number(result.processed ?? 0);
+      failed += Number(result.failed ?? 0);
+    }
     await load(true);
-    toast.success(`${result.processed - result.failed} produto(s) aplicados`, { description: result.failed ? `${result.failed} item(ns) precisam de revisão.` : 'O lote foi concluído sem erros.' });
+    toast.success(`${processed - failed} produto(s) aplicados`, { description: failed ? `${failed} item(ns) precisam de revisão.` : 'O lote foi concluído sem erros.' });
   };
 
   const decideRun = async (decision: 'approved' | 'rejected') => {
@@ -544,7 +550,7 @@ export function BlingTab() {
                     {visibleImportItems.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell><Checkbox checked={item.selected} disabled={item.classification === 'conflict' || ['created', 'linked', 'updated'].includes(item.apply_status)} onCheckedChange={(value) => toggleImportItem(item, value === true)} aria-label={`Selecionar ${item.bling_data?.name ?? item.bling_sku ?? 'produto'}`} /></TableCell>
-                        <TableCell><p className="font-medium">{item.bling_data?.name || 'Sem nome'}</p>{item.error_message && <p className="text-xs text-destructive">{item.error_message}</p>}{item.local_product_id && <a href={`/admin/products?product=${item.local_product_id}`} className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">Abrir em Produtos <ExternalLink className="h-3 w-3" /></a>}</TableCell>
+                        <TableCell><div className="flex items-center gap-3">{item.bling_data?.images?.[0] ? <img src={item.bling_data.images[0]} alt={item.bling_data?.name || 'Produto do Bling'} className="h-10 w-10 shrink-0 rounded-sm object-cover" /> : <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-muted"><ImageOff className="h-4 w-4 text-muted-foreground" /></div>}<div><p className="font-medium">{item.bling_data?.name || 'Sem nome'}</p>{item.error_message && <p className="text-xs text-destructive">{item.error_message}</p>}{item.local_product_id && <a href={`/admin/products?product=${item.local_product_id}`} className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">Abrir em Produtos <ExternalLink className="h-3 w-3" /></a>}</div></div></TableCell>
                          <TableCell className="font-mono text-xs"><span>{item.bling_sku || 'Sem SKU'}</span>{item.bling_data?.auto_sku_generated && <Badge variant="outline" className="ml-2 font-sans">Automático</Badge>}</TableCell>
                         <TableCell><p>{Number(item.bling_data?.price ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p><p className="text-xs text-muted-foreground">Estoque: {item.bling_data?.stock ?? 'não informado'} · Fotos: {item.bling_data?.images?.length ?? 0}</p>{!(item.bling_data?.images?.length) && <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><ImageOff className="h-3 w-3" />Sem foto no Bling</span>}</TableCell>
                          <TableCell><Badge variant={item.classification === 'conflict' ? 'destructive' : 'secondary'}>{item.apply_status !== 'pending' ? item.apply_status : item.bling_data?.auto_sku_generated ? 'SKU criado no Bling' : ({ new: 'Novo rascunho', linked: 'Já vinculado', different: 'Com diferenças', conflict: 'Revisar conflito' } as const)[item.classification]}</Badge></TableCell>
