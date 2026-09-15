@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageCircle, Truck, User, Package, FileText, Printer, CreditCard, QrCode, Receipt, Send, Gift, Tag, Globe, ClipboardList, Store, RotateCcw } from 'lucide-react';
+import { MessageCircle, Truck, User, Package, FileText, Printer, CreditCard, QrCode, Receipt, Send, Gift, Tag, Store, RotateCcw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -26,6 +26,7 @@ import { useRefundsByOrder, useCreateRefund, useUpdateRefundStatus } from '@/hoo
 import { Input } from '@/components/ui/input';
 import { LinkedLabelsSection } from './LinkedLabelsSection';
 import { FiscalOrderSection } from './FiscalOrderSection';
+import { resolveOrderSource } from '@/lib/orderSource';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
@@ -119,6 +120,8 @@ export function OrderDetailsDialog({ order, onClose, onStatusChange }: OrderDeta
   const loyaltyPointsUsed = (order as any).loyalty_points_used || 0;
   const discountCode = (order as any).discount_code;
   const discountAmount = (order as any).discount_amount || 0;
+  const sourceDetails = resolveOrderSource(order);
+  const SourceIcon = sourceDetails.icon;
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -419,16 +422,32 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center gap-2">
-                  {(order as any).source === 'whatsapp' ? (
-                    <div className="p-2 rounded-lg bg-green-50"><MessageCircle className="h-4 w-4 text-green-600" /></div>
-                  ) : (
-                    <div className="p-2 rounded-lg bg-blue-50"><Globe className="h-4 w-4 text-blue-600" /></div>
-                  )}
+                  <div className={cn('p-2 rounded-lg border', sourceDetails.className)}>
+                    <SourceIcon className="h-4 w-4" />
+                  </div>
                   <div>
-                    <p className="text-xs text-muted-foreground">Origem</p>
-                    <p className="text-sm font-light">{(order as any).source === 'whatsapp' ? 'WhatsApp' : 'Site'}</p>
+                    <p className="text-xs text-muted-foreground">Plataforma</p>
+                    <p className="text-sm font-light">{sourceDetails.platform}</p>
                   </div>
                 </div>
+                {sourceDetails.storeName && (
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-muted"><Store className="h-4 w-4" /></div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Loja / e-commerce</p>
+                      <p className="text-sm font-light">{sourceDetails.storeName}</p>
+                    </div>
+                  </div>
+                )}
+                {sourceDetails.externalOrderNumber && (
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 rounded-lg bg-muted"><ClipboardList className="h-4 w-4" /></div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Pedido na plataforma</p>
+                      <p className="text-sm font-light">{sourceDetails.externalOrderNumber}</p>
+                    </div>
+                  </div>
+                )}
                 {order.created_by_name && (
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-lg bg-muted"><Store className="h-4 w-4" /></div>

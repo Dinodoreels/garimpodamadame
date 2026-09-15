@@ -24,6 +24,10 @@ export interface AdminOrder {
   created_by?: string | null;
   created_by_name?: string | null;
   store_id?: string | null;
+  store_name?: string | null;
+  bling_channel?: string | null;
+  bling_order_number?: string | null;
+  bling_raw_payload?: any;
 }
 
 export interface AdminCustomer {
@@ -70,6 +74,19 @@ export function useAdminData() {
       return;
     }
 
+    const orderIds = (data ?? []).map(order => order.id);
+    const storeIds = [...new Set(data?.map(order => order.store_id).filter(Boolean) as string[])];
+    const [{ data: links }, { data: stores }] = await Promise.all([
+      orderIds.length
+        ? supabase.from('bling_order_links').select('order_id, channel, bling_order_number, raw_payload').in('order_id', orderIds)
+        : Promise.resolve({ data: [] }),
+      storeIds.length
+        ? supabase.from('stores').select('id, name').in('id', storeIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+    const linkMap = new Map((links ?? []).map(link => [link.order_id, link]));
+    const storeMap = new Map((stores ?? []).map(store => [store.id, store.name]));
+
     // Fetch creator names for manual orders
     const creatorIds = [...new Set(data?.map(o => o.created_by).filter(Boolean) as string[])];
     let creatorMap: Record<string, string> = {};
@@ -86,12 +103,19 @@ export function useAdminData() {
       }
     }
 
-    const formattedOrders = data?.map(order => ({
-      ...order,
-      profile: order.profiles as any,
-      source: order.source || 'website',
-      created_by_name: order.created_by ? creatorMap[order.created_by] || 'Admin' : null,
-    })) || [];
+    const formattedOrders = data?.map(order => {
+      const link = linkMap.get(order.id);
+      return {
+        ...order,
+        profile: order.profiles as any,
+        source: order.source || 'website',
+        created_by_name: order.created_by ? creatorMap[order.created_by] || 'Admin' : null,
+        store_name: order.store_id ? storeMap.get(order.store_id) ?? null : null,
+        bling_channel: link?.channel ?? null,
+        bling_order_number: link?.bling_order_number ?? null,
+        bling_raw_payload: link?.raw_payload ?? null,
+      };
+    }) || [];
 
     setOrders(formattedOrders);
   }, [isVendedor]);

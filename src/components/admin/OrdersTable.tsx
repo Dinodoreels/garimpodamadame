@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Eye, MoreHorizontal, Globe, MessageCircle, ClipboardList, Store } from 'lucide-react';
+import { Eye, MoreHorizontal } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -21,13 +21,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { AdminOrder } from '@/hooks/useAdminData';
 import { OrderDetailsDialog } from './OrderDetailsDialog';
-
-const sourceConfig: Record<string, { label: string; icon: typeof Globe; className: string }> = {
-  website: { label: 'Site', icon: Globe, className: 'bg-blue-50 text-blue-700 border-blue-200' },
-  whatsapp: { label: 'WhatsApp', icon: MessageCircle, className: 'bg-green-50 text-green-700 border-green-200' },
-  store: { label: 'Loja Física', icon: Store, className: 'bg-orange-50 text-orange-700 border-orange-200' },
-  manual: { label: 'Manual', icon: ClipboardList, className: 'bg-muted text-muted-foreground border-border' },
-};
+import { resolveOrderSource } from '@/lib/orderSource';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
@@ -89,7 +83,7 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
             ) : (
               orders.map((order) => {
                 const status = statusConfig[order.status] || statusConfig.pending;
-                const source = sourceConfig[order.source || 'website'] || sourceConfig.website;
+                const source = resolveOrderSource(order);
                 const SourceIcon = source.icon;
                 return (
                   <TableRow key={order.id} className="hover:bg-muted/30">
@@ -104,8 +98,11 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
                       <div className="flex flex-col gap-0.5">
                         <Badge variant="outline" className={cn("font-light text-xs whitespace-nowrap w-fit", source.className)}>
                           <SourceIcon className="h-3 w-3 mr-1" />
-                          {source.label}
+                          {source.platform}
                         </Badge>
+                        {source.storeName && (
+                          <span className="text-[10px] text-muted-foreground font-light">{source.storeName}</span>
+                        )}
                         {order.created_by_name && (
                           <span className="text-[10px] text-muted-foreground font-light">
                             por {order.created_by_name}
