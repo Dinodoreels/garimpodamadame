@@ -144,7 +144,6 @@ function isGatewayConfigured(config: IntegrationsConfig, id: GatewayId): boolean
 export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
   const [selectedGateway, setSelectedGateway] = useState<GatewayDef | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
-  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
   const [isTesting, setIsTesting] = useState(false);
   const { toast } = useToast();
 
@@ -155,7 +154,6 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
     const vals: Record<string, string> = {};
     gw.fields.forEach((f) => { vals[f.key] = current[f.key] ?? ''; });
     setFieldValues(vals);
-    setShowSecrets({});
     setSelectedGateway(gw);
   };
 
@@ -305,7 +303,7 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
                     </Label>
                     <div className="relative">
                       <Input
-                        type={field.secret && !showSecrets[field.key] ? 'password' : (field.type ?? 'text')}
+                        type={field.type ?? 'text'}
                         value={fieldValues[field.key] ?? ''}
                         onChange={(e) =>
                           setFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))

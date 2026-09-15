@@ -91,8 +91,10 @@ Deno.serve(async (req) => {
     })
     // Calculate totals from prices stored by the shop, never from browser values
     const subtotal = verifiedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    const discountValue = discount_amount || 0
-    const total = subtotal - discountValue + (shipping_cost || 0)
+    const discountValue = Math.max(0, Number(discount_amount || 0))
+    const shippingValue = Math.max(0, Number(shipping_cost || 0))
+    if (discountValue > subtotal || !Number.isFinite(shippingValue)) throw new Error('Valores de desconto ou frete inválidos')
+    const total = subtotal - discountValue + shippingValue
 
     // Generate order number
     const { data: orderNumberData, error: orderNumberError } = await supabase
@@ -113,7 +115,7 @@ Deno.serve(async (req) => {
         order_number: orderNumber,
         status: 'pending',
         subtotal,
-        shipping_cost: shipping_cost || 0,
+        shipping_cost: shippingValue,
         total,
         shipping_address,
         discount_code: discount_code || null,
@@ -165,7 +167,7 @@ Deno.serve(async (req) => {
     }
 
     // Create order items
-    const orderItems = items.map(item => ({
+    const orderItems = verifiedItems.map(item => ({
       order_id: order.id,
       product_id: item.product_id,
       variant_id: item.variant_id,
@@ -210,12 +212,12 @@ Deno.serve(async (req) => {
     })
 
     // Add shipping as an item if present
-    if (shipping_cost && shipping_cost > 0) {
+    if (shippingValue > 0) {
       preferenceItems.push({
         id: 'shipping',
         title: 'Frete',
         quantity: 1,
-        unit_price: shipping_cost,
+        unit_price: shippingValue,
         currency_id: 'BRL',
         picture_url: undefined,
       })
@@ -271,8 +273,6 @@ Deno.serve(async (req) => {
       .from('orders')
       .update({ shopify_checkout_id: mpData.id, mercadopago_preference_id: mpData.id, payment_attempts: 1 })
       .eq('id', order.id)
-
-    console.log('Checkout created successfully:', mpData.id)
 
     return new Response(
       JSON.stringify({

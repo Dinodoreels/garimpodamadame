@@ -43,7 +43,7 @@ export function FiscalOrderSection({ orderId, orderStatus }: { orderId: string; 
     {document?.status === 'authorized' && <div className="grid gap-2 text-sm sm:grid-cols-2"><p><span className="text-muted-foreground">Número:</span> {document.invoice_number || '—'}</p><p><span className="text-muted-foreground">Chave:</span> {document.access_key || '—'}</p></div>}
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" size="sm" onClick={() => action('prepare')} disabled={loading}>{loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}Validar dados</Button>
-      {document?.status === 'ready' && orderStatus === 'paid' && <Button size="sm" onClick={() => action('issue')} disabled={loading}><FileCheck2 className="h-4 w-4" />Emitir pelo Bling</Button>}
+      {document?.status === 'ready' && ['paid', 'processing', 'shipped', 'delivered'].includes(orderStatus) && <Button size="sm" onClick={() => action('issue')} disabled={loading}><FileCheck2 className="h-4 w-4" />Emitir pelo Bling</Button>}
       {document?.bling_invoice_id && <Button variant="outline" size="sm" onClick={() => action('sync')} disabled={loading}><RefreshCw className="h-4 w-4" />Consultar no Bling</Button>}
       {document?.danfe_url && <Button variant="outline" size="sm" asChild><a href={document.danfe_url} target="_blank" rel="noreferrer"><Printer className="h-4 w-4" />DANFE</a></Button>}
       {document?.xml_url && <Button variant="outline" size="sm" asChild><a href={document.xml_url} target="_blank" rel="noreferrer"><ExternalLink className="h-4 w-4" />XML</a></Button>}

@@ -64,7 +64,7 @@ Deno.serve(async (req) => {
     if (action === 'issue' && !invoiceId) {
       const { data: link } = await supa.from('bling_order_links').select('bling_order_id').eq('order_id', order_id).maybeSingle();
       if (!link?.bling_order_id) return jsonResponse({ ok: false, error: 'Envie este pedido ao Bling antes de emitir a nota.' }, 409);
-      const created = await callBling({ path: '/nfe', method: 'POST', body: { pedidoVenda: { id: Number(link.bling_order_id) }, serie: Number(settings.invoice_series), naturezaOperacao: { descricao: settings.operation_nature } } });
+      const created = await callBling({ path: '/nfe', method: 'POST', body: { pedidoVenda: { id: Number(link.bling_order_id) } } });
       if (created.status >= 400) throw new Error(blingError(created.status, created.data));
       invoiceId = String(created.data?.data?.id ?? '');
       if (!invoiceId) throw new Error('O Bling não retornou o número interno da nota.');
