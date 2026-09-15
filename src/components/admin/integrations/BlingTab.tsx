@@ -375,7 +375,7 @@ export function BlingTab() {
                 Trocar conta do Bling
               </Button>
             )}
-            <Button variant="outline" onClick={load}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
+            <Button variant="outline" onClick={() => load()}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
           </div>
         </CardContent>
       </Card>
