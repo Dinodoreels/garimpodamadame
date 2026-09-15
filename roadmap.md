@@ -15,6 +15,6 @@
 - [x] Criar prévia administrativa do catálogo Bling com comparação por SKU e conflitos bloqueados
 - [x] Importar produtos revisados em lotes como rascunhos, respeitando a origem escolhida para preço e estoque
 - [x] Reunir catálogo, estoque e pedidos na ação “Buscar tudo do Bling”, com histórico por conta autorizada
-- [ ] Gerar automaticamente SKUs ausentes no Bling e liberar os produtos na revisão
+- [x] Gerar automaticamente SKUs ausentes no Bling e liberar os produtos na revisão
 - [x] Exibir o padrão único de sincronização para TikTok Shop, Mercado Livre, Shopee e Amazon
-- [ ] Validar a automação com os produtos reais da conta conectada
+- [x] Validar a automação com os produtos reais da conta conectada
