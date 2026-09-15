@@ -25,6 +25,7 @@ import { generateReceiptHTML } from '@/lib/generateReceipt';
 import { useRefundsByOrder, useCreateRefund, useUpdateRefundStatus } from '@/hooks/useRefunds';
 import { Input } from '@/components/ui/input';
 import { LinkedLabelsSection } from './LinkedLabelsSection';
+import { FiscalOrderSection } from './FiscalOrderSection';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
@@ -313,7 +314,7 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-4">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="details" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               <span className="hidden sm:inline">Detalhes</span>
@@ -333,6 +334,10 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
             <TabsTrigger value="notes" className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Notas</span>
+            </TabsTrigger>
+            <TabsTrigger value="fiscal" className="flex items-center gap-2">
+              <Receipt className="h-4 w-4" />
+              <span className="hidden sm:inline">Fiscal</span>
             </TabsTrigger>
           </TabsList>
 
@@ -599,6 +604,10 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
             >
               {savingNotes ? 'Salvando...' : 'Salvar Notas'}
             </Button>
+          </TabsContent>
+
+          <TabsContent value="fiscal" className="space-y-4 mt-4">
+            <FiscalOrderSection orderId={order.id} orderStatus={order.status} />
           </TabsContent>
 
           {/* Refunds Tab */}

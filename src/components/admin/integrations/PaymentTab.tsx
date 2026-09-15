@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Loader2, Plus, CheckCircle2, Zap, Wifi } from 'lucide-react';
+import { Loader2, Plus, CheckCircle2, Zap, Wifi, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,11 +47,7 @@ const GATEWAYS: GatewayDef[] = [
     subtitle: 'O gateway mais popular da América Latina',
     methods: ['Pix', 'Cartão'],
     hasRealIntegration: true,
-    fields: [
-      { key: 'access_token', label: 'Access Token', placeholder: 'APP_USR-...', secret: true },
-      { key: 'public_key', label: 'Public Key', placeholder: 'APP_USR-...' },
-      { key: 'pix_expiration', label: 'Expiração do Pix (minutos)', placeholder: '30', type: 'number' },
-    ],
+    fields: [{ key: 'pix_expiration', label: 'Expiração do Pix (minutos)', placeholder: '30', type: 'number' }],
   },
   {
     id: 'pagseguro',
@@ -188,12 +184,10 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
     }
 
     // Mercado Pago — test via backend function (avoids CORS)
-    const token = fieldValues['access_token']?.trim();
-
     setIsTesting(true);
     try {
       const { data, error } = await supabase.functions.invoke('test-mercadopago', {
-        body: { access_token: token || undefined },
+        body: {},
       });
 
       if (error) {
@@ -298,6 +292,12 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
 
               <div className="flex-1 space-y-4 overflow-y-auto">
                 {PAYMENT_GUIDES[selectedGateway.id] && <ProviderSetupGuide guide={PAYMENT_GUIDES[selectedGateway.id]} />}
+                {selectedGateway.id === 'mercadopago' && (
+                  <div className="flex gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                    <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
+                    <p>A credencial fica protegida no cofre do sistema e nunca aparece nesta tela. Use “Testar conexão” após cadastrá-la.</p>
+                  </div>
+                )}
                 {selectedGateway.fields.map((field) => (
                   <div key={field.key} className="space-y-1.5">
                     <Label className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -313,23 +313,6 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
                         placeholder={field.placeholder}
                         className={field.secret ? 'font-mono text-sm pr-10' : 'font-mono text-sm'}
                       />
-                      {field.secret && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-                          onClick={() =>
-                            setShowSecrets((prev) => ({ ...prev, [field.key]: !prev[field.key] }))
-                          }
-                        >
-                          {showSecrets[field.key] ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
-                      )}
                     </div>
                   </div>
                 ))}

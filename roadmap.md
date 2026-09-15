@@ -23,3 +23,13 @@
 - [x] Exigir aprovação por lote com motivo e histórico antes de aplicar produtos e estoque
 - [x] Sincronizar o estoque no Bling e no painel imediatamente após aplicar o lote
 - [x] Mostrar fotos importadas e acesso direto aos produtos vinculados no painel
+
+# Mercado Pago e Fiscal
+
+- [x] Proteger a credencial do Mercado Pago fora das configurações visíveis
+- [x] Conferir preço, disponibilidade e valor pago antes de confirmar o pedido
+- [x] Criar dados fiscais, documentos e histórico com acessos por função
+- [x] Criar configuração fiscal e situação da nota dentro de cada pedido
+- [x] Preparar emissão e consulta da NF-e pelo Bling para o cliente final
+- [ ] Cadastrar a credencial segura do Mercado Pago (aguardando preenchimento do administrador)
+- [ ] Preencher os dados fiscais reais e validar impostos/certificado no Bling
