@@ -1,9 +1,9 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
+import { callMelhorEnvio } from '../_shared/melhor-envio.ts'
 
 type Action = 'test' | 'prepare' | 'purchase' | 'generate' | 'print' | 'sync' | 'cancel'
 
-const API_URL = 'https://melhorenvio.com.br/api/v2/me'
 const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
 
 function response(body: Record<string, unknown>, status = 200) {
@@ -22,22 +22,6 @@ function providerError(status: number, body: string) {
   return new Error(`${message} [${status}] ${body.slice(0, 500)}`)
 }
 
-async function callProvider(token: string, path: string, method = 'GET', body?: unknown) {
-  const result = await fetch(`${API_URL}${path}`, {
-    method,
-    headers: {
-      Authorization: `Bearer ${token}`,
-      Accept: 'application/json',
-      'Content-Type': 'application/json',
-      'User-Agent': 'Garimpo da Madame (contato@ogarimpodigital.com.br)',
-    },
-    ...(body ? { body: JSON.stringify(body) } : {}),
-  })
-  const text = await result.text()
-  if (!result.ok) throw providerError(result.status, text)
-  return text ? JSON.parse(text) : {}
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -48,7 +32,6 @@ Deno.serve(async (req) => {
     const url = Deno.env.get('SUPABASE_URL')
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY')
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
-    const melhorEnvioToken = Deno.env.get('MELHOR_ENVIO_TOKEN')
     if (!url || !anonKey || !serviceKey) return response({ ok: false, error: 'Backend indisponível' }, 500)
 
     const caller = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } } })
@@ -63,10 +46,8 @@ Deno.serve(async (req) => {
     const input = await req.json().catch(() => ({})) as { action?: Action; order_id?: string }
     const action = input.action
     if (!action) return response({ ok: false, error: 'Ação obrigatória' }, 400)
-    if (!melhorEnvioToken) return response({ ok: false, error: 'Credencial do Melhor Envio ainda não configurada' }, 409)
-
     if (action === 'test') {
-      const account = await callProvider(melhorEnvioToken, '')
+      const account = await callMelhorEnvio('')
       return response({ ok: true, account: { firstname: account.firstname, lastname: account.lastname, email: account.email } })
     }
 
@@ -132,7 +113,7 @@ Deno.serve(async (req) => {
         volumes: [{ height: Math.max(2, height), width: Math.max(11, width), length: Math.max(16, length), weight: Math.max(0.3, weight / 1000) }],
         options: { insurance_value: Number(order.subtotal), receipt: false, own_hand: false, reverse: false, non_commercial: false },
       }
-      const cart = await callProvider(melhorEnvioToken, '/cart', 'POST', payload)
+      const cart = await callMelhorEnvio('/cart', 'POST', payload)
       const cartId = String(cart.id || '')
       if (!cartId) throw new Error('O Melhor Envio não retornou o código do carrinho.')
       const shipmentData = {
@@ -151,7 +132,7 @@ Deno.serve(async (req) => {
     if (!existing) return response({ ok: false, error: 'Prepare o envio antes desta ação' }, 409)
     if (action === 'purchase') {
       if (existing.purchased_at) return response({ ok: true, shipment: existing })
-      const purchase = await callProvider(melhorEnvioToken, '/shipment/checkout', 'POST', { orders: [existing.external_cart_id] })
+      const purchase = await callMelhorEnvio('/shipment/checkout', 'POST', { orders: [existing.external_cart_id] })
       const now = new Date().toISOString()
       const { data: shipment } = await admin.from('melhor_envio_shipments').update({ status: 'purchased', purchased_at: now, provider_payload: purchase, last_error: null }).eq('id', existing.id).select().single()
       await addEvent(existing.id, 'purchased', 'purchased', 'Etiqueta comprada após confirmação administrativa.', purchase)
@@ -159,7 +140,7 @@ Deno.serve(async (req) => {
     }
     if (action === 'generate') {
       if (!existing.purchased_at) return response({ ok: false, error: 'Compre a etiqueta antes de gerar' }, 409)
-      const generated = await callProvider(melhorEnvioToken, '/shipment/generate', 'POST', { orders: [existing.external_cart_id] })
+      const generated = await callMelhorEnvio('/shipment/generate', 'POST', { orders: [existing.external_cart_id] })
       const now = new Date().toISOString()
       const { data: shipment } = await admin.from('melhor_envio_shipments').update({ status: 'label_generated', label_generated_at: now, provider_payload: generated, last_error: null }).eq('id', existing.id).select().single()
       await addEvent(existing.id, 'label_generated', 'label_generated', 'Etiqueta enviada para geração.', generated)
@@ -167,7 +148,7 @@ Deno.serve(async (req) => {
     }
     if (action === 'print') {
       if (!existing.label_generated_at) return response({ ok: false, error: 'Gere a etiqueta antes de imprimir' }, 409)
-      const printed = await callProvider(melhorEnvioToken, '/shipment/print', 'POST', { mode: 'private', orders: [existing.external_cart_id] })
+      const printed = await callMelhorEnvio('/shipment/print', 'POST', { mode: 'private', orders: [existing.external_cart_id] })
       const labelUrl = printed.url || printed.link || null
       await admin.from('melhor_envio_shipments').update({ label_url: labelUrl, label_format: 'pdf', provider_payload: printed }).eq('id', existing.id)
       await addEvent(existing.id, 'printed', existing.status, 'Link de impressão solicitado.', printed)
@@ -175,13 +156,13 @@ Deno.serve(async (req) => {
     }
     if (action === 'cancel') {
       if (existing.status === 'cancelled') return response({ ok: true, shipment: existing })
-      const cancelled = await callProvider(melhorEnvioToken, '/shipment/cancel', 'POST', { order: { id: existing.external_cart_id, reason_id: 2, description: 'Cancelado pelo administrador da loja' } })
+      const cancelled = await callMelhorEnvio('/shipment/cancel', 'POST', { order: { id: existing.external_cart_id, reason_id: 2, description: 'Cancelado pelo administrador da loja' } })
       const { data: shipment } = await admin.from('melhor_envio_shipments').update({ status: 'cancelled', cancelled_at: new Date().toISOString(), provider_payload: cancelled }).eq('id', existing.id).select().single()
       await addEvent(existing.id, 'cancelled', 'cancelled', 'Envio cancelado no Melhor Envio.', cancelled)
       return response({ ok: true, shipment })
     }
 
-    const tracked = await callProvider(melhorEnvioToken, '/shipment/tracking', 'POST', { orders: [existing.external_cart_id] })
+    const tracked = await callMelhorEnvio('/shipment/tracking', 'POST', { orders: [existing.external_cart_id] })
     const item = tracked[existing.external_cart_id] || Object.values(tracked)[0] || tracked
     const providerStatus = String((item as any)?.status || '').toLowerCase()
     const statusMap: Record<string, string> = { posted: 'posted', in_transit: 'in_transit', delivered: 'delivered', canceled: 'cancelled', cancelled: 'cancelled' }

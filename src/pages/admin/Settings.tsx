@@ -12,6 +12,7 @@ import { ReportsTab } from '@/components/admin/integrations/ReportsTab';
 import { ShopifyTab } from '@/components/admin/integrations/ShopifyTab';
 import { BlingTab } from '@/components/admin/integrations/BlingTab';
 import { FiscalTab } from '@/components/admin/integrations/FiscalTab';
+import { MelhorEnvioConnection } from '@/components/admin/MelhorEnvioConnection';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -472,6 +473,8 @@ function ShippingTab() {
         />
       )}
 
+      <MelhorEnvioConnection />
+
       {/* Free Shipping Card */}
       <Card>
         <CardHeader>
@@ -671,7 +674,7 @@ export default function Settings() {
       />
 
       <Tabs
-        defaultValue={new URLSearchParams(window.location.search).get('section') === 'fiscal' ? 'fiscal' : new URLSearchParams(window.location.search).has('bling') ? 'bling' : 'general'}
+        defaultValue={new URLSearchParams(window.location.search).get('section') === 'shipping' ? 'shipping' : new URLSearchParams(window.location.search).get('section') === 'fiscal' ? 'fiscal' : new URLSearchParams(window.location.search).has('bling') ? 'bling' : 'general'}
         className="w-full"
       >
         <TabsList className="w-full justify-start flex-wrap h-auto gap-1">

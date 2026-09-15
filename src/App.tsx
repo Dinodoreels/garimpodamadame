@@ -25,6 +25,7 @@ import CookiePolicy from "./pages/CookiePolicy";
 import NotFound from "./pages/NotFound";
 import CMSPage from "./pages/CMSPage";
 import Unsubscribe from "./pages/Unsubscribe";
+import MelhorEnvioCallback from "./pages/MelhorEnvioCallback";
 const PromoPage = lazy(() => import("./pages/PromoPage"));
 const KitDetail = lazy(() => import("./pages/KitDetail"));
 const KitsList = lazy(() => import("./pages/KitsList"));
@@ -145,6 +146,7 @@ const App = () => (
             <Route path="/privacidade" element={<Privacy />} />
             <Route path="/cookies" element={<CookiePolicy />} />
             <Route path="/unsubscribe" element={<Unsubscribe />} />
+             <Route path="/integracoes/melhor-envio/callback" element={<MelhorEnvioCallback />} />
             <Route path="/galpao" element={<GalpaoLogin />} />
             <Route path="/galpao/scan" element={<GalpaoScan />} />
             

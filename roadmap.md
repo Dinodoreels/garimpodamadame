@@ -41,5 +41,7 @@
 
 - [x] Conectar o Melhor Envio somente às vendas do site, mantendo fretes de marketplaces separados e estoque compartilhado
 - [x] Cotação real e persistência da opção escolhida no pedido
-- [ ] Compra de etiqueta, impressão, rastreio e histórico
-- [ ] Validar em produção sem comprar etiqueta automaticamente
+- [x] Preparar compra manual de etiqueta, impressão, rastreio e histórico somente para pedidos do site
+- [x] Criar retorno público, autorização segura e renovação automática da conexão
+- [ ] Cadastrar Client ID e Client Secret do aplicativo pelo formulário seguro
+- [ ] Autorizar a conta e validar em produção sem comprar etiqueta automaticamente

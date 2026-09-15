@@ -63,6 +63,7 @@ import {
   type ShippingRate 
 } from '@/hooks/useShippingSettings';
 import { useIntegrations, useSaveIntegrations, type IntegrationsConfig } from '@/hooks/useIntegrations';
+import { MelhorEnvioConnection } from '@/components/admin/MelhorEnvioConnection';
 
 // ── Shipping Providers ──
 const SHIPPING_PROVIDERS = [
@@ -424,6 +425,8 @@ export default function ShippingSettings() {
           saving={saveIntegrations.isPending}
         />
       )}
+
+      <MelhorEnvioConnection />
 
       {/* Free Shipping Card */}
       <Card>
