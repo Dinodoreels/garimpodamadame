@@ -1,5 +1,6 @@
 import { assertAdmin, corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, logSync } from '../_shared/bling.ts';
-import { accountKey, fetchBlingProductDetail, normalizeSku, productSnapshot } from '../_shared/bling-import.ts';
+import { accountKey, fetchBlingProductDetail, fetchBlingStock, normalizeSku, productSnapshot } from '../_shared/bling-import.ts';
+import { pushStockToBling } from '../_shared/bling-product-sync.ts';
 
 const slug = (name: string, remoteId: string) => `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'produto'}-bling-${remoteId}`;
 
@@ -31,12 +32,17 @@ Deno.serve(async (req) => {
     const supa = getSupabaseAdmin();
     const cfg = await getConfig();
     if (!cfg?.client_id || !cfg.is_active) return jsonResponse({ error: 'A conta do Bling não está conectada.' }, 400);
+    if (!cfg.deposito_id) return jsonResponse({ error: 'Escolha o depósito do Bling antes de aplicar o lote.' }, 400);
     const key = await accountKey(cfg.client_id, cfg.company_name);
     const { data: run } = await supa.from('bling_import_runs').select('*').eq('id', runId).maybeSingle();
     if (!run || run.account_key !== key) return jsonResponse({ error: 'Esta prévia pertence a outra conta do Bling. Faça uma nova busca.' }, 409);
+    if (run.decision !== 'approved') return jsonResponse({ error: 'Aprove este lote e informe o motivo antes de aplicar os produtos e o estoque.' }, 409);
 
     await supa.from('bling_import_runs').update({ status: 'applying', error_message: null }).eq('id', runId);
     const { data: items } = await supa.from('bling_import_items').select('*').eq('run_id', runId).in('id', itemIds).neq('classification', 'conflict');
+    const stockByProduct = cfg.stock_authority === 'bling'
+      ? await fetchBlingStock((items ?? []).map((item) => String(item.bling_product_id)), cfg.deposito_id)
+      : new Map<string, number>();
     const results: any[] = [];
 
     for (const item of items ?? []) {
@@ -48,6 +54,8 @@ Deno.serve(async (req) => {
         const applyStartedAt = new Date().toISOString();
         const detailed = await fetchBlingProductDetail(item.bling_product_id);
         const remote = productSnapshot({ ...item.bling_data, ...detailed });
+        const freshStock = stockByProduct.get(remote.id);
+        if (freshStock != null) remote.stock = freshStock;
         const sku = remote.sku.trim();
         if (!normalizeSku(sku)) throw new Error('O SKU automático não foi confirmado no Bling. Faça uma nova busca antes de aplicar.');
 
@@ -159,10 +167,20 @@ Deno.serve(async (req) => {
           : await supa.from('bling_product_links').insert(linkData);
         if (linkError) throw linkError;
 
+        if (cfg.sync_stock && cfg.stock_authority === 'store') {
+          const { data: localVariant, error: localStockError } = await supa
+            .from('product_variants')
+            .select('inventory_quantity, price')
+            .eq('id', variantId)
+            .single();
+          if (localStockError) throw localStockError;
+          await pushStockToBling(remote.id, Number(localVariant.inventory_quantity ?? 0), cfg.sync_prices && cfg.price_authority === 'store' ? Number(localVariant.price ?? 0) : undefined);
+        }
+
         // Pulling from Bling must not create a pending outbound echo for the same change.
         await supa.from('bling_sync_queue').delete().eq('product_id', productId).in('action', ['product', 'stock']).gte('created_at', applyStartedAt).eq('status', 'pending');
 
-        await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, apply_status: applyStatus, error_message: null, applied_at: new Date().toISOString() }).eq('id', item.id);
+        await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, bling_data: { ...item.bling_data, ...remote }, apply_status: applyStatus, error_message: null, applied_at: new Date().toISOString() }).eq('id', item.id);
         results.push({ id: item.id, ok: true, status: applyStatus });
       } catch (error) {
         const message = errorMessage(error);

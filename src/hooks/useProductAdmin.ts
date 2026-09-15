@@ -87,7 +87,8 @@ export function useAdminProducts(limit: number = 2000) {
             *,
             images:product_images(*),
             variants:product_variants(*),
-            options:product_options(*)
+            options:product_options(*),
+            bling_links:bling_product_links(id, bling_product_id, bling_sku, status)
           `)
           .order('position', { ascending: true })
           .range(from, to);

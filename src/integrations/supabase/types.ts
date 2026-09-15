@@ -375,6 +375,41 @@ export type Database = {
           },
         ]
       }
+      bling_import_run_decisions: {
+        Row: {
+          created_at: string
+          created_by: string
+          decision: string
+          id: string
+          reason: string
+          run_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          decision: string
+          id?: string
+          reason: string
+          run_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          decision?: string
+          id?: string
+          reason?: string
+          run_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_import_run_decisions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "bling_import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bling_import_runs: {
         Row: {
           account_key: string
@@ -382,6 +417,10 @@ export type Database = {
           completed_at: string | null
           created_at: string
           created_by: string | null
+          decided_at: string | null
+          decided_by: string | null
+          decision: string
+          decision_reason: string | null
           error_message: string | null
           id: string
           orders_result: Json | null
@@ -395,6 +434,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string
+          decision_reason?: string | null
           error_message?: string | null
           id?: string
           orders_result?: Json | null
@@ -408,6 +451,10 @@ export type Database = {
           completed_at?: string | null
           created_at?: string
           created_by?: string | null
+          decided_at?: string | null
+          decided_by?: string | null
+          decision?: string
+          decision_reason?: string | null
           error_message?: string | null
           id?: string
           orders_result?: Json | null

@@ -19,3 +19,7 @@
 - [x] Exibir o padrão único de sincronização para TikTok Shop, Mercado Livre, Shopee e Amazon
 - [x] Validar a automação com os produtos reais da conta conectada
 - [ ] Corrigir a atualização de estoque por depósito e importar imagens dos 52 produtos vinculados
+- [x] Importar e atualizar pedidos reais dos marketplaces via Bling, com cliente, itens, frete, situação e histórico
+- [x] Exigir aprovação por lote com motivo e histórico antes de aplicar produtos e estoque
+- [x] Sincronizar o estoque no Bling e no painel imediatamente após aplicar o lote
+- [x] Mostrar fotos importadas e acesso direto aos produtos vinculados no painel

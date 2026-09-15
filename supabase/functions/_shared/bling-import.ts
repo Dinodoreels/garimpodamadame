@@ -74,7 +74,7 @@ export async function fetchBlingProductDetail(id: string) {
   return data?.data ?? {};
 }
 
-async function fetchBlingStock(productIds: string[], depositoId: string) {
+export async function fetchBlingStock(productIds: string[], depositoId: string) {
   const balances = new Map<string, number>();
   for (let index = 0; index < productIds.length; index += 100) {
     const ids = productIds.slice(index, index + 100);
