@@ -98,20 +98,15 @@ function ShippingProviderCards({
   const shipping = config.shipping;
   const [configuring, setConfiguring] = useState<string | null>(null);
   const [deactivating, setDeactivating] = useState(false);
-  const [showToken, setShowToken] = useState(false);
-
   // Form state for dialog
   const [formOriginZip, setFormOriginZip] = useState('');
-  const [formToken, setFormToken] = useState('');
 
   const openConfig = (providerId: string) => {
     if (providerId === 'correios') {
       setFormOriginZip(shipping.correios.origin_zip);
     } else {
-      setFormToken(shipping.melhor_envio.token);
       setFormOriginZip(shipping.melhor_envio.origin_zip);
     }
-    setShowToken(false);
     setConfiguring(providerId);
   };
 
@@ -128,7 +123,7 @@ function ShippingProviderCards({
       updated.shipping = {
         ...shipping,
         active_provider: 'melhor_envio',
-        melhor_envio: { token: formToken, origin_zip: formOriginZip },
+        melhor_envio: { origin_zip: formOriginZip, credential_configured: shipping.melhor_envio.credential_configured },
       };
     }
     onSave(updated);
@@ -145,7 +140,7 @@ function ShippingProviderCards({
 
   const isConfigured = (id: string) => {
     if (id === 'correios') return !!shipping.correios.origin_zip;
-    return !!shipping.melhor_envio.token;
+    return !!shipping.melhor_envio.origin_zip;
   };
 
   const currentProvider = SHIPPING_PROVIDERS.find(p => p.id === configuring);
@@ -245,28 +240,7 @@ function ShippingProviderCards({
           </DialogHeader>
           <div className="space-y-4 py-2">
             {configuring === 'melhor_envio' && (
-              <div className="space-y-2">
-                <Label>Token da API</Label>
-                <div className="relative">
-                  <Input
-                    type={showToken ? 'text' : 'password'}
-                    value={formToken}
-                    onChange={(e) => setFormToken(e.target.value)}
-                    placeholder="Seu token do Melhor Envio"
-                    className="pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowToken(!showToken)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  >
-                    {showToken ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Obtenha em melhorenvio.com.br → Configurações → Tokens
-                </p>
-              </div>
+              <p className="text-sm text-muted-foreground">A credencial é guardada no cofre seguro e nunca fica visível nesta tela.</p>
             )}
             <div className="space-y-2">
               <Label>CEP de Origem</Label>
