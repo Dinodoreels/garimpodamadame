@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { MessageCircle, Truck, User, Package, FileText, Printer, CreditCard, QrCode, Receipt, Send, Gift, Tag, Store, RotateCcw } from 'lucide-react';
+import { MessageCircle, Truck, User, Package, FileText, Printer, CreditCard, QrCode, Receipt, Send, Gift, Tag, Store, RotateCcw, ClipboardList } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
