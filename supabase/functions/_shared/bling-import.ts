@@ -94,14 +94,26 @@ export async function fetchBlingStock(productIds: string[], depositoId: string) 
 }
 
 function imageUrls(raw: any): string[] {
-  const media = raw?.midia?.imagens ?? {};
-  const rows = [
-    ...(Array.isArray(media?.externas) ? media.externas : []),
-    ...(Array.isArray(media?.internas) ? media.internas : []),
-    ...(Array.isArray(media?.imagensURL) ? media.imagensURL : []),
-    ...(Array.isArray(raw?.imagens) ? raw.imagens : []),
-  ];
-  const urls = [raw?.imagemURL, ...rows.map((image: any) => image?.link ?? image?.url)]
+  const candidates: unknown[] = [];
+  const collectMedia = (product: any) => {
+    const media = product?.midia?.imagens ?? {};
+    const rows = [
+      ...(Array.isArray(media?.externas) ? media.externas : []),
+      ...(Array.isArray(media?.internas) ? media.internas : []),
+      ...(Array.isArray(media?.imagensURL) ? media.imagensURL : []),
+      ...(Array.isArray(product?.imagens) ? product.imagens : []),
+    ];
+    candidates.push(product?.imagemURL);
+    for (const image of rows) {
+      if (typeof image === 'string') candidates.push(image);
+      else candidates.push(image?.link, image?.url, image?.linkMiniatura, image?.imagemURL);
+    }
+  };
+
+  collectMedia(raw);
+  for (const variation of Array.isArray(raw?.variacoes) ? raw.variacoes : []) collectMedia(variation);
+
+  const urls = candidates
     .map((value) => String(value ?? '').trim())
     .filter((value) => /^https?:\/\//i.test(value));
   return [...new Set(urls)].slice(0, 10);

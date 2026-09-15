@@ -59,3 +59,5 @@
 - [x] Preencher automaticamente fotos, título, descrição, preço, custo disponível, marca, SKU, variações, dimensões e estoque dos produtos importados
 - [x] Marcar como pendente qualquer dado ausente na origem, sem inventar informações
 - [x] Publicar produtos do Bling com estoque zero como ESGOTADO, mantendo a compra bloqueada
+- [x] Ler também fotos internas, miniaturas e fotos de variações retornadas pelo Bling
+- [ ] Rebuscar o catálogo real e republicar automaticamente os produtos que recuperarem fotos
