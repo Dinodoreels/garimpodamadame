@@ -81,6 +81,7 @@ export function BlingTab() {
   const [links, setLinks] = useState<LinkRow[]>([]);
   const [queue, setQueue] = useState({ pending: 0, failed: 0, done: 0 });
   const [oauthPending, setOauthPending] = useState(false);
+  const [replacingCredentials, setReplacingCredentials] = useState(false);
   const oauthWindow = useRef<Window | null>(null);
 
   const load = async (silent = false) => {
@@ -147,9 +148,17 @@ export function BlingTab() {
       if (e.data?.type !== 'bling-oauth') return;
       setOauthPending(false);
       oauthWindow.current = null;
-      const loaded = await load();
-      if (e.data.result === 'ok') toast.success('Bling conectado com sucesso', { description: loaded?.company_name ? `Empresa: ${loaded.company_name}` : 'A empresa autorizada já está ativa no painel.' });
-      else toast.error('Não foi possível conectar', { description: friendlyBlingError(e.data.message) });
+      if (e.data.result === 'ok') {
+        const tested = await call('bling-test');
+        const loaded = await load();
+        if (tested?.ok) {
+          setReplacingCredentials(false);
+          toast.success('Nova conta do Bling conectada', { description: tested.company || loaded?.company_name ? `Empresa: ${tested.company || loaded?.company_name}` : 'A nova empresa foi autorizada e testada.' });
+        }
+      } else {
+        await load();
+        toast.error('Não foi possível conectar', { description: friendlyBlingError(e.data.message) });
+      }
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -258,6 +267,18 @@ export function BlingTab() {
     }
   };
 
+  const startCredentialReplacement = () => {
+    setReplacingCredentials(true);
+    setClientId('');
+    setClientSecret('');
+  };
+
+  const cancelCredentialReplacement = () => {
+    setReplacingCredentials(false);
+    setClientId(config?.client_id || '');
+    setClientSecret(config?.client_secret || '');
+  };
+
   const copy = (value: string) => {
     navigator.clipboard.writeText(value);
     toast.success('Copiado');
@@ -337,6 +358,15 @@ export function BlingTab() {
             </div>
           </div>
 
+          {replacingCredentials && (
+            <Alert>
+              <Building2 className="h-4 w-4" />
+              <AlertDescription>
+                Informe o Client ID e o Client Secret do novo aplicativo. A conta atual só será desligada quando você confirmar a troca.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">URL de retorno (cole no cadastro do aplicativo no Bling)</Label>
             <div className="flex gap-2">
@@ -361,6 +391,17 @@ export function BlingTab() {
                 {oauthPending ? 'Aguardando autorização' : 'Conectar com o Bling'}
               </Button>
             )}
+            {connected && replacingCredentials && (
+              <>
+                <Button onClick={connect} disabled={busy === 'bling-oauth-start' || oauthPending || !clientId.trim() || !clientSecret.trim()}>
+                  {busy === 'bling-oauth-start' || oauthPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Link2 className="h-4 w-4 mr-2" />}
+                  {oauthPending ? 'Aguardando autorização' : 'Salvar e conectar nova conta'}
+                </Button>
+                <Button variant="outline" onClick={cancelCredentialReplacement} disabled={busy === 'bling-oauth-start' || oauthPending}>
+                  Cancelar troca
+                </Button>
+              </>
+            )}
             <Button onClick={async () => {
               const r = await call('bling-test');
               if (r?.ok) toast.success('Conexão com o Bling funcionando', { description: r.company ? `Empresa: ${r.company}` : undefined });
@@ -369,10 +410,10 @@ export function BlingTab() {
               {busy === 'bling-test' ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CheckCircle2 className="h-4 w-4 mr-2" />}
               Testar conexão
             </Button>
-            {connected && (
-              <Button variant="outline" onClick={connect} disabled={busy === 'bling-oauth-start' || oauthPending}>
-                {busy === 'bling-oauth-start' || oauthPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Building2 className="h-4 w-4 mr-2" />}
-                Trocar conta do Bling
+            {connected && !replacingCredentials && (
+              <Button variant="outline" onClick={startCredentialReplacement} disabled={busy === 'bling-oauth-start' || oauthPending}>
+                <Building2 className="h-4 w-4 mr-2" />
+                Trocar credenciais e conta
               </Button>
             )}
             <Button variant="outline" onClick={() => load()}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
