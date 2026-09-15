@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Link2, RefreshCw, Plug, Download, Upload, CheckCircle2, XCircle, Copy, Building2, Search } from 'lucide-react';
+import { Loader2, Link2, RefreshCw, Plug, Download, Upload, CheckCircle2, XCircle, Copy, Building2, Search, Store } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ProviderSetupGuide } from './ProviderSetupGuide';
@@ -534,6 +534,14 @@ export function BlingTab() {
           <CardDescription>Ligue e desligue cada parte quando quiser.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {['TikTok Shop', 'Mercado Livre', 'Shopee', 'Amazon'].map((channel) => (
+              <div key={channel} className="flex min-h-24 flex-col justify-between rounded-md border p-3">
+                <div className="flex items-center gap-2"><Store className="h-4 w-4" /><p className="font-medium">{channel}</p></div>
+                <div><Badge variant={connected && config?.pull_marketplace_orders ? 'secondary' : 'outline'}>{connected && config?.pull_marketplace_orders ? 'Automático via Bling' : 'Aguardando configuração'}</Badge></div>
+              </div>
+            ))}
+          </div>
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <p className="font-medium">Integração ligada</p>

@@ -24,6 +24,17 @@ async function assignMissingSku(raw: any, usedSkus: Set<string>) {
     situacao: detailed?.situacao ?? raw?.situacao ?? 'A',
     formato: detailed?.formato ?? raw?.formato ?? 'S',
     unidade: detailed?.unidade ?? raw?.unidade ?? 'UN',
+    descricaoCurta: detailed?.descricaoCurta ?? raw?.descricaoCurta ?? undefined,
+    descricaoComplementar: detailed?.descricaoComplementar ?? raw?.descricaoComplementar ?? undefined,
+    precoCusto: detailed?.precoCusto ?? raw?.precoCusto ?? undefined,
+    pesoLiquido: detailed?.pesoLiquido ?? raw?.pesoLiquido ?? undefined,
+    pesoBruto: detailed?.pesoBruto ?? raw?.pesoBruto ?? undefined,
+    gtin: detailed?.gtin ?? raw?.gtin ?? undefined,
+    gtinEmbalagem: detailed?.gtinEmbalagem ?? raw?.gtinEmbalagem ?? undefined,
+    dimensoes: detailed?.dimensoes ?? raw?.dimensoes ?? undefined,
+    marca: detailed?.marca ?? raw?.marca ?? undefined,
+    categoria: detailed?.categoria ?? raw?.categoria ?? undefined,
+    midia: detailed?.midia ?? raw?.midia ?? undefined,
   };
   const { status, data } = await callBling({ path: `/produtos/${remoteId}`, method: 'PUT', body: payload });
   if (status >= 400) throw new Error(blingError(status, data));
@@ -162,7 +173,11 @@ export async function prepareImportRun(userId: string) {
       const { error } = await supa.from('bling_import_items').insert(rows.slice(i, i + 500));
       if (error) throw error;
     }
-    const totals = rows.reduce((acc: Record<string, number>, row: any) => ({ ...acc, [row.classification]: (acc[row.classification] ?? 0) + 1 }), { total: rows.length });
+    const totals = rows.reduce((acc: Record<string, number>, row: any) => ({
+      ...acc,
+      [row.classification]: (acc[row.classification] ?? 0) + 1,
+      auto_sku_generated: (acc.auto_sku_generated ?? 0) + (row.bling_data?.auto_sku_generated ? 1 : 0),
+    }), { total: rows.length, auto_sku_generated: 0 });
     await supa.from('bling_import_runs').update({ status: 'review', totals }).eq('id', run.id);
     await logSync({ entity_type: 'import', entity_id: run.id, action: 'preview', status: 'success', response: totals });
     return { run_id: run.id, totals };
