@@ -20,6 +20,47 @@ const errorMessage = (error: unknown) => {
   return String(error);
 };
 
+const imageExtension = (contentType: string | null, sourceUrl: string) => {
+  if (contentType?.includes('png')) return 'png';
+  if (contentType?.includes('webp')) return 'webp';
+  if (contentType?.includes('gif')) return 'gif';
+  if (contentType?.includes('avif')) return 'avif';
+  const sourceExtension = sourceUrl.match(/\.(jpe?g|png|webp|gif|avif)(?:[?#]|$)/i)?.[1]?.toLowerCase();
+  return sourceExtension === 'jpeg' ? 'jpg' : sourceExtension ?? 'jpg';
+};
+
+async function persistBlingImages(supa: any, productId: string, remoteId: string, urls: string[]) {
+  const persisted: string[] = [];
+  for (let index = 0; index < urls.length; index++) {
+    const sourceUrl = urls[index];
+    try {
+      const response = await fetch(sourceUrl);
+      if (!response.ok) throw new Error(`download ${response.status}`);
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.startsWith('image/')) throw new Error('arquivo não é uma imagem');
+      const extension = imageExtension(contentType, sourceUrl);
+      const path = `bling/${productId}/${remoteId}-${index + 1}.${extension}`;
+      const { error } = await supa.storage.from('product-images').upload(path, await response.arrayBuffer(), {
+        contentType: contentType ?? `image/${extension === 'jpg' ? 'jpeg' : extension}`,
+        upsert: true,
+      });
+      if (error) throw error;
+      const { data } = supa.storage.from('product-images').getPublicUrl(path);
+      if (data?.publicUrl) persisted.push(data.publicUrl);
+    } catch (error) {
+      await logSync({
+        entity_type: 'product',
+        entity_id: remoteId,
+        action: 'cache_image',
+        status: 'error',
+        payload: { source_url: sourceUrl },
+        error_message: errorMessage(error),
+      });
+    }
+  }
+  return persisted;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
@@ -147,14 +188,16 @@ Deno.serve(async (req) => {
 
         let hasProductImage = false;
         if (remote.images.length) {
+          const stableImages = await persistBlingImages(supa, productId, remote.id, remote.images);
+          const imagesToSave = stableImages.length ? stableImages : remote.images;
           const { data: existingImages, error: existingImagesError } = await supa
             .from('product_images')
             .select('url')
             .eq('product_id', productId);
           if (existingImagesError) throw existingImagesError;
           const existingUrls = new Set((existingImages ?? []).map((image: { url: string }) => image.url));
-          hasProductImage = existingUrls.size > 0 || remote.images.length > 0;
-          const missingImages = remote.images
+          hasProductImage = existingUrls.size > 0 || imagesToSave.length > 0;
+          const missingImages = imagesToSave
             .filter((url: string) => !existingUrls.has(url))
             .map((url: string, index: number) => ({ product_id: productId, url, position: existingUrls.size + index, alt_text: remote.name }));
           if (missingImages.length) {
