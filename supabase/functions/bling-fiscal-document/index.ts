@@ -1,7 +1,7 @@
 import { z } from 'npm:zod@3.23.8';
 import { assertAdmin, blingError, callBling, corsHeaders, getSupabaseAdmin, jsonResponse, logSync } from '../_shared/bling.ts';
 
-const BodySchema = z.object({ order_id: z.string().uuid(), action: z.enum(['prepare', 'issue', 'sync']) });
+const BodySchema = z.object({ order_id: z.string().uuid(), action: z.enum(['prepare', 'issue', 'sync', 'auto']) });
 const digits = (value: unknown) => String(value ?? '').replace(/\D/g, '');
 
 type ValidationItem = { category: 'empresa' | 'bling' | 'produto' | 'cliente' | 'pedido' | 'pagamento'; label: string; fix_path?: string };
@@ -70,16 +70,57 @@ function fiscalFields(raw: any) {
   };
 }
 
+async function findExistingInvoice(blingOrderId: string) {
+  const response = await callBling({ path: '/nfe', query: { idPedidoVenda: blingOrderId, limite: 100 } });
+  if (response.status >= 400) throw new Error(blingError(response.status, response.data));
+  const invoices = Array.isArray(response.data?.data) ? response.data.data : [];
+  return invoices.find((invoice: any) => String(invoice?.pedidoVenda?.id ?? invoice?.pedido?.id ?? '') === blingOrderId)
+    ?? (invoices.length === 1 ? invoices[0] : null);
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
-    const actor = await assertAdmin(req);
     const parsed = BodySchema.safeParse(await req.json());
     if (!parsed.success) return jsonResponse({ ok: false, error: 'Pedido ou ação inválida.' }, 400);
     const { order_id, action } = parsed.data;
+    const bearer = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '') ?? '';
+    const internal = action === 'auto' && bearer === Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const actor = internal ? null : await assertAdmin(req);
     const supa = getSupabaseAdmin();
     const { data: order, error } = await supa.from('orders').select('*, order_items(*), profiles:user_id(full_name, cpf, phone)').eq('id', order_id).maybeSingle();
     if (error || !order) return jsonResponse({ ok: false, error: 'Pedido não encontrado.' }, 404);
+    const { data: orderLink } = await supa.from('bling_order_links').select('bling_order_id, bling_order_number, channel, raw_payload').eq('order_id', order_id).maybeSingle();
+    const { data: store } = order.store_id ? await supa.from('stores').select('name').eq('id', order.store_id).maybeSingle() : { data: null };
+    const saleOrigin = fiscalSaleOrigin(order, orderLink, store?.name);
+    const isMarketplace = String(order.source ?? '').startsWith('bling:');
+
+    if (isMarketplace) {
+      if (action === 'issue' || action === 'auto') return jsonResponse({ ok: false, error: 'Pedidos de marketplace usam somente a nota já emitida na plataforma. Nenhuma nova nota foi criada.' }, 409);
+      if (!orderLink?.bling_order_id) return jsonResponse({ ok: false, error: 'Pedido sem vínculo com o Bling.' }, 409);
+      const existingInvoice = await findExistingInvoice(String(orderLink.bling_order_id));
+      let { data: marketplaceDoc } = await supa.from('fiscal_documents').select('*').eq('order_id', order_id).maybeSingle();
+      if (!existingInvoice) {
+        const pendingData = { order_id, status: 'pending_data', recipient_snapshot: { sale_origin: saleOrigin }, validation_errors: [{ category: 'bling', label: 'O Bling ainda não possui nota emitida para este pedido' }], validation_details: { checked_at: new Date().toISOString(), sale_origin: saleOrigin }, validated_at: new Date().toISOString(), requested_by: actor };
+        const saved = marketplaceDoc
+          ? await supa.from('fiscal_documents').update(pendingData).eq('id', marketplaceDoc.id).select().single()
+          : await supa.from('fiscal_documents').insert(pendingData).select().single();
+        marketplaceDoc = saved.data;
+        if (marketplaceDoc?.id) await supa.from('fiscal_document_events').insert({ fiscal_document_id: marketplaceDoc.id, event_type: 'lookup', status: 'pending_data', message: 'Nenhuma nota existente foi encontrada no Bling; nenhuma nota nova foi criada.', created_by: actor });
+        return jsonResponse({ ok: true, document: marketplaceDoc, found: false });
+      }
+      const invoiceId = String(existingInvoice.id ?? '');
+      const fetched = await callBling({ path: `/nfe/${invoiceId}` });
+      if (fetched.status >= 400) throw new Error(blingError(fetched.status, fetched.data));
+      const fields = fiscalFields(fetched.data);
+      const saved = marketplaceDoc
+        ? await supa.from('fiscal_documents').update({ ...fields, bling_invoice_id: invoiceId, recipient_snapshot: { sale_origin: saleOrigin }, validation_errors: [], error_message: null }).eq('id', marketplaceDoc.id).select().single()
+        : await supa.from('fiscal_documents').insert({ order_id, ...fields, bling_invoice_id: invoiceId, recipient_snapshot: { sale_origin: saleOrigin }, validation_errors: [], requested_by: actor }).select().single();
+      marketplaceDoc = saved.data;
+      if (marketplaceDoc?.id) await supa.from('fiscal_document_events').insert({ fiscal_document_id: marketplaceDoc.id, event_type: 'lookup', status: fields.status, message: fields.status === 'authorized' ? 'Nota da plataforma localizada e pronta para impressão' : 'Nota da plataforma localizada no Bling', provider_payload: fetched.data, created_by: actor });
+      await logSync({ entity_type: 'fiscal_document', entity_id: order_id, action: 'marketplace_lookup', status: fields.status, response: fetched.data });
+      return jsonResponse({ ok: true, document: marketplaceDoc, found: true });
+    }
     const guest = order.guest_info ?? {};
     const profile = order.profiles ?? {};
     const address = order.shipping_address ?? {};
@@ -102,10 +143,7 @@ Deno.serve(async (req) => {
     const { data: blingConfig } = await supa.from('bling_config').select('is_active, access_token, refresh_token, company_name').limit(1).maybeSingle();
     if (!blingConfig?.is_active || !blingConfig?.access_token || !blingConfig?.refresh_token) problems.push({ category: 'bling', label: 'Conexão ativa com o Bling', fix_path: '/admin/settings?bling=1' });
     if (!blingConfig?.company_name) problems.push({ category: 'bling', label: 'Empresa emissora identificada no Bling', fix_path: '/admin/settings?bling=1' });
-    const { data: orderLink } = await supa.from('bling_order_links').select('bling_order_id, bling_order_number, channel, raw_payload').eq('order_id', order_id).maybeSingle();
     if (!orderLink?.bling_order_id) problems.push({ category: 'bling', label: 'Pedido enviado e vinculado ao Bling', fix_path: '/admin/settings?bling=1' });
-    const { data: store } = order.store_id ? await supa.from('stores').select('name').eq('id', order.store_id).maybeSingle() : { data: null };
-    const saleOrigin = fiscalSaleOrigin(order, orderLink, store?.name);
     if (Array.isArray(order.order_items)) {
       for (const item of order.order_items) {
         if (!item.product_id) problems.push({ category: 'produto', label: `${item.product_title}: produto local não identificado` });
@@ -137,13 +175,13 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, document: doc });
     }
     if (problems.length) return jsonResponse({ ok: false, error: `Corrija: ${problemLabels(problems).join(', ')}` }, 409);
-    if (action === 'issue' && (settings?.fiscal_environment !== 'live' || settings?.production_enabled !== true || !settings?.homologation_confirmed_at)) {
+    if ((action === 'issue' || action === 'auto') && (settings?.fiscal_environment !== 'live' || settings?.production_enabled !== true || !settings?.homologation_confirmed_at)) {
       return jsonResponse({ ok: false, error: 'A emissão real está bloqueada. Conclua a homologação e libere a produção nas configurações fiscais.' }, 409);
     }
     if (!['paid', 'processing', 'shipped', 'delivered'].includes(order.status)) return jsonResponse({ ok: false, error: 'A nota só pode ser emitida após a confirmação do pagamento.' }, 409);
 
     let invoiceId = doc.bling_invoice_id;
-    if (action === 'issue' && !invoiceId) {
+    if ((action === 'issue' || action === 'auto') && !invoiceId) {
       const { data: link } = await supa.from('bling_order_links').select('bling_order_id').eq('order_id', order_id).maybeSingle();
       if (!link?.bling_order_id) return jsonResponse({ ok: false, error: 'Envie este pedido ao Bling antes de emitir a nota.' }, 409);
       const created = await callBling({ path: '/nfe', method: 'POST', body: { pedidoVenda: { id: Number(link.bling_order_id) }, observacoes: saleOrigin.note } });

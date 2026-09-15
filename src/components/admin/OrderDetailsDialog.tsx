@@ -263,7 +263,7 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
               Pedido {order.order_number}
             </DialogTitle>
             <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={handleSendReceipt} disabled={sendingReceipt} title="Enviar comprovante fiscal">
+               <Button variant="ghost" size="icon" onClick={handleSendReceipt} disabled={sendingReceipt} title="Imprimir e enviar recibo do pedido">
                 <FileText className="h-4 w-4" />
               </Button>
               <Button variant="ghost" size="icon" onClick={handlePrint} title="Imprimir pedido">
@@ -636,7 +636,7 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
           </TabsContent>
 
           <TabsContent value="fiscal" className="space-y-4 mt-4">
-            <FiscalOrderSection orderId={order.id} orderStatus={order.status} />
+            <FiscalOrderSection orderId={order.id} orderStatus={order.status} orderSource={order.source ?? 'website'} />
           </TabsContent>
 
           {/* Refunds Tab */}

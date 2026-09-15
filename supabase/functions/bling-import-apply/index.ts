@@ -130,6 +130,7 @@ Deno.serve(async (req) => {
           }
         }
 
+        let hasProductImage = false;
         if (remote.images.length) {
           const { data: existingImages, error: existingImagesError } = await supa
             .from('product_images')
@@ -137,6 +138,7 @@ Deno.serve(async (req) => {
             .eq('product_id', productId);
           if (existingImagesError) throw existingImagesError;
           const existingUrls = new Set((existingImages ?? []).map((image: { url: string }) => image.url));
+          hasProductImage = existingUrls.size > 0 || remote.images.length > 0;
           const missingImages = remote.images
             .filter((url: string) => !existingUrls.has(url))
             .map((url: string, index: number) => ({ product_id: productId, url, position: existingUrls.size + index, alt_text: remote.name }));
@@ -145,6 +147,21 @@ Deno.serve(async (req) => {
             if (imageError) throw imageError;
           }
         }
+
+        const { data: publishVariant } = await supa.from('product_variants').select('inventory_quantity').eq('id', variantId).single();
+        if (!hasProductImage) {
+          const { count } = await supa.from('product_images').select('id', { count: 'exact', head: true }).eq('product_id', productId);
+          hasProductImage = Number(count ?? 0) > 0;
+        }
+        const publishable = Boolean(normalizeSku(sku))
+          && Number(remote.price) > 0
+          && Number(publishVariant?.inventory_quantity ?? 0) > 0
+          && hasProductImage;
+        await supa.from('products').update({
+          status: publishable ? 'active' : 'draft',
+          is_available: publishable,
+        }).eq('id', productId);
+        await supa.from('product_variants').update({ is_available: publishable }).eq('id', variantId);
 
         const linkData = {
           product_id: productId,
@@ -181,7 +198,7 @@ Deno.serve(async (req) => {
         await supa.from('bling_sync_queue').delete().eq('product_id', productId).in('action', ['product', 'stock']).gte('created_at', applyStartedAt).eq('status', 'pending');
 
         await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, bling_data: { ...item.bling_data, ...remote }, apply_status: applyStatus, error_message: null, applied_at: new Date().toISOString() }).eq('id', item.id);
-        results.push({ id: item.id, ok: true, status: applyStatus });
+        results.push({ id: item.id, ok: true, status: applyStatus, published: publishable });
       } catch (error) {
         const message = errorMessage(error);
         await supa.from('bling_import_items').update({ apply_status: 'error', error_message: message }).eq('id', item.id);

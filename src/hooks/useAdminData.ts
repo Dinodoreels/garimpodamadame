@@ -83,7 +83,9 @@ export function useAdminData() {
 
     const orderIds = (data ?? []).map(order => order.id);
     const storeIds = [...new Set(data?.map(order => order.store_id).filter(Boolean) as string[])];
-    const [{ data: links }, { data: stores }, { data: shipments }] = await Promise.all([
+    const productIds = [...new Set((data ?? []).flatMap(order => order.order_items ?? []).map(item => item.product_id).filter(Boolean) as string[])];
+    const variantIds = [...new Set((data ?? []).flatMap(order => order.order_items ?? []).map(item => item.variant_id).filter(Boolean) as string[])];
+    const [{ data: links }, { data: stores }, { data: shipments }, { data: productImages }, { data: itemVariants }] = await Promise.all([
       orderIds.length
         ? supabase.from('bling_order_links').select('order_id, channel, bling_order_number, raw_payload').in('order_id', orderIds)
         : Promise.resolve({ data: [] }),
@@ -93,10 +95,19 @@ export function useAdminData() {
       orderIds.length
         ? supabase.from('melhor_envio_shipments').select('*').in('order_id', orderIds)
         : Promise.resolve({ data: [] }),
+      productIds.length
+        ? supabase.from('product_images').select('product_id, url, position').in('product_id', productIds).order('position', { ascending: true })
+        : Promise.resolve({ data: [] }),
+      variantIds.length
+        ? supabase.from('product_variants').select('id, sku').in('id', variantIds)
+        : Promise.resolve({ data: [] }),
     ]);
     const linkMap = new Map((links ?? []).map(link => [link.order_id, link]));
     const storeMap = new Map((stores ?? []).map(store => [store.id, store.name]));
     const shipmentMap = new Map((shipments ?? []).map(shipment => [shipment.order_id, shipment]));
+    const imageMap = new Map<string, string>();
+    for (const image of productImages ?? []) if (!imageMap.has(image.product_id)) imageMap.set(image.product_id, image.url);
+    const skuMap = new Map((itemVariants ?? []).map(variant => [variant.id, variant.sku]));
 
     // Fetch creator names for manual orders
     const creatorIds = [...new Set(data?.map(o => o.created_by).filter(Boolean) as string[])];
@@ -118,6 +129,11 @@ export function useAdminData() {
       const link = linkMap.get(order.id);
       return {
         ...order,
+        order_items: (order.order_items ?? []).map(item => ({
+          ...item,
+          image_url: item.image_url || (item.product_id ? imageMap.get(item.product_id) : null) || null,
+          sku: item.variant_id ? skuMap.get(item.variant_id) ?? item.shopify_variant_id ?? null : item.shopify_variant_id ?? null,
+        })),
         profile: order.profiles as any,
         source: order.source || 'website',
         created_by_name: order.created_by ? creatorMap[order.created_by] || 'Admin' : null,

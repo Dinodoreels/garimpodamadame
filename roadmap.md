@@ -36,6 +36,10 @@
 - [x] Bloquear emissão real e mostrar checklist fiscal por empresa, Bling, produtos, cliente, pedido e pagamento
 - [x] Mostrar a plataforma real do pedido e registrar a origem no complemento fiscal
 - [ ] Homologar regras tributárias com o contador e liberar produção explicitamente
+- [x] Mostrar todos os produtos diretamente nas linhas dos pedidos
+- [x] Recuperar no Bling o DANFE/XML já emitido para pedidos de marketplace, sem duplicar notas
+- [x] Emitir automaticamente a NF-e de pedidos pagos do site somente após validação fiscal completa
+- [x] Publicar automaticamente na loja os produtos importados completos, com foto, SKU, preço e estoque válido
 
 # Melhor Envio
 

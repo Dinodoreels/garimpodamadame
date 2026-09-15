@@ -321,10 +321,17 @@ export function BlingTab() {
     }
     const preview = await call('bling-import-preview');
     if (!preview?.run_id) return;
+    const { data: automaticItems } = await supabase.from('bling_import_items').select('id').eq('run_id', preview.run_id).eq('selected', true).neq('classification', 'conflict');
+    if (automaticItems?.length) {
+      await call('bling-import-decide', { run_id: preview.run_id, decision: 'approved', reason: 'Importação automática de produtos completos do Bling' });
+      for (let index = 0; index < automaticItems.length; index += 50) {
+        await call('bling-import-apply', { run_id: preview.run_id, item_ids: automaticItems.slice(index, index + 50).map((item) => item.id) });
+      }
+    }
     const orders = config?.pull_marketplace_orders ? await call('bling-pull-orders') : null;
     if (orders) await supabase.from('bling_import_runs').update({ orders_result: orders }).eq('id', preview.run_id);
     await load(true);
-    toast.success('Dados do Bling prontos para revisão', { description: `${preview.totals?.total ?? 0} produtos encontrados${preview.totals?.auto_sku_generated ? ` · ${preview.totals.auto_sku_generated} SKUs criados` : ''}${orders ? ` · ${orders.imported ?? 0} pedidos novos · ${orders.updated ?? 0} atualizados${orders.errors ? ` · ${orders.errors} com erro` : ''}` : ''}.` });
+    toast.success('Dados do Bling sincronizados', { description: `${preview.totals?.total ?? 0} produtos encontrados${automaticItems?.length ? ` · ${automaticItems.length} processados automaticamente` : ''}${preview.totals?.auto_sku_generated ? ` · ${preview.totals.auto_sku_generated} SKUs criados` : ''}${orders ? ` · ${orders.imported ?? 0} pedidos novos · ${orders.updated ?? 0} atualizados${orders.errors ? ` · ${orders.errors} com erro` : ''}` : ''}.` });
   };
 
   const toggleImportItem = async (item: ImportItem, selected: boolean) => {
@@ -569,7 +576,7 @@ export function BlingTab() {
                 {decisionHistory.length > 0 && <div className="space-y-2"><p className="text-sm font-medium">Histórico de decisões</p>{decisionHistory.map((entry) => <div key={entry.id} className="flex items-start justify-between gap-3 rounded-md border p-3 text-sm"><div><Badge variant={entry.decision === 'approved' ? 'secondary' : 'destructive'}>{entry.decision === 'approved' ? 'Aprovado' : 'Reprovado'}</Badge><p className="mt-1 text-muted-foreground">{entry.reason}</p></div><time className="shrink-0 text-xs text-muted-foreground">{new Date(entry.created_at).toLocaleString('pt-BR')}</time></div>)}</div>}
               </div>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">Novos produtos ficam ocultos como rascunho. Cada aplicação processa até 50 itens.</p>
+                <p className="text-xs text-muted-foreground">Produtos completos são publicados automaticamente. Itens sem foto, preço, estoque ou SKU ficam como rascunho.</p>
                 <Button onClick={applySelected} disabled={importRun.decision !== 'approved' || busy === 'bling-import-apply' || !importItems.some((item) => item.selected && item.classification !== 'conflict' && !['created', 'linked', 'updated'].includes(item.apply_status))}>
                   {busy === 'bling-import-apply' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Aplicar selecionados
                 </Button>
