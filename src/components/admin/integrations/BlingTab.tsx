@@ -7,8 +7,9 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Link2, RefreshCw, Plug, Download, Upload, CheckCircle2, XCircle, Copy, Building2 } from 'lucide-react';
+import { Loader2, Link2, RefreshCw, Plug, Download, Upload, CheckCircle2, XCircle, Copy, Building2, Search } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ProviderSetupGuide } from './ProviderSetupGuide';
@@ -45,6 +46,8 @@ type Config = {
 
 type LogRow = { id: string; entity_type: string; action: string; status: string; error_message: string | null; created_at: string };
 type LinkRow = { id: string; bling_sku: string | null; bling_product_id: string | null; status: string; last_error: string | null };
+type ImportRun = { id: string; status: string; totals: Record<string, number>; orders_result: Record<string, number> | null; created_at: string; error_message: string | null };
+type ImportItem = { id: string; bling_product_id: string; bling_sku: string | null; classification: 'new' | 'linked' | 'different' | 'conflict'; selected: boolean; bling_data: { name?: string; price?: number; stock?: number | null }; differences: Record<string, unknown>; apply_status: string; error_message: string | null };
 
 const AUTHORITY_LABEL: Record<Authority, string> = {
   bling: 'O Bling manda',
@@ -82,6 +85,10 @@ export function BlingTab() {
   const [queue, setQueue] = useState({ pending: 0, failed: 0, done: 0 });
   const [oauthPending, setOauthPending] = useState(false);
   const [replacingCredentials, setReplacingCredentials] = useState(false);
+  const [importRun, setImportRun] = useState<ImportRun | null>(null);
+  const [importItems, setImportItems] = useState<ImportItem[]>([]);
+  const [importSearch, setImportSearch] = useState('');
+  const [importFilter, setImportFilter] = useState('all');
   const oauthWindow = useRef<Window | null>(null);
 
   const load = async (silent = false) => {
@@ -95,16 +102,24 @@ export function BlingTab() {
     setClientId((data as any)?.client_id || '');
     setClientSecret((data as any)?.client_secret || '');
 
-    const [{ data: logRows }, { data: linkRows }, { data: queueRows }] = await Promise.all([
+    const [{ data: logRows }, { data: linkRows }, { data: queueRows }, { data: latestRun }] = await Promise.all([
       supabase.from('bling_sync_log').select('*').order('created_at', { ascending: false }).limit(20),
       supabase.from('bling_product_links').select('id, bling_sku, bling_product_id, status, last_error').order('updated_at', { ascending: false }).limit(50),
       supabase.from('bling_sync_queue').select('status'),
+      supabase.from('bling_import_runs').select('*').order('created_at', { ascending: false }).limit(1).maybeSingle(),
     ]);
     setLogs((logRows || []) as LogRow[]);
     setLinks((linkRows || []) as LinkRow[]);
     const q = { pending: 0, failed: 0, done: 0 };
     (queueRows || []).forEach((r: any) => { if (r.status in q) (q as any)[r.status]++; });
     setQueue(q);
+    setImportRun(latestRun as ImportRun | null);
+    if (latestRun) {
+      const { data: importedRows } = await supabase.from('bling_import_items').select('*').eq('run_id', latestRun.id).order('created_at').limit(1000);
+      setImportItems((importedRows || []) as ImportItem[]);
+    } else {
+      setImportItems([]);
+    }
     if (!silent) setLoading(false);
     return data as Config | null;
   };
@@ -284,12 +299,42 @@ export function BlingTab() {
     toast.success('Copiado');
   };
 
+  const fetchEverything = async () => {
+    const preview = await call('bling-import-preview');
+    if (!preview?.run_id) return;
+    const orders = config?.pull_marketplace_orders ? await call('bling-pull-orders') : null;
+    if (orders) await supabase.from('bling_import_runs').update({ orders_result: orders }).eq('id', preview.run_id);
+    await load(true);
+    toast.success('Dados do Bling prontos para revisão', { description: `${preview.totals?.total ?? 0} produtos encontrados${orders ? ` · ${orders.imported ?? 0} pedidos novos` : ''}.` });
+  };
+
+  const toggleImportItem = async (item: ImportItem, selected: boolean) => {
+    const { error } = await supabase.from('bling_import_items').update({ selected }).eq('id', item.id);
+    if (error) return toast.error('Não foi possível alterar a seleção', { description: error.message });
+    setImportItems((rows) => rows.map((row) => row.id === item.id ? { ...row, selected } : row));
+  };
+
+  const applySelected = async () => {
+    if (!importRun) return;
+    const itemIds = importItems.filter((item) => item.selected && !['created', 'linked', 'updated'].includes(item.apply_status)).slice(0, 50).map((item) => item.id);
+    if (!itemIds.length) return toast.info('Nenhum produto pendente foi selecionado.');
+    const result = await call('bling-import-apply', { run_id: importRun.id, item_ids: itemIds });
+    if (!result) return;
+    await load(true);
+    toast.success(`${result.processed - result.failed} produto(s) aplicados`, { description: result.failed ? `${result.failed} item(ns) precisam de revisão.` : 'O lote foi concluído sem erros.' });
+  };
+
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
   const connected = !!config?.refresh_token && !hasAuthorizationError(config?.last_error);
   const hasStoredAuthorization = !!config?.refresh_token && !!config?.access_token;
+  const visibleImportItems = importItems.filter((item) => {
+    const matchesFilter = importFilter === 'all' || item.classification === importFilter;
+    const term = importSearch.trim().toLocaleLowerCase('pt-BR');
+    return matchesFilter && (!term || item.bling_sku?.toLocaleLowerCase('pt-BR').includes(term) || item.bling_data?.name?.toLocaleLowerCase('pt-BR').includes(term));
+  });
 
   return (
     <div className="space-y-6">
@@ -418,6 +463,68 @@ export function BlingTab() {
             )}
             <Button variant="outline" onClick={() => load()}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Importar dados do Bling</CardTitle>
+          <CardDescription>Busque catálogo, estoque e pedidos. Revise os produtos antes de trazê-los para a loja.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={fetchEverything} disabled={!connected || busy === 'bling-import-preview' || busy === 'bling-pull-orders'}>
+              {busy === 'bling-import-preview' || busy === 'bling-pull-orders' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+              Buscar tudo do Bling
+            </Button>
+            {importRun && <Badge variant="secondary">Prévia de {new Date(importRun.created_at).toLocaleString('pt-BR')}</Badge>}
+          </div>
+
+          {importRun?.error_message && <Alert variant="destructive"><AlertDescription>{importRun.error_message}</AlertDescription></Alert>}
+
+          {importRun && (
+            <>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
+                {[
+                  ['Todos', importRun.totals?.total ?? importItems.length],
+                  ['Novos', importRun.totals?.new ?? 0],
+                  ['Vinculados', importRun.totals?.linked ?? 0],
+                  ['Diferentes', importRun.totals?.different ?? 0],
+                  ['Conflitos', importRun.totals?.conflict ?? 0],
+                ].map(([label, value]) => <div key={String(label)} className="rounded-md border p-3"><p className="text-xs text-muted-foreground">{label}</p><p className="text-xl font-semibold">{value}</p></div>)}
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <div className="relative flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" /><Input value={importSearch} onChange={(event) => setImportSearch(event.target.value)} placeholder="Buscar por produto ou SKU" className="pl-9" /></div>
+                <Select value={importFilter} onValueChange={setImportFilter}>
+                  <SelectTrigger className="sm:w-48"><SelectValue /></SelectTrigger>
+                  <SelectContent><SelectItem value="all">Todos</SelectItem><SelectItem value="new">Novos</SelectItem><SelectItem value="linked">Vinculados</SelectItem><SelectItem value="different">Com diferenças</SelectItem><SelectItem value="conflict">Conflitos</SelectItem></SelectContent>
+                </Select>
+              </div>
+              <div className="overflow-x-auto rounded-md border">
+                <Table>
+                  <TableHeader><TableRow><TableHead className="w-10">Trazer</TableHead><TableHead>Produto</TableHead><TableHead>SKU</TableHead><TableHead>Bling</TableHead><TableHead>Situação</TableHead></TableRow></TableHeader>
+                  <TableBody>
+                    {visibleImportItems.length === 0 && <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">Nenhum produto nesta seleção.</TableCell></TableRow>}
+                    {visibleImportItems.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell><Checkbox checked={item.selected} disabled={item.classification === 'conflict' || ['created', 'linked', 'updated'].includes(item.apply_status)} onCheckedChange={(value) => toggleImportItem(item, value === true)} aria-label={`Selecionar ${item.bling_data?.name ?? item.bling_sku ?? 'produto'}`} /></TableCell>
+                        <TableCell><p className="font-medium">{item.bling_data?.name || 'Sem nome'}</p>{item.error_message && <p className="text-xs text-destructive">{item.error_message}</p>}</TableCell>
+                        <TableCell className="font-mono text-xs">{item.bling_sku || 'Sem SKU'}</TableCell>
+                        <TableCell><p>{Number(item.bling_data?.price ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p><p className="text-xs text-muted-foreground">Estoque: {item.bling_data?.stock ?? 'não informado'}</p></TableCell>
+                        <TableCell><Badge variant={item.classification === 'conflict' ? 'destructive' : 'secondary'}>{item.apply_status !== 'pending' ? item.apply_status : ({ new: 'Novo rascunho', linked: 'Já vinculado', different: 'Com diferenças', conflict: 'Revisar SKU' } as const)[item.classification]}</Badge></TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-xs text-muted-foreground">Novos produtos ficam ocultos como rascunho. Cada lote aplica até 50 itens.</p>
+                <Button onClick={applySelected} disabled={busy === 'bling-import-apply' || !importItems.some((item) => item.selected && item.classification !== 'conflict' && !['created', 'linked', 'updated'].includes(item.apply_status))}>
+                  {busy === 'bling-import-apply' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Aplicar selecionados
+                </Button>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
