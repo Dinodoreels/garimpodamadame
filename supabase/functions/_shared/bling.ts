@@ -215,7 +215,7 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 export async function callBling(opts: {
   path: string;
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
-  query?: Record<string, string | number | undefined>;
+  query?: Record<string, string | number | Array<string | number> | undefined>;
   body?: unknown;
   config?: BlingConfig;
 }): Promise<{ status: number; data: any }> {
@@ -225,7 +225,11 @@ export async function callBling(opts: {
 
   const qs = new URLSearchParams();
   for (const [k, v] of Object.entries(opts.query ?? {})) {
-    if (v !== undefined && v !== null && v !== "") qs.set(k, String(v));
+    if (Array.isArray(v)) {
+      for (const item of v) qs.append(k, String(item));
+    } else if (v !== undefined && v !== null && v !== "") {
+      qs.set(k, String(v));
+    }
   }
   const url = `${BLING_API}${opts.path}${qs.toString() ? `?${qs}` : ""}`;
 

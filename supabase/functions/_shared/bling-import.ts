@@ -74,9 +74,41 @@ export async function fetchBlingProductDetail(id: string) {
   return data?.data ?? {};
 }
 
+async function fetchBlingStock(productIds: string[], depositoId: string) {
+  const balances = new Map<string, number>();
+  for (let index = 0; index < productIds.length; index += 100) {
+    const ids = productIds.slice(index, index + 100);
+    const { status, data } = await callBling({
+      path: `/estoques/saldos/${encodeURIComponent(depositoId)}`,
+      query: { 'idsProdutos[]': ids },
+    });
+    if (status >= 400) throw new Error(blingError(status, data));
+    for (const row of data?.data ?? []) {
+      const id = String(row?.produto?.id ?? '');
+      if (!id) continue;
+      const balance = row?.saldoVirtualTotal ?? row?.saldoFisicoTotal;
+      if (balance != null && Number.isFinite(Number(balance))) balances.set(id, Number(balance));
+    }
+  }
+  return balances;
+}
+
+function imageUrls(raw: any): string[] {
+  const media = raw?.midia?.imagens ?? {};
+  const rows = [
+    ...(Array.isArray(media?.externas) ? media.externas : []),
+    ...(Array.isArray(media?.internas) ? media.internas : []),
+    ...(Array.isArray(media?.imagensURL) ? media.imagensURL : []),
+    ...(Array.isArray(raw?.imagens) ? raw.imagens : []),
+  ];
+  const urls = [raw?.imagemURL, ...rows.map((image: any) => image?.link ?? image?.url)]
+    .map((value) => String(value ?? '').trim())
+    .filter((value) => /^https?:\/\//i.test(value));
+  return [...new Set(urls)].slice(0, 10);
+}
+
 export function productSnapshot(raw: any) {
   const dimensions = raw?.dimensoes ?? {};
-  const imageRows = raw?.midia?.imagens?.externas ?? raw?.imagens ?? [];
   return {
     id: String(raw?.id ?? ''),
     sku: String(raw?.codigo ?? '').trim(),
@@ -91,7 +123,7 @@ export function productSnapshot(raw: any) {
     height_cm: dimensions?.altura == null ? null : Number(dimensions.altura),
     length_cm: dimensions?.profundidade == null ? null : Number(dimensions.profundidade),
     stock: raw?.estoque?.saldoVirtualTotal ?? raw?.estoque?.saldoFisicoTotal ?? raw?.saldoVirtualTotal ?? raw?.saldoFisicoTotal ?? null,
-    images: imageRows.map((img: any) => String(img?.link ?? img?.url ?? '')).filter(Boolean).slice(0, 10),
+    images: imageUrls(raw),
   };
 }
 
@@ -110,6 +142,8 @@ export async function prepareImportRun(userId: string) {
 
   try {
     const remote = await fetchAllBlingProducts();
+    if (!cfg.deposito_id) throw new Error('Escolha o depósito do Bling antes de buscar produtos e estoque.');
+    const stockByProduct = await fetchBlingStock(remote.map((product: any) => String(product?.id ?? '')).filter(Boolean), cfg.deposito_id);
     const { data: variants } = await supa.from('product_variants').select('id, product_id, sku, price, cost, inventory_quantity');
     const { data: links } = await supa.from('bling_product_links').select('product_id, variant_id, bling_product_id, bling_sku');
     const variantsBySku = new Map<string, any[]>();
@@ -132,7 +166,14 @@ export async function prepareImportRun(userId: string) {
     const preparedRemote: Array<{ raw: any; generated: boolean; generationError?: string }> = [];
     for (const raw of remote) {
       if (normalizeSku(raw?.codigo)) {
-        preparedRemote.push({ raw, generated: false });
+        try {
+          const detailed = await fetchBlingProductDetail(String(raw?.id ?? ''));
+          preparedRemote.push({ raw: { ...raw, ...detailed }, generated: false });
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          preparedRemote.push({ raw, generated: false });
+          await logSync({ entity_type: 'product', entity_id: String(raw?.id ?? ''), action: 'fetch_detail', status: 'error', error_message: message });
+        }
         continue;
       }
       try {
@@ -146,6 +187,8 @@ export async function prepareImportRun(userId: string) {
 
     const rows = preparedRemote.map(({ raw, generated, generationError }) => {
       const snap = productSnapshot(raw);
+      const selectedStock = stockByProduct.get(snap.id);
+      if (selectedStock != null) snap.stock = selectedStock;
       const normalized = normalizeSku(snap.sku);
       const linked = linksByRemoteId.get(snap.id);
       const matches = normalized ? variantsBySku.get(normalized) ?? [] : [];

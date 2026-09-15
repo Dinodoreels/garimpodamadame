@@ -18,3 +18,4 @@
 - [x] Gerar automaticamente SKUs ausentes no Bling e liberar os produtos na revisão
 - [x] Exibir o padrão único de sincronização para TikTok Shop, Mercado Livre, Shopee e Amazon
 - [x] Validar a automação com os produtos reais da conta conectada
+- [ ] Corrigir a atualização de estoque por depósito e importar imagens dos 52 produtos vinculados
