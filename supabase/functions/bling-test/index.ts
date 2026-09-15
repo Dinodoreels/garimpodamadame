@@ -26,6 +26,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ ok: true, company: cfg.company_name, sample_count: data?.data?.length ?? 0, callback_url: getCallbackUrl() });
   } catch (e) {
     if (e instanceof Response) return e;
-    return jsonResponse({ ok: false, error: e instanceof Error ? e.message : String(e) }, 500);
+    return jsonResponse({ ok: false, error: e instanceof Error ? e.message : String(e) });
   }
 });

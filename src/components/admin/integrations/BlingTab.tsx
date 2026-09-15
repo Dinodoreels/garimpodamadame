@@ -55,11 +55,11 @@ const CALLBACK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bling-oa
 const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bling-webhook`;
 
 const hasAuthorizationError = (message: string | null | undefined) =>
-  !!message && /invalid_grant|invalid refresh token|client_id.*inv[aá]lido|invalid_client/i.test(message);
+  !!message && /invalid_grant|invalid refresh token|client_id.*inv[aá]lido|invalid_client|autoriza[cç][aã]o anterior.*expirou/i.test(message);
 
 const friendlyBlingError = (message: string | null | undefined) => {
   if (!message) return 'O Bling não informou o motivo da falha.';
-  if (/invalid_grant|invalid refresh token/i.test(message)) {
+  if (/invalid_grant|invalid refresh token|autoriza[cç][aã]o anterior.*expirou/i.test(message)) {
     return 'A autorização anterior expirou ou foi cancelada. Confira as credenciais e conecte novamente.';
   }
   if (/client_id.*inv[aá]lido|invalid_client/i.test(message)) {
