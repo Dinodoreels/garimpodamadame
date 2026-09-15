@@ -3,6 +3,22 @@ import { accountKey, fetchBlingProductDetail, normalizeSku, productSnapshot } fr
 
 const slug = (name: string, remoteId: string) => `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'produto'}-bling-${remoteId}`;
 
+const errorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>;
+    const parts = [record.message, record.details, record.hint, record.code].filter((value) => typeof value === 'string' && value);
+    if (parts.length) return parts.join(' — ');
+    try {
+      return JSON.stringify(error);
+    } catch {
+      return 'Erro desconhecido ao importar o produto.';
+    }
+  }
+  return String(error);
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
@@ -39,37 +55,64 @@ Deno.serve(async (req) => {
         let variantId = item.local_variant_id as string | null;
         let applyStatus = 'linked';
 
+        // A previous attempt may have created the draft before failing to link it.
+        // Recover it by the stable Bling handle instead of creating a duplicate.
+        if (!productId) {
+          const { data: existingProduct, error: existingProductError } = await supa
+            .from('products')
+            .select('id')
+            .eq('handle', slug(remote.name, remote.id))
+            .maybeSingle();
+          if (existingProductError) throw existingProductError;
+          productId = existingProduct?.id ?? null;
+        }
+        if (productId && !variantId) {
+          const { data: existingVariant, error: existingVariantError } = await supa
+            .from('product_variants')
+            .select('id')
+            .eq('product_id', productId)
+            .eq('sku', sku)
+            .maybeSingle();
+          if (existingVariantError) throw existingVariantError;
+          variantId = existingVariant?.id ?? null;
+        }
+
         if (!productId || !variantId) {
-          const { data: product, error: productError } = await supa.from('products').insert({
-            title: remote.name,
-            description: remote.description,
-            handle: slug(remote.name, remote.id),
-            vendor: remote.brand,
-            price: remote.price,
-            status: 'draft',
-            is_available: false,
-            weight_grams: remote.weight_grams,
-            width_cm: remote.width_cm,
-            height_cm: remote.height_cm,
-            length_cm: remote.length_cm,
-          }).select('id').single();
-          if (productError) throw productError;
-          productId = product.id;
+          if (!productId) {
+            const { data: product, error: productError } = await supa.from('products').insert({
+              title: remote.name,
+              description: remote.description,
+              handle: slug(remote.name, remote.id),
+              vendor: remote.brand,
+              price: remote.price,
+              status: 'draft',
+              is_available: false,
+              weight_grams: remote.weight_grams,
+              width_cm: remote.width_cm,
+              height_cm: remote.height_cm,
+              length_cm: remote.length_cm,
+            }).select('id').single();
+            if (productError) throw productError;
+            productId = product.id;
+          }
           const quantity = cfg.stock_authority === 'bling' && remote.stock != null ? Math.max(0, Math.trunc(Number(remote.stock))) : 0;
-          const { data: variant, error: variantError } = await supa.from('product_variants').insert({
-            product_id: productId,
-            title: 'Default',
-            sku,
-            price: remote.price,
-            cost: remote.cost,
-            inventory_quantity: quantity,
-            is_available: false,
-            inventory_policy: 'deny',
-          }).select('id').single();
-          if (variantError) throw variantError;
-          variantId = variant.id;
-          if (remote.images.length) {
-            await supa.from('product_images').insert(remote.images.map((url: string, position: number) => ({ product_id: productId, url, position, alt_text: remote.name })));
+          if (!variantId) {
+            const { data: variant, error: variantError } = await supa.from('product_variants').insert({
+              product_id: productId,
+              title: 'Default',
+              sku,
+              price: remote.price,
+              cost: remote.cost,
+              inventory_quantity: quantity,
+              is_available: false,
+              inventory_policy: 'deny',
+            }).select('id').single();
+            if (variantError) throw variantError;
+            variantId = variant.id;
+            if (remote.images.length) {
+              const { error: imageError } = await supa.from('product_images').insert(remote.images.map((url: string, position: number) => ({ product_id: productId, url, position, alt_text: remote.name })));
+              if (imageError) throw imageError;
+            }
           }
           applyStatus = 'created';
         } else {
@@ -83,7 +126,7 @@ Deno.serve(async (req) => {
           }
         }
 
-        const { error: linkError } = await supa.from('bling_product_links').upsert({
+        const linkData = {
           product_id: productId,
           variant_id: variantId,
           bling_product_id: remote.id,
@@ -91,7 +134,17 @@ Deno.serve(async (req) => {
           status: 'synced',
           last_pulled_at: new Date().toISOString(),
           last_error: null,
-        }, { onConflict: 'product_id,variant_id' });
+        };
+        const { data: existingLink, error: existingLinkError } = await supa
+          .from('bling_product_links')
+          .select('id')
+          .eq('product_id', productId)
+          .eq('variant_id', variantId)
+          .maybeSingle();
+        if (existingLinkError) throw existingLinkError;
+        const { error: linkError } = existingLink
+          ? await supa.from('bling_product_links').update(linkData).eq('id', existingLink.id)
+          : await supa.from('bling_product_links').insert(linkData);
         if (linkError) throw linkError;
 
         // Pulling from Bling must not create a pending outbound echo for the same change.
@@ -100,7 +153,7 @@ Deno.serve(async (req) => {
         await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, apply_status: applyStatus, error_message: null, applied_at: new Date().toISOString() }).eq('id', item.id);
         results.push({ id: item.id, ok: true, status: applyStatus });
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const message = errorMessage(error);
         await supa.from('bling_import_items').update({ apply_status: 'error', error_message: message }).eq('id', item.id);
         results.push({ id: item.id, ok: false, error: message });
       }
@@ -114,6 +167,6 @@ Deno.serve(async (req) => {
     return jsonResponse({ processed: results.length, failed, results, completed: done, actor: userId });
   } catch (error) {
     if (error instanceof Response) return error;
-    return jsonResponse({ error: error instanceof Error ? error.message : String(error) }, 500);
+    return jsonResponse({ error: errorMessage(error) }, 500);
   }
 });
