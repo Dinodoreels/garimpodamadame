@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Plus, Pencil, Trash2, Filter, X, Loader2, GripVertical, Package, Tags, Truck, AlertCircle } from 'lucide-react';
+import { Search, Plus, Pencil, Trash2, Filter, X, Loader2, GripVertical, Package, Tags, Truck, AlertCircle, Link2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
@@ -50,6 +50,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { useRealtimeInvalidator } from '@/hooks/useRealtimeInvalidator';
 
 // Helper function to upload image to Supabase Storage
 async function uploadImageToStorage(base64: string, filename: string): Promise<string> {
@@ -127,7 +128,7 @@ function SortableProductRow({ product, formatCurrency, handleEdit, handleDeleteC
           <div className="w-12 h-12 bg-muted" />
         )}
       </TableCell>
-      <TableCell className="font-medium max-w-[200px] truncate">{product.title}</TableCell>
+      <TableCell className="font-medium max-w-[200px]"><span className="block truncate">{product.title}</span>{product.bling_links?.length ? <Badge variant="outline" className="mt-1 gap-1"><Link2 className="h-3 w-3" />Bling</Badge> : null}</TableCell>
       <TableCell className="font-light text-muted-foreground">{product.product_type || '-'}</TableCell>
       <TableCell className="font-light text-muted-foreground hidden lg:table-cell">{product.vendor || '-'}</TableCell>
       <TableCell>
@@ -187,6 +188,8 @@ export default function Products() {
   const [isUploading, setIsUploading] = useState(false);
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [stockProduct, setStockProduct] = useState<Product | null>(null);
+  useRealtimeInvalidator(['products', 'product_variants', 'product_images', 'bling_product_links'], ['admin-products']);
+  const focusedProductId = new URLSearchParams(window.location.search).get('product');
 
   // Category management state
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -245,6 +248,7 @@ export default function Products() {
 
   const filteredProducts = useMemo(() => {
     return products.filter((product) => {
+      if (focusedProductId && product.id !== focusedProductId) return false;
       const matchesSearch = product.title.toLowerCase().includes(search.toLowerCase());
       let matchesType = true;
       if (filterType === '__none__') {
@@ -260,7 +264,7 @@ export default function Products() {
         (filterLote === 'lote' ? (product as any).is_lote === true : (product as any).is_lote !== true);
       return matchesSearch && matchesType && matchesVendor && matchesSupplier && matchesConsignment && matchesLote;
     });
-  }, [products, search, filterType, filterVendor, filterSupplier, filterConsignment, filterLote, categoryValues]);
+  }, [products, search, filterType, filterVendor, filterSupplier, filterConsignment, filterLote, categoryValues, focusedProductId]);
 
   const hasActiveFilters = filterType || filterVendor || filterSupplier || filterConsignment || filterLote;
 
@@ -733,7 +737,7 @@ export default function Products() {
                 )}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="font-medium truncate">{product.title}</p>
+                    <div className="min-w-0"><p className="font-medium truncate">{product.title}</p>{product.bling_links?.length ? <Badge variant="outline" className="mt-1 gap-1"><Link2 className="h-3 w-3" />Bling</Badge> : null}</div>
                     <span className="font-medium whitespace-nowrap text-sm">{formatCurrency(product.price)}</span>
                   </div>
                   <div className="flex items-center gap-2 mt-0.5">
@@ -813,7 +817,7 @@ export default function Products() {
                             <div className="w-12 h-12 bg-muted" />
                           )}
                         </TableCell>
-                        <TableCell className="font-medium max-w-[200px] truncate">{product.title}</TableCell>
+                        <TableCell className="font-medium max-w-[200px]"><span className="block truncate">{product.title}</span>{product.bling_links?.length ? <Badge variant="outline" className="mt-1 gap-1"><Link2 className="h-3 w-3" />Bling</Badge> : null}</TableCell>
                         <TableCell className="font-light text-muted-foreground">{product.product_type || '-'}</TableCell>
                         <TableCell className="font-light text-muted-foreground hidden lg:table-cell">{product.vendor || '-'}</TableCell>
                         <TableCell>

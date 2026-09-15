@@ -7,13 +7,15 @@ import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Loader2, Link2, RefreshCw, Plug, Download, Upload, CheckCircle2, XCircle, Copy, Building2, Search, Store } from 'lucide-react';
+import { Loader2, Link2, RefreshCw, Plug, Download, Upload, CheckCircle2, XCircle, Copy, Building2, Search, Store, ExternalLink, ImageOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ProviderSetupGuide } from './ProviderSetupGuide';
 import { BLING_GUIDE } from './providerGuides';
+import { useRealtimeRefetch } from '@/hooks/useRealtimeInvalidator';
 
 type Authority = 'bling' | 'store' | 'notify';
 
@@ -46,8 +48,9 @@ type Config = {
 
 type LogRow = { id: string; entity_type: string; action: string; status: string; error_message: string | null; created_at: string };
 type LinkRow = { id: string; bling_sku: string | null; bling_product_id: string | null; status: string; last_error: string | null };
-type ImportRun = { id: string; status: string; totals: Record<string, number>; orders_result: Record<string, number> | null; created_at: string; error_message: string | null };
+type ImportRun = { id: string; status: string; decision: 'pending' | 'approved' | 'rejected'; decision_reason: string | null; decided_at: string | null; totals: Record<string, number>; orders_result: Record<string, number> | null; created_at: string; error_message: string | null };
 type ImportItem = { id: string; bling_product_id: string; bling_sku: string | null; classification: 'new' | 'linked' | 'different' | 'conflict'; selected: boolean; bling_data: { name?: string; price?: number; stock?: number | null; images?: string[]; auto_sku_generated?: boolean; auto_sku_error?: string | null }; differences: Record<string, unknown>; apply_status: string; error_message: string | null };
+type ImportDecision = { id: string; decision: 'approved' | 'rejected'; reason: string; created_at: string };
 
 const AUTHORITY_LABEL: Record<Authority, string> = {
   bling: 'O Bling manda',
@@ -89,6 +92,8 @@ export function BlingTab() {
   const [importItems, setImportItems] = useState<ImportItem[]>([]);
   const [importSearch, setImportSearch] = useState('');
   const [importFilter, setImportFilter] = useState('all');
+  const [decisionReason, setDecisionReason] = useState('');
+  const [decisionHistory, setDecisionHistory] = useState<ImportDecision[]>([]);
   const oauthWindow = useRef<Window | null>(null);
 
   const load = async (silent = false) => {
@@ -115,8 +120,12 @@ export function BlingTab() {
     setQueue(q);
     setImportRun(latestRun as ImportRun | null);
     if (latestRun) {
-      const { data: importedRows } = await supabase.from('bling_import_items').select('*').eq('run_id', latestRun.id).order('created_at').limit(1000);
+      const [{ data: importedRows }, { data: decisions }] = await Promise.all([
+        supabase.from('bling_import_items').select('*').eq('run_id', latestRun.id).order('created_at').limit(1000),
+        supabase.from('bling_import_run_decisions').select('id, decision, reason, created_at').eq('run_id', latestRun.id).order('created_at', { ascending: false }),
+      ]);
       setImportItems((importedRows || []) as ImportItem[]);
+      setDecisionHistory((decisions || []) as ImportDecision[]);
     } else {
       setImportItems([]);
     }
@@ -125,6 +134,7 @@ export function BlingTab() {
   };
 
   useEffect(() => { load(); }, []);
+  useRealtimeRefetch(['bling_import_runs', 'bling_import_items', 'bling_import_run_decisions'], () => load(true));
 
   // Handle the return from the Bling authorization window.
   useEffect(() => {
@@ -333,6 +343,16 @@ export function BlingTab() {
     toast.success(`${result.processed - result.failed} produto(s) aplicados`, { description: result.failed ? `${result.failed} item(ns) precisam de revisão.` : 'O lote foi concluído sem erros.' });
   };
 
+  const decideRun = async (decision: 'approved' | 'rejected') => {
+    if (!importRun) return;
+    if (decisionReason.trim().length < 3) return toast.error('Informe o motivo da decisão.');
+    const result = await call('bling-import-decide', { run_id: importRun.id, decision, reason: decisionReason.trim() });
+    if (!result) return;
+    setDecisionReason('');
+    await load(true);
+    toast.success(decision === 'approved' ? 'Lote aprovado' : 'Lote reprovado');
+  };
+
   if (loading) {
     return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
@@ -487,6 +507,7 @@ export function BlingTab() {
               Buscar tudo do Bling
             </Button>
             {importRun && <Badge variant="secondary">Prévia de {new Date(importRun.created_at).toLocaleString('pt-BR')}</Badge>}
+            {importRun && <Badge variant={importRun.decision === 'rejected' ? 'destructive' : 'outline'}>{importRun.decision === 'approved' ? 'Lote aprovado' : importRun.decision === 'rejected' ? 'Lote reprovado' : 'Aguardando aprovação'}</Badge>}
           </div>
 
           {!config?.deposito_id && (
@@ -523,18 +544,27 @@ export function BlingTab() {
                     {visibleImportItems.map((item) => (
                       <TableRow key={item.id}>
                         <TableCell><Checkbox checked={item.selected} disabled={item.classification === 'conflict' || ['created', 'linked', 'updated'].includes(item.apply_status)} onCheckedChange={(value) => toggleImportItem(item, value === true)} aria-label={`Selecionar ${item.bling_data?.name ?? item.bling_sku ?? 'produto'}`} /></TableCell>
-                        <TableCell><p className="font-medium">{item.bling_data?.name || 'Sem nome'}</p>{item.error_message && <p className="text-xs text-destructive">{item.error_message}</p>}</TableCell>
+                        <TableCell><p className="font-medium">{item.bling_data?.name || 'Sem nome'}</p>{item.error_message && <p className="text-xs text-destructive">{item.error_message}</p>}{item.local_product_id && <a href={`/admin/products?product=${item.local_product_id}`} className="mt-1 inline-flex items-center gap-1 text-xs text-primary hover:underline">Abrir em Produtos <ExternalLink className="h-3 w-3" /></a>}</TableCell>
                          <TableCell className="font-mono text-xs"><span>{item.bling_sku || 'Sem SKU'}</span>{item.bling_data?.auto_sku_generated && <Badge variant="outline" className="ml-2 font-sans">Automático</Badge>}</TableCell>
-                        <TableCell><p>{Number(item.bling_data?.price ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p><p className="text-xs text-muted-foreground">Estoque: {item.bling_data?.stock ?? 'não informado'} · Fotos: {item.bling_data?.images?.length ?? 0}</p></TableCell>
+                        <TableCell><p>{Number(item.bling_data?.price ?? 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</p><p className="text-xs text-muted-foreground">Estoque: {item.bling_data?.stock ?? 'não informado'} · Fotos: {item.bling_data?.images?.length ?? 0}</p>{!(item.bling_data?.images?.length) && <span className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground"><ImageOff className="h-3 w-3" />Sem foto no Bling</span>}</TableCell>
                          <TableCell><Badge variant={item.classification === 'conflict' ? 'destructive' : 'secondary'}>{item.apply_status !== 'pending' ? item.apply_status : item.bling_data?.auto_sku_generated ? 'SKU criado no Bling' : ({ new: 'Novo rascunho', linked: 'Já vinculado', different: 'Com diferenças', conflict: 'Revisar conflito' } as const)[item.classification]}</Badge></TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
               </div>
+              <div className="space-y-3 border-t pt-4">
+                <Label htmlFor="bling-decision-reason">Motivo da decisão</Label>
+                <Textarea id="bling-decision-reason" value={decisionReason} onChange={(event) => setDecisionReason(event.target.value)} placeholder="Ex.: cadastros e saldos conferidos no depósito selecionado" maxLength={1000} />
+                <div className="flex flex-wrap gap-2">
+                  <Button onClick={() => decideRun('approved')} disabled={!!busy || decisionReason.trim().length < 3}><CheckCircle2 className="mr-2 h-4 w-4" />Aprovar lote</Button>
+                  <Button variant="destructive" onClick={() => decideRun('rejected')} disabled={!!busy || decisionReason.trim().length < 3}><XCircle className="mr-2 h-4 w-4" />Reprovar lote</Button>
+                </div>
+                {decisionHistory.length > 0 && <div className="space-y-2"><p className="text-sm font-medium">Histórico de decisões</p>{decisionHistory.map((entry) => <div key={entry.id} className="flex items-start justify-between gap-3 rounded-md border p-3 text-sm"><div><Badge variant={entry.decision === 'approved' ? 'secondary' : 'destructive'}>{entry.decision === 'approved' ? 'Aprovado' : 'Reprovado'}</Badge><p className="mt-1 text-muted-foreground">{entry.reason}</p></div><time className="shrink-0 text-xs text-muted-foreground">{new Date(entry.created_at).toLocaleString('pt-BR')}</time></div>)}</div>}
+              </div>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">Novos produtos ficam ocultos como rascunho. Cada lote aplica até 50 itens.</p>
-                <Button onClick={applySelected} disabled={busy === 'bling-import-apply' || !importItems.some((item) => item.selected && item.classification !== 'conflict' && !['created', 'linked', 'updated'].includes(item.apply_status))}>
+                <p className="text-xs text-muted-foreground">Novos produtos ficam ocultos como rascunho. Cada aplicação processa até 50 itens.</p>
+                <Button onClick={applySelected} disabled={importRun.decision !== 'approved' || busy === 'bling-import-apply' || !importItems.some((item) => item.selected && item.classification !== 'conflict' && !['created', 'linked', 'updated'].includes(item.apply_status))}>
                   {busy === 'bling-import-apply' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Aplicar selecionados
                 </Button>
               </div>

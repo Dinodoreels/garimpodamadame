@@ -50,6 +50,7 @@ export interface Product {
   images: ProductImage[];
   variants: ProductVariant[];
   options: ProductOption[];
+  bling_links?: { id: string; bling_product_id: string | null; bling_sku: string | null; status: string }[];
 }
 
 export function useProducts(limit: number = 500, searchQuery?: string) {
