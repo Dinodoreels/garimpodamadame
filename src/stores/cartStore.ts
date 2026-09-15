@@ -342,7 +342,7 @@ export const useCartStore = create<CartStore>()(
       },
 
       createDirectCheckout: async (item: CartItem) => {
-        const { setLoading } = get();
+        const { setLoading, shippingCost, shippingOption, selectedAddress } = get();
         setLoading(true);
         
         try {
@@ -365,7 +365,9 @@ export const useCartStore = create<CartStore>()(
           const { data, error } = await supabase.functions.invoke('create-checkout', {
             body: {
               items: checkoutItems,
-              shipping_cost: 0,
+              shipping_cost: shippingCost,
+              shipping_address: selectedAddress || undefined,
+              shipping_option: shippingOption || undefined,
             },
           });
 

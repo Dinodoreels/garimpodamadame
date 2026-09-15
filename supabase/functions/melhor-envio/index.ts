@@ -66,14 +66,14 @@ Deno.serve(async (req) => {
     if (!melhorEnvioToken) return response({ ok: false, error: 'Credencial do Melhor Envio ainda não configurada' }, 409)
 
     if (action === 'test') {
-      const account = await callProvider(melhorEnvioToken, '/account')
+      const account = await callProvider(melhorEnvioToken, '')
       return response({ ok: true, account: { firstname: account.firstname, lastname: account.lastname, email: account.email } })
     }
 
     if (!input.order_id) return response({ ok: false, error: 'Pedido obrigatório' }, 400)
     const { data: order } = await admin.from('orders').select('*, order_items(*)').eq('id', input.order_id).maybeSingle()
     if (!order) return response({ ok: false, error: 'Pedido não encontrado' }, 404)
-    if ((order.source || 'website') !== 'website') return response({ ok: false, error: 'O Melhor Envio é exclusivo para vendas deste site' }, 409)
+    if (order.source !== 'website') return response({ ok: false, error: 'O Melhor Envio é exclusivo para vendas deste site' }, 409)
 
     const { data: existing } = await admin.from('melhor_envio_shipments').select('*').eq('order_id', order.id).maybeSingle()
     const addEvent = async (shipmentId: string, type: string, status: string, message: string, providerData: unknown = {}) => {

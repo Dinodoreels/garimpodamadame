@@ -160,7 +160,9 @@ export function ShippingAddressModal({
       shippingResult.city,
       addressToSave.zip_code,
       shippingResult.estimatedDays,
-      addressToSave
+      addressToSave,
+      shippingResult.option.service,
+      shippingResult.option
     );
 
     onOpenChange(false);

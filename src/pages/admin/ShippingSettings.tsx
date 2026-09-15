@@ -9,8 +9,6 @@ import {
   Loader2,
   Package,
   MapPin,
-  Eye,
-  EyeOff,
   CheckCircle2,
   Settings2,
   Power

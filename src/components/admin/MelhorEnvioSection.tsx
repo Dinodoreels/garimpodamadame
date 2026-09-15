@@ -14,7 +14,7 @@ export function MelhorEnvioSection({ orderId, source, service, carrier, estimate
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const { toast } = useToast();
-  const isWebsite = (source || 'website') === 'website';
+  const isWebsite = source === 'website';
 
   const load = useCallback(async () => {
     const { data } = await supabase.from('melhor_envio_shipments').select('*').eq('order_id', orderId).maybeSingle();
