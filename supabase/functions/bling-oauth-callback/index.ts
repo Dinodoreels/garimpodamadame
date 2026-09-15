@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     if (!cfg?.client_id || !cfg?.client_secret) {
       return backToPanel(origin, "error", "Cadastre o Client ID e o Client Secret antes de conectar.");
     }
-    if (cfg.oauth_state && state && cfg.oauth_state !== state) {
+    if (!cfg.oauth_state || !state || cfg.oauth_state !== state) {
       return backToPanel(origin, "error", "A verificação de segurança falhou. Tente conectar novamente.");
     }
 
@@ -51,15 +51,18 @@ Deno.serve(async (req) => {
     if (status !== 200 || !data?.access_token) {
       const message = friendlyBlingAuthError(data);
       await logSync({ entity_type: "oauth", action: "callback", status: "error", response: data, error_message: message });
-      await getSupabaseAdmin().from("bling_config").update({
-        access_token: null,
-        refresh_token: null,
-        token_expires_at: null,
-        company_name: null,
-        is_active: false,
-        last_error: message,
-        oauth_state: null,
-      }).eq("id", cfg.id);
+      const hasWorkingAuthorization = !!cfg.access_token && !!cfg.refresh_token;
+      await getSupabaseAdmin().from("bling_config").update(hasWorkingAuthorization
+        ? { oauth_state: null }
+        : {
+            access_token: null,
+            refresh_token: null,
+            token_expires_at: null,
+            company_name: null,
+            is_active: false,
+            last_error: message,
+            oauth_state: null,
+          }).eq("id", cfg.id);
       return backToPanel(origin, "error", message);
     }
 

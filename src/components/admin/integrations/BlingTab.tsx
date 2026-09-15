@@ -23,6 +23,7 @@ type Config = {
   access_token: string | null;
   refresh_token: string | null;
   token_expires_at: string | null;
+  oauth_state: string | null;
   company_name: string | null;
   is_active: boolean;
   sync_products: boolean;
@@ -82,8 +83,8 @@ export function BlingTab() {
   const [oauthPending, setOauthPending] = useState(false);
   const oauthWindow = useRef<Window | null>(null);
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (silent = false) => {
+    if (!silent) setLoading(true);
     let { data } = await supabase.from('bling_config').select('*').limit(1).maybeSingle();
     if (!data) {
       const created = await supabase.from('bling_config').insert({}).select('*').single();
@@ -103,7 +104,7 @@ export function BlingTab() {
     const q = { pending: 0, failed: 0, done: 0 };
     (queueRows || []).forEach((r: any) => { if (r.status in q) (q as any)[r.status]++; });
     setQueue(q);
-    setLoading(false);
+    if (!silent) setLoading(false);
     return data as Config | null;
   };
 
@@ -156,14 +157,24 @@ export function BlingTab() {
 
   useEffect(() => {
     if (!oauthPending) return;
-    const timer = window.setInterval(() => {
+    const timer = window.setInterval(async () => {
       if (oauthWindow.current?.closed) {
         window.clearInterval(timer);
         oauthWindow.current = null;
         setOauthPending(false);
-        load();
+        await load(true);
+        return;
       }
-    }, 700);
+
+      const loaded = await load(true);
+      const authorizationFinished = !!loaded?.access_token && !!loaded?.refresh_token && !loaded?.oauth_state && !hasAuthorizationError(loaded?.last_error);
+      if (authorizationFinished) {
+        window.clearInterval(timer);
+        oauthWindow.current?.close();
+        oauthWindow.current = null;
+        setOauthPending(false);
+      }
+    }, 1500);
     return () => window.clearInterval(timer);
   }, [oauthPending]);
 
@@ -187,7 +198,6 @@ export function BlingTab() {
   };
 
   const connect = async () => {
-    if (connected && !window.confirm('Deseja trocar a conta do Bling ou autorizar novamente a empresa atual?')) return;
     const nextClientId = clientId.trim();
     const nextClientSecret = clientSecret.trim();
     if (!nextClientId || !nextClientSecret) {
@@ -196,6 +206,19 @@ export function BlingTab() {
     }
 
     const credentialsChanged = nextClientId !== config?.client_id || nextClientSecret !== config?.client_secret;
+    if (connected && !credentialsChanged) {
+      const tested = await call('bling-test');
+      if (tested?.ok) {
+        await supabase.from('bling_config').update({ oauth_state: null }).eq('id', config?.id ?? '');
+        oauthWindow.current?.close();
+        oauthWindow.current = null;
+        setOauthPending(false);
+        await load(true);
+        toast.success('O Bling já está conectado', { description: tested.company ? `Empresa: ${tested.company}` : 'Não é necessário autorizar novamente.' });
+      }
+      return;
+    }
+    if (connected && credentialsChanged && !window.confirm('As credenciais foram alteradas. Deseja trocar a conta conectada ao Bling?')) return;
     const values: Partial<Config> = {
       client_id: nextClientId,
       client_secret: nextClientSecret,
@@ -349,7 +372,7 @@ export function BlingTab() {
             {connected && (
               <Button variant="outline" onClick={connect} disabled={busy === 'bling-oauth-start' || oauthPending}>
                 {busy === 'bling-oauth-start' || oauthPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Building2 className="h-4 w-4 mr-2" />}
-                Trocar ou autorizar novamente a conta
+                Trocar conta do Bling
               </Button>
             )}
             <Button variant="outline" onClick={load}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
