@@ -88,6 +88,7 @@ export function BlingTab() {
     (queueRows || []).forEach((r: any) => { if (r.status in q) (q as any)[r.status]++; });
     setQueue(q);
     setLoading(false);
+    return data as Config | null;
   };
 
   useEffect(() => { load(); }, []);
@@ -109,26 +110,29 @@ export function BlingTab() {
       return;
     }
 
-    if (result === 'ok') toast.success('Bling conectado com sucesso');
-    else toast.error('Não foi possível conectar', { description: msg || undefined });
+    const finish = async () => {
+      const loaded = await load();
+      if (result === 'ok') toast.success('Bling conectado com sucesso', { description: loaded?.company_name ? `Empresa: ${loaded.company_name}` : undefined });
+      else toast.error('Não foi possível conectar', { description: msg || undefined });
 
-    params.delete('bling');
-    params.delete('bling_msg');
-    const query = params.toString();
-    window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
-    load();
+      params.delete('bling');
+      params.delete('bling_msg');
+      const query = params.toString();
+      window.history.replaceState({}, '', window.location.pathname + (query ? `?${query}` : ''));
+    };
+    finish();
   }, []);
 
   // Listen for the result coming from the popup.
   useEffect(() => {
-    const onMessage = (e: MessageEvent) => {
+    const onMessage = async (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
       if (e.data?.type !== 'bling-oauth') return;
       setOauthPending(false);
       oauthWindow.current = null;
-      if (e.data.result === 'ok') toast.success('Bling conectado com sucesso', { description: 'A empresa autorizada já está ativa no painel.' });
+      const loaded = await load();
+      if (e.data.result === 'ok') toast.success('Bling conectado com sucesso', { description: loaded?.company_name ? `Empresa: ${loaded.company_name}` : 'A empresa autorizada já está ativa no painel.' });
       else toast.error('Não foi possível conectar', { description: e.data.message || undefined });
-      load();
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
