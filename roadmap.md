@@ -67,4 +67,4 @@
 # Faturamento do Bling
 
 - [x] Ampliar a busca manual para reconciliar todos os pedidos dos últimos 90 dias, com paginação e sem duplicações
-- [ ] Confirmar no painel o total real importado após executar a nova busca no Bling
+- [x] Confirmar no painel o total real importado após executar a nova busca no Bling
