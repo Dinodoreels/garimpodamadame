@@ -14,14 +14,6 @@ function clean(value: unknown) {
   return String(value ?? '').replace(/\D/g, '')
 }
 
-function providerError(status: number, body: string) {
-  let message = 'O Melhor Envio recusou a operação.'
-  if (status === 401) message = 'A credencial do Melhor Envio está inválida ou vencida.'
-  if (status === 402) message = 'Saldo insuficiente no Melhor Envio.'
-  if (status === 422) message = 'Revise endereço, documento, peso e dimensões do pacote.'
-  return new Error(`${message} [${status}] ${body.slice(0, 500)}`)
-}
-
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 

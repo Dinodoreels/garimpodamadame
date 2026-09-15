@@ -43,5 +43,5 @@
 - [x] Cotação real e persistência da opção escolhida no pedido
 - [x] Preparar compra manual de etiqueta, impressão, rastreio e histórico somente para pedidos do site
 - [x] Criar retorno público, autorização segura e renovação automática da conexão
-- [ ] Guardar o Client ID e Client Secret recebidos no cofre seguro
+- [x] Guardar o Client ID e Client Secret recebidos no cofre seguro
 - [ ] Autorizar a conta e validar em produção sem comprar etiqueta automaticamente
