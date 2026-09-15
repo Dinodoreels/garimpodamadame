@@ -49,3 +49,12 @@
 - [x] Criar retorno público, autorização segura e renovação automática da conexão
 - [x] Guardar o Client ID e Client Secret recebidos no cofre seguro
 - [ ] Autorizar a conta e validar em produção sem comprar etiqueta automaticamente
+
+# Etiquetas de marketplaces e cadastro automático
+
+- [ ] Buscar automaticamente as etiquetas oficiais de todos os marketplaces conectados ao Bling, priorizando TikTok Shop
+- [ ] Permitir atualização automática e manual quando a plataforma ainda não liberar a etiqueta
+- [ ] Oferecer impressão de etiqueta por pedido e impressão em lote
+- [ ] Manter etiquetas de marketplaces separadas do Melhor Envio, que atende apenas vendas do site
+- [ ] Preencher automaticamente fotos, título, descrição, preço, custo disponível, tipo, marca, SKU, variações, dimensões e estoque dos produtos importados
+- [ ] Marcar como pendente qualquer dado ausente na origem, sem inventar informações
