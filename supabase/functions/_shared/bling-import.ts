@@ -2,6 +2,54 @@ import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from './b
 
 export const normalizeSku = (value: unknown) => String(value ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
+const autoSku = (remoteId: string) => `GDM-BLG-${remoteId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}`;
+
+async function assignMissingSku(raw: any, usedSkus: Set<string>) {
+  const remoteId = String(raw?.id ?? '');
+  const detailed = await fetchBlingProductDetail(remoteId);
+  const current = String(detailed?.codigo ?? raw?.codigo ?? '').trim();
+  if (normalizeSku(current)) return { raw: { ...raw, ...detailed, codigo: current }, generated: false };
+
+  const sku = autoSku(remoteId);
+  const normalized = normalizeSku(sku);
+  if (!remoteId || usedSkus.has(normalized)) {
+    throw new Error(`Não foi possível criar um SKU único para o produto ${remoteId || 'sem identificador'}.`);
+  }
+
+  const payload = {
+    nome: String(detailed?.nome ?? raw?.nome ?? 'Produto do Bling').slice(0, 120),
+    codigo: sku,
+    preco: Number(detailed?.preco ?? raw?.preco ?? 0),
+    tipo: detailed?.tipo ?? raw?.tipo ?? 'P',
+    situacao: detailed?.situacao ?? raw?.situacao ?? 'A',
+    formato: detailed?.formato ?? raw?.formato ?? 'S',
+    unidade: detailed?.unidade ?? raw?.unidade ?? 'UN',
+    descricaoCurta: detailed?.descricaoCurta ?? raw?.descricaoCurta ?? undefined,
+    descricaoComplementar: detailed?.descricaoComplementar ?? raw?.descricaoComplementar ?? undefined,
+    precoCusto: detailed?.precoCusto ?? raw?.precoCusto ?? undefined,
+    pesoLiquido: detailed?.pesoLiquido ?? raw?.pesoLiquido ?? undefined,
+    pesoBruto: detailed?.pesoBruto ?? raw?.pesoBruto ?? undefined,
+    gtin: detailed?.gtin ?? raw?.gtin ?? undefined,
+    gtinEmbalagem: detailed?.gtinEmbalagem ?? raw?.gtinEmbalagem ?? undefined,
+    dimensoes: detailed?.dimensoes ?? raw?.dimensoes ?? undefined,
+    marca: detailed?.marca ?? raw?.marca ?? undefined,
+    categoria: detailed?.categoria ?? raw?.categoria ?? undefined,
+    midia: detailed?.midia ?? raw?.midia ?? undefined,
+  };
+  const { status, data } = await callBling({ path: `/produtos/${remoteId}`, method: 'PUT', body: payload });
+  if (status >= 400) throw new Error(blingError(status, data));
+  usedSkus.add(normalized);
+  await logSync({
+    entity_type: 'product',
+    entity_id: remoteId,
+    action: 'generate_sku',
+    status: 'success',
+    payload: { sku },
+    response: { bling_product_id: remoteId },
+  });
+  return { raw: { ...raw, ...detailed, codigo: sku }, generated: true };
+}
+
 export async function accountKey(clientId: string, companyName?: string | null) {
   const bytes = new TextEncoder().encode(`${clientId}|${companyName ?? ''}`);
   const hash = await crypto.subtle.digest('SHA-256', bytes);
@@ -71,13 +119,38 @@ export async function prepareImportRun(userId: string) {
       variantsBySku.set(normalized, [...(variantsBySku.get(normalized) ?? []), variant]);
     }
     const linksByRemoteId = new Map((links ?? []).map((link: any) => [String(link.bling_product_id), link]));
-    const rows = remote.map((raw: any) => {
+    const usedSkus = new Set<string>();
+    for (const raw of remote) {
+      const normalized = normalizeSku(raw?.codigo);
+      if (normalized) usedSkus.add(normalized);
+    }
+    for (const variant of variants ?? []) {
+      const normalized = normalizeSku(variant.sku);
+      if (normalized) usedSkus.add(normalized);
+    }
+
+    const preparedRemote: Array<{ raw: any; generated: boolean; generationError?: string }> = [];
+    for (const raw of remote) {
+      if (normalizeSku(raw?.codigo)) {
+        preparedRemote.push({ raw, generated: false });
+        continue;
+      }
+      try {
+        preparedRemote.push(await assignMissingSku(raw, usedSkus));
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        preparedRemote.push({ raw, generated: false, generationError: message });
+        await logSync({ entity_type: 'product', entity_id: String(raw?.id ?? ''), action: 'generate_sku', status: 'error', error_message: message });
+      }
+    }
+
+    const rows = preparedRemote.map(({ raw, generated, generationError }) => {
       const snap = productSnapshot(raw);
       const normalized = normalizeSku(snap.sku);
       const linked = linksByRemoteId.get(snap.id);
       const matches = normalized ? variantsBySku.get(normalized) ?? [] : [];
       const local = linked ? (variants ?? []).find((v: any) => v.id === linked.variant_id) : matches[0];
-      const conflict = !normalized || (!linked && matches.length > 1);
+      const conflict = !!generationError || !normalized || (!linked && matches.length > 1);
       const differences: Record<string, any> = {};
       if (local && Number(local.price) !== snap.price) differences.price = { store: Number(local.price), bling: snap.price };
       if (local && snap.stock != null && Number(local.inventory_quantity) !== Number(snap.stock)) differences.stock = { store: Number(local.inventory_quantity), bling: Number(snap.stock) };
@@ -91,15 +164,20 @@ export async function prepareImportRun(userId: string) {
         selected: classification !== 'conflict',
         local_product_id: linked?.product_id ?? local?.product_id ?? null,
         local_variant_id: linked?.variant_id ?? local?.id ?? null,
-        bling_data: snap,
+        bling_data: { ...snap, auto_sku_generated: generated, auto_sku_error: generationError ?? null },
         differences,
+        error_message: generationError ?? null,
       };
     });
     for (let i = 0; i < rows.length; i += 500) {
       const { error } = await supa.from('bling_import_items').insert(rows.slice(i, i + 500));
       if (error) throw error;
     }
-    const totals = rows.reduce((acc: Record<string, number>, row: any) => ({ ...acc, [row.classification]: (acc[row.classification] ?? 0) + 1 }), { total: rows.length });
+    const totals = rows.reduce((acc: Record<string, number>, row: any) => ({
+      ...acc,
+      [row.classification]: (acc[row.classification] ?? 0) + 1,
+      auto_sku_generated: (acc.auto_sku_generated ?? 0) + (row.bling_data?.auto_sku_generated ? 1 : 0),
+    }), { total: rows.length, auto_sku_generated: 0 });
     await supa.from('bling_import_runs').update({ status: 'review', totals }).eq('id', run.id);
     await logSync({ entity_type: 'import', entity_id: run.id, action: 'preview', status: 'success', response: totals });
     return { run_id: run.id, totals };

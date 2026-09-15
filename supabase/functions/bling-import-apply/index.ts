@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
         const detailed = await fetchBlingProductDetail(item.bling_product_id);
         const remote = productSnapshot({ ...item.bling_data, ...detailed });
         const sku = remote.sku.trim();
-        if (!normalizeSku(sku)) throw new Error('Produto sem SKU; corrija no Bling e faça uma nova busca.');
+        if (!normalizeSku(sku)) throw new Error('O SKU automático não foi confirmado no Bling. Faça uma nova busca antes de aplicar.');
 
         let productId = item.local_product_id as string | null;
         let variantId = item.local_variant_id as string | null;
