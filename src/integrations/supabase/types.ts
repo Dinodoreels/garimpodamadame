@@ -1419,6 +1419,187 @@ export type Database = {
         }
         Relationships: []
       }
+      fiscal_document_events: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          event_type: string
+          fiscal_document_id: string
+          id: string
+          message: string | null
+          provider_payload: Json | null
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          event_type: string
+          fiscal_document_id: string
+          id?: string
+          message?: string | null
+          provider_payload?: Json | null
+          status: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          event_type?: string
+          fiscal_document_id?: string
+          id?: string
+          message?: string | null
+          provider_payload?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_document_events_fiscal_document_id_fkey"
+            columns: ["fiscal_document_id"]
+            isOneToOne: false
+            referencedRelation: "fiscal_documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_documents: {
+        Row: {
+          access_key: string | null
+          authorized_at: string | null
+          bling_invoice_id: string | null
+          created_at: string
+          danfe_url: string | null
+          error_message: string | null
+          id: string
+          invoice_number: string | null
+          invoice_series: string | null
+          issued_at: string | null
+          order_id: string
+          provider: string
+          recipient_snapshot: Json | null
+          requested_by: string | null
+          status: string
+          updated_at: string
+          validation_errors: Json
+          xml_url: string | null
+        }
+        Insert: {
+          access_key?: string | null
+          authorized_at?: string | null
+          bling_invoice_id?: string | null
+          created_at?: string
+          danfe_url?: string | null
+          error_message?: string | null
+          id?: string
+          invoice_number?: string | null
+          invoice_series?: string | null
+          issued_at?: string | null
+          order_id: string
+          provider?: string
+          recipient_snapshot?: Json | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          validation_errors?: Json
+          xml_url?: string | null
+        }
+        Update: {
+          access_key?: string | null
+          authorized_at?: string | null
+          bling_invoice_id?: string | null
+          created_at?: string
+          danfe_url?: string | null
+          error_message?: string | null
+          id?: string
+          invoice_number?: string | null
+          invoice_series?: string | null
+          issued_at?: string | null
+          order_id?: string
+          provider?: string
+          recipient_snapshot?: Json | null
+          requested_by?: string | null
+          status?: string
+          updated_at?: string
+          validation_errors?: Json
+          xml_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fiscal_documents_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fiscal_settings: {
+        Row: {
+          auto_issue_paid_orders: boolean
+          city: string
+          complement: string | null
+          created_at: string
+          id: string
+          invoice_series: string
+          legal_name: string
+          municipal_registration: string | null
+          neighborhood: string
+          number: string
+          operation_nature: string
+          state: string
+          state_registration: string | null
+          street: string
+          tax_id: string
+          tax_regime: string
+          trade_name: string
+          updated_at: string
+          updated_by: string | null
+          zip_code: string
+        }
+        Insert: {
+          auto_issue_paid_orders?: boolean
+          city?: string
+          complement?: string | null
+          created_at?: string
+          id?: string
+          invoice_series?: string
+          legal_name?: string
+          municipal_registration?: string | null
+          neighborhood?: string
+          number?: string
+          operation_nature?: string
+          state?: string
+          state_registration?: string | null
+          street?: string
+          tax_id?: string
+          tax_regime?: string
+          trade_name?: string
+          updated_at?: string
+          updated_by?: string | null
+          zip_code?: string
+        }
+        Update: {
+          auto_issue_paid_orders?: boolean
+          city?: string
+          complement?: string | null
+          created_at?: string
+          id?: string
+          invoice_series?: string
+          legal_name?: string
+          municipal_registration?: string | null
+          neighborhood?: string
+          number?: string
+          operation_nature?: string
+          state?: string
+          state_registration?: string | null
+          street?: string
+          tax_id?: string
+          tax_regime?: string
+          trade_name?: string
+          updated_at?: string
+          updated_by?: string | null
+          zip_code?: string
+        }
+        Relationships: []
+      }
       inbound_events: {
         Row: {
           action: string
@@ -2524,11 +2705,15 @@ export type Database = {
           last_payment_error: string | null
           loyalty_credited: boolean | null
           loyalty_points_used: number | null
+          mercadopago_payment_id: string | null
+          mercadopago_preference_id: string | null
           order_number: string
+          paid_amount: number | null
           paid_at: string | null
           payment_attempts: number | null
           payment_method: string | null
           payment_receipt_url: string | null
+          payment_status_detail: string | null
           shipped_at: string | null
           shipping_address: Json | null
           shipping_cost: number | null
@@ -2555,11 +2740,15 @@ export type Database = {
           last_payment_error?: string | null
           loyalty_credited?: boolean | null
           loyalty_points_used?: number | null
+          mercadopago_payment_id?: string | null
+          mercadopago_preference_id?: string | null
           order_number: string
+          paid_amount?: number | null
           paid_at?: string | null
           payment_attempts?: number | null
           payment_method?: string | null
           payment_receipt_url?: string | null
+          payment_status_detail?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
@@ -2586,11 +2775,15 @@ export type Database = {
           last_payment_error?: string | null
           loyalty_credited?: boolean | null
           loyalty_points_used?: number | null
+          mercadopago_payment_id?: string | null
+          mercadopago_preference_id?: string | null
           order_number?: string
+          paid_amount?: number | null
           paid_at?: string | null
           payment_attempts?: number | null
           payment_method?: string | null
           payment_receipt_url?: string | null
+          payment_status_detail?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_cost?: number | null
