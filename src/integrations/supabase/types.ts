@@ -1468,6 +1468,7 @@ export type Database = {
           created_at: string
           danfe_url: string | null
           error_message: string | null
+          fiscal_environment: string
           id: string
           invoice_number: string | null
           invoice_series: string | null
@@ -1478,6 +1479,8 @@ export type Database = {
           requested_by: string | null
           status: string
           updated_at: string
+          validated_at: string | null
+          validation_details: Json
           validation_errors: Json
           xml_url: string | null
         }
@@ -1488,6 +1491,7 @@ export type Database = {
           created_at?: string
           danfe_url?: string | null
           error_message?: string | null
+          fiscal_environment?: string
           id?: string
           invoice_number?: string | null
           invoice_series?: string | null
@@ -1498,6 +1502,8 @@ export type Database = {
           requested_by?: string | null
           status?: string
           updated_at?: string
+          validated_at?: string | null
+          validation_details?: Json
           validation_errors?: Json
           xml_url?: string | null
         }
@@ -1508,6 +1514,7 @@ export type Database = {
           created_at?: string
           danfe_url?: string | null
           error_message?: string | null
+          fiscal_environment?: string
           id?: string
           invoice_number?: string | null
           invoice_series?: string | null
@@ -1518,6 +1525,8 @@ export type Database = {
           requested_by?: string | null
           status?: string
           updated_at?: string
+          validated_at?: string | null
+          validation_details?: Json
           validation_errors?: Json
           xml_url?: string | null
         }
@@ -1537,6 +1546,8 @@ export type Database = {
           city: string
           complement: string | null
           created_at: string
+          fiscal_environment: string
+          homologation_confirmed_at: string | null
           id: string
           invoice_series: string
           legal_name: string
@@ -1544,6 +1555,7 @@ export type Database = {
           neighborhood: string
           number: string
           operation_nature: string
+          production_enabled: boolean
           state: string
           state_registration: string | null
           street: string
@@ -1559,6 +1571,8 @@ export type Database = {
           city?: string
           complement?: string | null
           created_at?: string
+          fiscal_environment?: string
+          homologation_confirmed_at?: string | null
           id?: string
           invoice_series?: string
           legal_name?: string
@@ -1566,6 +1580,7 @@ export type Database = {
           neighborhood?: string
           number?: string
           operation_nature?: string
+          production_enabled?: boolean
           state?: string
           state_registration?: string | null
           street?: string
@@ -1581,6 +1596,8 @@ export type Database = {
           city?: string
           complement?: string | null
           created_at?: string
+          fiscal_environment?: string
+          homologation_confirmed_at?: string | null
           id?: string
           invoice_series?: string
           legal_name?: string
@@ -1588,6 +1605,7 @@ export type Database = {
           neighborhood?: string
           number?: string
           operation_nature?: string
+          production_enabled?: boolean
           state?: string
           state_registration?: string | null
           street?: string
