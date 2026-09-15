@@ -20,6 +20,47 @@ const errorMessage = (error: unknown) => {
   return String(error);
 };
 
+const imageExtension = (contentType: string | null, sourceUrl: string) => {
+  if (contentType?.includes('png')) return 'png';
+  if (contentType?.includes('webp')) return 'webp';
+  if (contentType?.includes('gif')) return 'gif';
+  if (contentType?.includes('avif')) return 'avif';
+  const sourceExtension = sourceUrl.match(/\.(jpe?g|png|webp|gif|avif)(?:[?#]|$)/i)?.[1]?.toLowerCase();
+  return sourceExtension === 'jpeg' ? 'jpg' : sourceExtension ?? 'jpg';
+};
+
+async function persistBlingImages(supa: any, productId: string, remoteId: string, urls: string[]) {
+  const persisted: string[] = [];
+  for (let index = 0; index < urls.length; index++) {
+    const sourceUrl = urls[index];
+    try {
+      const response = await fetch(sourceUrl);
+      if (!response.ok) throw new Error(`download ${response.status}`);
+      const contentType = response.headers.get('content-type');
+      if (contentType && !contentType.startsWith('image/')) throw new Error('arquivo não é uma imagem');
+      const extension = imageExtension(contentType, sourceUrl);
+      const path = `bling/${productId}/${remoteId}-${index + 1}.${extension}`;
+      const { error } = await supa.storage.from('product-images').upload(path, await response.arrayBuffer(), {
+        contentType: contentType ?? `image/${extension === 'jpg' ? 'jpeg' : extension}`,
+        upsert: true,
+      });
+      if (error) throw error;
+      const { data } = supa.storage.from('product-images').getPublicUrl(path);
+      if (data?.publicUrl) persisted.push(data.publicUrl);
+    } catch (error) {
+      await logSync({
+        entity_type: 'product',
+        entity_id: remoteId,
+        action: 'cache_image',
+        status: 'error',
+        payload: { source_url: sourceUrl },
+        error_message: errorMessage(error),
+      });
+    }
+  }
+  return persisted;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
@@ -147,14 +188,16 @@ Deno.serve(async (req) => {
 
         let hasProductImage = false;
         if (remote.images.length) {
+          const stableImages = await persistBlingImages(supa, productId, remote.id, remote.images);
+          const imagesToSave = stableImages.length ? stableImages : remote.images;
           const { data: existingImages, error: existingImagesError } = await supa
             .from('product_images')
             .select('url')
             .eq('product_id', productId);
           if (existingImagesError) throw existingImagesError;
           const existingUrls = new Set((existingImages ?? []).map((image: { url: string }) => image.url));
-          hasProductImage = existingUrls.size > 0 || remote.images.length > 0;
-          const missingImages = remote.images
+          hasProductImage = existingUrls.size > 0 || imagesToSave.length > 0;
+          const missingImages = imagesToSave
             .filter((url: string) => !existingUrls.has(url))
             .map((url: string, index: number) => ({ product_id: productId, url, position: existingUrls.size + index, alt_text: remote.name }));
           if (missingImages.length) {
@@ -168,9 +211,11 @@ Deno.serve(async (req) => {
           const { count } = await supa.from('product_images').select('id', { count: 'exact', head: true }).eq('product_id', productId);
           hasProductImage = Number(count ?? 0) > 0;
         }
+        // Products with a valid SKU and price remain visible even when the source has
+        // not supplied media yet. The storefront already renders a clear no-image
+        // state, while stock still controls whether purchasing is allowed.
         const publishable = Boolean(normalizeSku(sku))
-          && Number(remote.price) > 0
-          && hasProductImage;
+          && Number(remote.price) > 0;
         const availableForSale = publishable && Number(publishVariant?.inventory_quantity ?? 0) > 0;
         await supa.from('products').update({
           title: remote.name,
@@ -227,7 +272,7 @@ Deno.serve(async (req) => {
         await supa.from('bling_sync_queue').delete().eq('product_id', productId).in('action', ['product', 'stock']).gte('created_at', applyStartedAt).eq('status', 'pending');
 
         await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, bling_data: { ...item.bling_data, ...remote, missing_fields: missingFields }, apply_status: applyStatus, error_message: missingFields.length ? `Pendente: ${missingFields.join(', ')}` : null, applied_at: new Date().toISOString() }).eq('id', item.id);
-        results.push({ id: item.id, ok: true, status: applyStatus, published: publishable, available_for_sale: availableForSale, missing_fields: missingFields });
+        results.push({ id: item.id, ok: true, status: applyStatus, published: publishable, available_for_sale: availableForSale, has_image: hasProductImage, missing_fields: missingFields });
       } catch (error) {
         const message = errorMessage(error);
         await supa.from('bling_import_items').update({ apply_status: 'error', error_message: message }).eq('id', item.id);
