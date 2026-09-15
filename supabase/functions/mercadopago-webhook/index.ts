@@ -147,6 +147,21 @@ Deno.serve(async (req) => {
           } catch (notifyErr) {
             console.error('Failed to trigger notification:', notifyErr)
           }
+          try {
+            const fiscalUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/bling-fiscal-document`
+            const fiscalResponse = await fetch(fiscalUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+              },
+              body: JSON.stringify({ order_id: orderId, action: 'auto' }),
+            })
+            const fiscalResult = await fiscalResponse.json().catch(() => ({}))
+            if (!fiscalResponse.ok) console.log('Automatic invoice stayed pending:', fiscalResult?.error ?? fiscalResponse.status)
+          } catch (fiscalErr) {
+            console.error('Failed to start automatic invoice:', fiscalErr)
+          }
         }
       }
     }

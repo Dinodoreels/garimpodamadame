@@ -130,6 +130,7 @@ Deno.serve(async (req) => {
           }
         }
 
+        let hasProductImage = false;
         if (remote.images.length) {
           const { data: existingImages, error: existingImagesError } = await supa
             .from('product_images')
@@ -137,6 +138,7 @@ Deno.serve(async (req) => {
             .eq('product_id', productId);
           if (existingImagesError) throw existingImagesError;
           const existingUrls = new Set((existingImages ?? []).map((image: { url: string }) => image.url));
+          hasProductImage = existingUrls.size > 0 || remote.images.length > 0;
           const missingImages = remote.images
             .filter((url: string) => !existingUrls.has(url))
             .map((url: string, index: number) => ({ product_id: productId, url, position: existingUrls.size + index, alt_text: remote.name }));
@@ -146,10 +148,15 @@ Deno.serve(async (req) => {
           }
         }
 
+        const { data: publishVariant } = await supa.from('product_variants').select('inventory_quantity').eq('id', variantId).single();
+        if (!hasProductImage) {
+          const { count } = await supa.from('product_images').select('id', { count: 'exact', head: true }).eq('product_id', productId);
+          hasProductImage = Number(count ?? 0) > 0;
+        }
         const publishable = Boolean(normalizeSku(sku))
           && Number(remote.price) > 0
-          && Number(remote.stock) > 0
-          && remote.images.length > 0;
+          && Number(publishVariant?.inventory_quantity ?? 0) > 0
+          && hasProductImage;
         await supa.from('products').update({
           status: publishable ? 'active' : 'draft',
           is_available: publishable,
