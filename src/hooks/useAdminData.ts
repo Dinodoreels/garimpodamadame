@@ -35,6 +35,7 @@ export interface AdminOrder {
   shipping_estimated_days?: number | null;
   shipping_original_cost?: number | null;
   melhor_envio_shipment?: any;
+  marketplace_shipping_label?: any;
 }
 
 export interface AdminCustomer {
@@ -85,7 +86,7 @@ export function useAdminData() {
     const storeIds = [...new Set(data?.map(order => order.store_id).filter(Boolean) as string[])];
     const productIds = [...new Set((data ?? []).flatMap(order => order.order_items ?? []).map(item => item.product_id).filter(Boolean) as string[])];
     const variantIds = [...new Set((data ?? []).flatMap(order => order.order_items ?? []).map(item => item.variant_id).filter(Boolean) as string[])];
-    const [{ data: links }, { data: stores }, { data: shipments }, { data: productImages }, { data: itemVariants }] = await Promise.all([
+    const [{ data: links }, { data: stores }, { data: shipments }, { data: marketplaceLabels }, { data: productImages }, { data: itemVariants }] = await Promise.all([
       orderIds.length
         ? supabase.from('bling_order_links').select('order_id, channel, bling_order_number, raw_payload').in('order_id', orderIds)
         : Promise.resolve({ data: [] }),
@@ -94,6 +95,9 @@ export function useAdminData() {
         : Promise.resolve({ data: [] }),
       orderIds.length
         ? supabase.from('melhor_envio_shipments').select('*').in('order_id', orderIds)
+        : Promise.resolve({ data: [] }),
+      orderIds.length
+        ? supabase.from('marketplace_shipping_labels').select('*').in('order_id', orderIds)
         : Promise.resolve({ data: [] }),
       productIds.length
         ? supabase.from('product_images').select('product_id, url, position').in('product_id', productIds).order('position', { ascending: true })
@@ -105,6 +109,7 @@ export function useAdminData() {
     const linkMap = new Map((links ?? []).map(link => [link.order_id, link]));
     const storeMap = new Map((stores ?? []).map(store => [store.id, store.name]));
     const shipmentMap = new Map((shipments ?? []).map(shipment => [shipment.order_id, shipment]));
+    const marketplaceLabelMap = new Map((marketplaceLabels ?? []).map(label => [label.order_id, label]));
     const imageMap = new Map<string, string>();
     for (const image of productImages ?? []) if (!imageMap.has(image.product_id)) imageMap.set(image.product_id, image.url);
     const skuMap = new Map((itemVariants ?? []).map(variant => [variant.id, variant.sku]));
@@ -142,6 +147,7 @@ export function useAdminData() {
         bling_order_number: link?.bling_order_number ?? null,
         bling_raw_payload: link?.raw_payload ?? null,
         melhor_envio_shipment: shipmentMap.get(order.id) ?? null,
+        marketplace_shipping_label: marketplaceLabelMap.get(order.id) ?? null,
       };
     }) || [];
 

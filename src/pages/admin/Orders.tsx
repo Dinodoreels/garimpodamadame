@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, CalendarIcon, X, Globe, MessageCircle, Store, User } from 'lucide-react';
+import { Search, Plus, CalendarIcon, X, Globe, MessageCircle, Store, User, Printer } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { useAdminData } from '@/hooks/useAdminData';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -60,6 +62,7 @@ export default function Orders() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
+  const [printingLabels, setPrintingLabels] = useState(false);
 
   // Status counts from ALL orders
   const statusCounts = useMemo(() => {
@@ -148,6 +151,30 @@ export default function Orders() {
 
   const hasActiveFilters = search || statusFilter !== 'all' || sourceFilter !== 'all' || vendorFilter !== 'all' || dateFrom || dateTo;
 
+  const handlePrintMarketplaceLabels = async () => {
+    const orderIds = filteredOrders.filter(order => String(order.source ?? '').startsWith('bling:')).map(order => order.id).slice(0, 20);
+    if (!orderIds.length) {
+      toast.error('Nenhum pedido de plataforma nesta seleção');
+      return;
+    }
+    setPrintingLabels(true);
+    try {
+      await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'sync', order_ids: orderIds } });
+      const { data, error } = await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'batch_pdf', order_ids: orderIds } });
+      if (error || data?.error) throw new Error(data?.error || error?.message);
+      const binary = atob(data.pdf_base64);
+      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
+      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
+      window.open(url, '_blank', 'noopener,noreferrer');
+      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      if (data.failed?.length) toast.warning(`${data.failed.length} etiqueta(s) ainda não foram liberadas`);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Não foi possível preparar as etiquetas');
+    } finally {
+      setPrintingLabels(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -167,6 +194,10 @@ export default function Orders() {
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Button variant="outline" onClick={() => void handlePrintMarketplaceLabels()} disabled={printingLabels}>
+            <Printer className="h-4 w-4 mr-2" />
+            {printingLabels ? 'Preparando...' : 'Etiquetas das plataformas'}
+          </Button>
           <ExportButton orders={filteredOrders} />
           <Button onClick={() => navigate('/admin/orders/new')} className="flex-1 sm:flex-none">
             <Plus className="h-4 w-4 mr-2" />

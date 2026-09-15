@@ -28,6 +28,7 @@ import { LinkedLabelsSection } from './LinkedLabelsSection';
 import { FiscalOrderSection } from './FiscalOrderSection';
 import { resolveOrderSource } from '@/lib/orderSource';
 import { MelhorEnvioSection } from './MelhorEnvioSection';
+import { MarketplaceLabelSection } from './MarketplaceLabelSection';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
@@ -501,6 +502,12 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
           </TabsContent>
 
           <TabsContent value="tracking" className="space-y-6 mt-4">
+            <MarketplaceLabelSection
+              orderId={order.id}
+              source={order.source}
+              label={order.marketplace_shipping_label}
+            />
+
             <MelhorEnvioSection
               orderId={order.id}
               source={order.source}

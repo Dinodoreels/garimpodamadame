@@ -58,6 +58,19 @@ Deno.serve(async (req) => {
         if (freshStock != null) remote.stock = freshStock;
         const sku = remote.sku.trim();
         if (!normalizeSku(sku)) throw new Error('O SKU automático não foi confirmado no Bling. Faça uma nova busca antes de aplicar.');
+        const missingFields = [
+          !remote.images.length && 'fotos',
+          !remote.name && 'título',
+          !remote.description && 'descrição',
+          !(Number(remote.price) > 0) && 'preço',
+          remote.cost == null && 'custo',
+          !remote.brand && 'marca',
+          remote.weight_grams == null && 'peso',
+          remote.width_cm == null && 'largura',
+          remote.height_cm == null && 'altura',
+          remote.length_cm == null && 'comprimento',
+          remote.stock == null && 'estoque',
+        ].filter(Boolean);
 
         let productId = item.local_product_id as string | null;
         let variantId = item.local_variant_id as string | null;
@@ -158,10 +171,23 @@ Deno.serve(async (req) => {
           && Number(publishVariant?.inventory_quantity ?? 0) > 0
           && hasProductImage;
         await supa.from('products').update({
+          title: remote.name,
+          description: remote.description,
+          vendor: remote.brand,
+          price: remote.price,
+          weight_grams: remote.weight_grams == null ? null : Math.max(0, Math.round(Number(remote.weight_grams))),
+          width_cm: remote.width_cm == null ? null : Math.max(0, Math.round(Number(remote.width_cm))),
+          height_cm: remote.height_cm == null ? null : Math.max(0, Math.round(Number(remote.height_cm))),
+          length_cm: remote.length_cm == null ? null : Math.max(0, Math.round(Number(remote.length_cm))),
           status: publishable ? 'active' : 'draft',
           is_available: publishable,
         }).eq('id', productId);
-        await supa.from('product_variants').update({ is_available: publishable }).eq('id', variantId);
+        await supa.from('product_variants').update({
+          title: String(detailed?.variacao?.nome ?? detailed?.variacao ?? 'Default'),
+          sku,
+          cost: remote.cost,
+          is_available: publishable,
+        }).eq('id', variantId);
 
         const linkData = {
           product_id: productId,
@@ -197,8 +223,8 @@ Deno.serve(async (req) => {
         // Pulling from Bling must not create a pending outbound echo for the same change.
         await supa.from('bling_sync_queue').delete().eq('product_id', productId).in('action', ['product', 'stock']).gte('created_at', applyStartedAt).eq('status', 'pending');
 
-        await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, bling_data: { ...item.bling_data, ...remote }, apply_status: applyStatus, error_message: null, applied_at: new Date().toISOString() }).eq('id', item.id);
-        results.push({ id: item.id, ok: true, status: applyStatus, published: publishable });
+        await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, bling_data: { ...item.bling_data, ...remote, missing_fields: missingFields }, apply_status: applyStatus, error_message: missingFields.length ? `Pendente: ${missingFields.join(', ')}` : null, applied_at: new Date().toISOString() }).eq('id', item.id);
+        results.push({ id: item.id, ok: true, status: applyStatus, published: publishable, missing_fields: missingFields });
       } catch (error) {
         const message = errorMessage(error);
         await supa.from('bling_import_items').update({ apply_status: 'error', error_message: message }).eq('id', item.id);

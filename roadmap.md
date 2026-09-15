@@ -52,9 +52,9 @@
 
 # Etiquetas de marketplaces e cadastro automático
 
-- [ ] Buscar automaticamente as etiquetas oficiais de todos os marketplaces conectados ao Bling, priorizando TikTok Shop
-- [ ] Permitir atualização automática e manual quando a plataforma ainda não liberar a etiqueta
-- [ ] Oferecer impressão de etiqueta por pedido e impressão em lote
-- [ ] Manter etiquetas de marketplaces separadas do Melhor Envio, que atende apenas vendas do site
-- [ ] Preencher automaticamente fotos, título, descrição, preço, custo disponível, tipo, marca, SKU, variações, dimensões e estoque dos produtos importados
-- [ ] Marcar como pendente qualquer dado ausente na origem, sem inventar informações
+- [x] Buscar automaticamente as etiquetas oficiais de todos os marketplaces conectados ao Bling, priorizando TikTok Shop
+- [x] Permitir atualização automática e manual quando a plataforma ainda não liberar a etiqueta
+- [x] Oferecer impressão de etiqueta por pedido e impressão em lote
+- [x] Manter etiquetas de marketplaces separadas do Melhor Envio, que atende apenas vendas do site
+- [x] Preencher automaticamente fotos, título, descrição, preço, custo disponível, marca, SKU, variações, dimensões e estoque dos produtos importados
+- [x] Marcar como pendente qualquer dado ausente na origem, sem inventar informações

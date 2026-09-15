@@ -1,5 +1,6 @@
 // Order flows between the store and Bling.
 import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from "./bling.ts";
+import { syncMarketplaceLabel } from './bling-marketplace-labels.ts';
 
 const onlyDigits = (v?: string | null) => (v ?? "").replace(/\D/g, "");
 
@@ -273,6 +274,7 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
         await supa.from('order_status_history').insert({ order_id: link.order_id, status: mapped.status, note: `Atualizado pelo Bling (${channelName})` });
       }
       await supa.from('bling_order_links').update({ bling_status: mapped.id, channel: String(channelName), raw_payload: o, last_synced_at: now }).eq('id', link.id);
+      await syncMarketplaceLabel(link.order_id, blingId, String(channelName));
       updated.push(blingId);
       continue;
     }
@@ -332,6 +334,7 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     }
 
     await supa.from('order_status_history').insert({ order_id: created.id, status: mapped.status, note: `Importado do Bling (${channelName})` });
+    await syncMarketplaceLabel(created.id, blingId, String(channelName));
 
     imported.push(blingId);
   }
