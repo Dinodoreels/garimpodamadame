@@ -1,7 +1,13 @@
 # Conexão completa com o Melhor Envio
 
 ## Resultado
-Conectar a conta de produção do Melhor Envio ao sistema para cotar fretes reais, registrar a opção escolhida no pedido, comprar e imprimir etiquetas, acompanhar rastreamento e atualizar o andamento da entrega sem alterar o fluxo atual de pedidos.
+Conectar a conta de produção do Melhor Envio somente às vendas feitas neste site para cotar fretes reais, registrar a opção escolhida, comprar e imprimir etiquetas, acompanhar rastreamento e atualizar a entrega. Pedidos de marketplaces recebidos pelo Bling ficam fora desta integração; apenas o estoque continua compartilhado entre os canais.
+
+## Limite da integração
+- Usar o Melhor Envio exclusivamente em pedidos originados no site Garimpo da Madame.
+- Não cotar, comprar etiquetas, rastrear nem alterar entregas de TikTok Shop, Mercado Livre, Shopee, Magalu, Amazon ou outros pedidos recebidos pelo Bling.
+- Manter esses pedidos separados no painel pela plataforma de origem e preservar o transporte informado pelo marketplace/Bling.
+- Continuar compartilhando o mesmo saldo de estoque entre site, Bling e marketplaces, sem misturar os fluxos de frete e postagem.
 
 ## 1. Conexão segura
 - Retirar o token da configuração visível e guardá-lo somente no cofre seguro do projeto.
@@ -29,6 +35,7 @@ Conectar a conta de produção do Melhor Envio ao sistema para cotar fretes reai
 - Usar notificações do Melhor Envio quando disponíveis e uma conferência periódica segura como apoio.
 - Registrar cada mudança no histórico do pedido e manter as notificações atuais ao cliente.
 - Não sobrescrever rastreios vindos de marketplaces pelo Bling; cada envio mantém sua origem identificada.
+- Ignorar automaticamente no Melhor Envio qualquer pedido cuja plataforma não seja o site Garimpo da Madame.
 
 ## 5. Painel administrativo
 - Criar a área “Melhor Envio” dentro das configurações de frete com conexão, teste e CEP de origem.
@@ -49,5 +56,6 @@ Conectar a conta de produção do Melhor Envio ao sistema para cotar fretes reai
 - Criar estruturas de envios e eventos com GRANTs, RLS e acesso administrativo/operacional restrito.
 - Criar funções protegidas para testar a conta, cotar, comprar, gerar/imprimir, cancelar e sincronizar rastreamento, com validação de sessão e função do usuário.
 - Persistir no pedido os dados da opção selecionada para impedir divergência entre checkout e postagem.
+- Aplicar uma validação obrigatória da origem do pedido em todas as operações do Melhor Envio, inclusive compra, impressão, cancelamento e atualização de rastreio.
 - Tratar respostas e limites da API sem expor credenciais, com idempotência e histórico de falhas.
 - Após a aprovação deste plano, será aberto o formulário seguro para cadastrar o token de produção emitido pelo Melhor Envio.
