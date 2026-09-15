@@ -169,35 +169,65 @@ async function localVariant(supa: ReturnType<typeof getSupabaseAdmin>, item: any
   return variant ? { product_id: variant.product_id, variant_id: variant.id } : null;
 }
 
+type PullOrdersOptions = {
+  sinceIso?: string;
+  fullHistory?: boolean;
+  days?: number;
+};
+
+function blingDate(value: Date) {
+  return value.toISOString().slice(0, 10);
+}
+
+function blingOrderDate(order: any): string | null {
+  const raw = order?.data ?? order?.dataCriacao ?? order?.dataVenda ?? null;
+  if (!raw) return null;
+  const parsed = new Date(String(raw).trim().replace(' ', 'T'));
+  return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
+}
+
 /** Import marketplace orders that Bling received (Mercado Livre, Shopee, Magalu, Amazon, TikTok...). */
-export async function pullMarketplaceOrders(sinceIso?: string) {
+export async function pullMarketplaceOrders(options: PullOrdersOptions | string = {}) {
   const supa = getSupabaseAdmin();
   const cfg = await getConfig();
   if (!cfg?.is_active || !cfg.pull_marketplace_orders) {
     return { skipped: true, reason: "importação de pedidos desligada" };
   }
 
-  const since = sinceIso ?? cfg.last_order_pull_at ??
-    new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
-  const dataInicial = since.slice(0, 10);
+  const normalizedOptions = typeof options === 'string' ? { sinceIso: options } : options;
+  const fullHistory = normalizedOptions.fullHistory === true;
+  const days = Math.min(365, Math.max(1, normalizedOptions.days ?? 90));
+  const currentDate = new Date();
+  const since = normalizedOptions.sinceIso
+    ?? (fullHistory ? new Date(currentDate.getTime() - days * 24 * 3600 * 1000).toISOString() : cfg.last_order_pull_at)
+    ?? new Date(currentDate.getTime() - 7 * 24 * 3600 * 1000).toISOString();
+  const dataInicial = blingDate(new Date(since));
+  const dataFinal = blingDate(currentDate);
   const channelResponse = await callBling({ path: '/canais-venda', query: { limite: 100 }, config: cfg });
   const channelMap = new Map<string, string>(
     (channelResponse.status < 400 && Array.isArray(channelResponse.data?.data) ? channelResponse.data.data : [])
       .map((channel: any) => [String(channel.id), String(channel.descricao ?? channel.nome ?? `canal ${channel.id}`)]),
   );
 
-  const list: any[] = [];
+  const summaries = new Map<string, any>();
   for (let page = 1; page <= 100; page++) {
+    const query = fullHistory
+      ? { dataInicial, dataFinal, pagina: page, limite: 100 }
+      : { dataAlteracaoInicial: `${dataInicial} 00:00:00`, pagina: page, limite: 100 };
     const { status, data } = await callBling({
       path: "/pedidos/vendas",
-      query: { dataAlteracaoInicial: `${dataInicial} 00:00:00`, pagina: page, limite: 100 },
+      query,
       config: cfg,
     });
     if (status >= 400) throw new Error(blingError(status, data));
     const rows = Array.isArray(data?.data) ? data.data : [];
-    list.push(...rows);
+    for (const row of rows) {
+      const id = String(row?.id ?? '').trim();
+      if (id) summaries.set(id, row);
+    }
     if (rows.length < 100) break;
   }
+  const list = [...summaries.values()];
   const imported: string[] = [];
   const updated: string[] = [];
   const skipped: string[] = [];
@@ -207,7 +237,7 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     const blingId = String(summary.id);
     const { data: link } = await supa
       .from("bling_order_links")
-      .select("id, order_id")
+      .select("id, order_id, direction")
       .eq("bling_order_id", blingId)
       .maybeSingle();
     const detail = await callBling({ path: `/pedidos/vendas/${blingId}`, config: cfg });
@@ -229,7 +259,6 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     const now = new Date().toISOString();
     const orderUpdates: Record<string, unknown> = {
       status: mapped.status,
-      source: `bling:${String(channelName).toLowerCase()}`,
       subtotal,
       shipping_cost: shipping,
       total,
@@ -254,6 +283,7 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
         zip_code: o.transporte.etiqueta.cep ?? null,
       } : null,
     };
+    if (link?.direction !== 'push') orderUpdates.source = `bling:${String(channelName).toLowerCase()}`;
     if (['paid', 'processing', 'shipped', 'delivered'].includes(mapped.status)) orderUpdates.paid_at = o?.dataPagamento ?? now;
     if (['shipped', 'delivered'].includes(mapped.status)) orderUpdates.shipped_at = o?.dataSaida ?? now;
     if (mapped.status === 'delivered') orderUpdates.delivered_at = now;
@@ -286,6 +316,7 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
       .insert({
         order_number: orderNumber,
         ...orderUpdates,
+        created_at: blingOrderDate(o) ?? now,
         payment_method: String(channelName).toLowerCase(),
       })
       .select("id")
@@ -343,6 +374,15 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     .update({ last_order_pull_at: new Date().toISOString(), last_sync_at: new Date().toISOString() })
     .eq("id", cfg.id);
 
-  await logSync({ entity_type: "order", action: "pull", status: errors.length ? "error" : "success", response: { imported: imported.length, updated: updated.length, skipped: skipped.length, errors: errors.length }, error_message: errors.length ? `${errors.length} pedido(s) com erro` : null });
-  return { imported: imported.length, updated: updated.length, skipped: skipped.length, errors: errors.length, error_details: errors.slice(0, 20) };
+  const result = {
+    period: { from: dataInicial, to: dataFinal, mode: fullHistory ? 'complete' : 'incremental' },
+    found: list.length,
+    imported: imported.length,
+    updated: updated.length,
+    skipped: skipped.length,
+    errors: errors.length,
+    error_details: errors.slice(0, 20),
+  };
+  await logSync({ entity_type: "order", action: "pull", status: errors.length ? "error" : "success", response: result, error_message: errors.length ? `${errors.length} pedido(s) com erro` : null });
+  return result;
 }
