@@ -3,6 +3,27 @@ import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from "./b
 
 const onlyDigits = (v?: string | null) => (v ?? "").replace(/\D/g, "");
 
+const INTERMEDIARY_PLATFORMS: Record<string, string> = {
+  '27415911000136': 'TikTok Shop',
+};
+
+function marketplaceName(order: any, channels: Map<string, string>) {
+  const intermediaryDocument = onlyDigits(order?.intermediador?.cnpj);
+  if (INTERMEDIARY_PLATFORMS[intermediaryDocument]) return INTERMEDIARY_PLATFORMS[intermediaryDocument];
+  const storeId = String(order?.loja?.id ?? '').trim();
+  const value = String(order?.loja?.nome ?? order?.loja?.descricao ?? channels.get(storeId) ?? '').trim();
+  const known = [
+    [/tiktok|byte\s*dance/i, 'TikTok Shop'],
+    [/mercado\s*livre|mercadolivre|meli/i, 'Mercado Livre'],
+    [/shopee/i, 'Shopee'],
+    [/magalu|magazine\s*luiza/i, 'Magalu'],
+    [/amazon/i, 'Amazon'],
+  ] as const;
+  return known.find(([pattern]) => pattern.test(value))?.[1]
+    ?? value
+    ?? (storeId ? `canal ${storeId}` : 'Bling');
+}
+
 /** Find or create a Bling contact for a store order. */
 async function ensureContact(name: string, doc: string | null, email: string | null, phone: string | null) {
   const documento = onlyDigits(doc);
@@ -158,6 +179,11 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
   const since = sinceIso ?? cfg.last_order_pull_at ??
     new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
   const dataInicial = since.slice(0, 10);
+  const channelResponse = await callBling({ path: '/canais-venda', query: { limite: 100 }, config: cfg });
+  const channelMap = new Map<string, string>(
+    (channelResponse.status < 400 && Array.isArray(channelResponse.data?.data) ? channelResponse.data.data : [])
+      .map((channel: any) => [String(channel.id), String(channel.descricao ?? channel.nome ?? `canal ${channel.id}`)]),
+  );
 
   const list: any[] = [];
   for (let page = 1; page <= 100; page++) {
@@ -192,7 +218,7 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     }
     const o = detail.data?.data ?? {};
 
-    const channelName = o?.loja?.nome ?? o?.loja?.descricao ?? (o?.loja?.id ? `canal ${o.loja.id}` : "bling");
+    const channelName = marketplaceName(o, channelMap);
     const items = o?.itens ?? [];
     const subtotal = items.reduce((s: number, i: any) => s + Number(i.valor ?? 0) * Number(i.quantidade ?? 1), 0);
     const shipping = Number(o?.transporte?.frete ?? 0);
@@ -202,6 +228,7 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     const now = new Date().toISOString();
     const orderUpdates: Record<string, unknown> = {
       status: mapped.status,
+      source: `bling:${String(channelName).toLowerCase()}`,
       subtotal,
       shipping_cost: shipping,
       total,
@@ -257,7 +284,6 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
       .insert({
         order_number: orderNumber,
         ...orderUpdates,
-        source: `bling:${String(channelName).toLowerCase()}`,
         payment_method: String(channelName).toLowerCase(),
       })
       .select("id")

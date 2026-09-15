@@ -34,4 +34,5 @@
 - [ ] Cadastrar a credencial segura do Mercado Pago (aguardando preenchimento do administrador)
 - [ ] Preencher os dados fiscais reais e validar impostos/certificado no Bling
 - [x] Bloquear emissão real e mostrar checklist fiscal por empresa, Bling, produtos, cliente, pedido e pagamento
+- [x] Mostrar a plataforma real do pedido e registrar a origem no complemento fiscal
 - [ ] Homologar regras tributárias com o contador e liberar produção explicitamente

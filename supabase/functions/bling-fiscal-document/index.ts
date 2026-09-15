@@ -8,6 +8,29 @@ type ValidationItem = { category: 'empresa' | 'bling' | 'produto' | 'cliente' | 
 const problemLabels = (items: ValidationItem[]) => items.map((item) => item.label);
 const nonEmpty = (value: unknown) => String(value ?? '').trim().length > 0;
 
+const INTERMEDIARY_PLATFORMS: Record<string, string> = { '27415911000136': 'TikTok Shop' };
+
+function fiscalSaleOrigin(order: any, link: any, storeName?: string | null) {
+  const payload = link?.raw_payload ?? {};
+  const source = String(order.source ?? 'website');
+  const intermediaryDocument = digits(payload?.intermediador?.cnpj);
+  const rawChannel = String(link?.channel ?? payload?.loja?.nome ?? payload?.loja?.descricao ?? source.replace(/^bling:/i, '')).trim();
+  const known = [
+    [/tiktok|byte\s*dance/i, 'TikTok Shop'], [/mercado\s*livre|mercadolivre|meli/i, 'Mercado Livre'],
+    [/shopee/i, 'Shopee'], [/magalu|magazine\s*luiza/i, 'Magalu'], [/amazon/i, 'Amazon'],
+  ] as const;
+  const marketplace = INTERMEDIARY_PLATFORMS[intermediaryDocument] ?? known.find(([pattern]) => pattern.test(rawChannel))?.[1];
+  const externalOrder = String(payload?.numeroLoja ?? link?.bling_order_number ?? '').trim();
+  if (source.startsWith('bling:')) {
+    const platform = marketplace ?? (/^canal\s+\d+$/i.test(rawChannel) ? `Bling — ${rawChannel.toLowerCase()}` : rawChannel || 'Bling');
+    return { platform, store_name: rawChannel || null, external_order_number: externalOrder || null, note: `Venda realizada pela plataforma ${platform}${externalOrder ? ` — pedido externo ${externalOrder}` : ''}.` };
+  }
+  if (source === 'store') return { platform: 'Loja Física', store_name: storeName ?? null, external_order_number: null, note: `Venda realizada na loja física${storeName ? ` ${storeName}` : ''}.` };
+  if (source === 'whatsapp') return { platform: 'WhatsApp', store_name: null, external_order_number: null, note: 'Venda realizada pelo WhatsApp do Garimpo da Madame.' };
+  if (source === 'manual') return { platform: 'Manual', store_name: storeName ?? null, external_order_number: null, note: 'Venda cadastrada manualmente no Garimpo da Madame.' };
+  return { platform: 'Site Garimpo da Madame', store_name: null, external_order_number: null, note: 'Venda realizada no site Garimpo da Madame.' };
+}
+
 async function validateFiscalProduct(productId: string, title: string, supa: ReturnType<typeof getSupabaseAdmin>): Promise<ValidationItem[]> {
   const problems: ValidationItem[] = [];
   const { data: link } = await supa.from('bling_product_links').select('bling_product_id, bling_sku, status').eq('product_id', productId).not('bling_product_id', 'is', null).limit(1).maybeSingle();
@@ -79,8 +102,10 @@ Deno.serve(async (req) => {
     const { data: blingConfig } = await supa.from('bling_config').select('is_active, access_token, refresh_token, company_name').limit(1).maybeSingle();
     if (!blingConfig?.is_active || !blingConfig?.access_token || !blingConfig?.refresh_token) problems.push({ category: 'bling', label: 'Conexão ativa com o Bling', fix_path: '/admin/settings?bling=1' });
     if (!blingConfig?.company_name) problems.push({ category: 'bling', label: 'Empresa emissora identificada no Bling', fix_path: '/admin/settings?bling=1' });
-    const { data: orderLink } = await supa.from('bling_order_links').select('bling_order_id').eq('order_id', order_id).maybeSingle();
+    const { data: orderLink } = await supa.from('bling_order_links').select('bling_order_id, bling_order_number, channel, raw_payload').eq('order_id', order_id).maybeSingle();
     if (!orderLink?.bling_order_id) problems.push({ category: 'bling', label: 'Pedido enviado e vinculado ao Bling', fix_path: '/admin/settings?bling=1' });
+    const { data: store } = order.store_id ? await supa.from('stores').select('name').eq('id', order.store_id).maybeSingle() : { data: null };
+    const saleOrigin = fiscalSaleOrigin(order, orderLink, store?.name);
     if (Array.isArray(order.order_items)) {
       for (const item of order.order_items) {
         if (!item.product_id) problems.push({ category: 'produto', label: `${item.product_title}: produto local não identificado` });
@@ -91,17 +116,18 @@ Deno.serve(async (req) => {
     const validationDetails = {
       checked_at: new Date().toISOString(),
       safe_read_only: action === 'prepare',
+      sale_origin: saleOrigin,
       categories: ['empresa', 'bling', 'produto', 'cliente', 'pedido', 'pagamento'].map((category) => ({ category, pending: problems.filter((item) => item.category === category).length })),
     };
 
     let { data: doc } = await supa.from('fiscal_documents').select('*').eq('order_id', order_id).maybeSingle();
     const initialStatus = problems.length ? 'pending_data' : 'ready';
     if (!doc) {
-      const created = await supa.from('fiscal_documents').insert({ order_id, status: initialStatus, recipient_snapshot: recipient, validation_errors: problems, validation_details: validationDetails, validated_at: validationDetails.checked_at, fiscal_environment: settings?.fiscal_environment ?? 'test', requested_by: actor }).select().single();
+      const created = await supa.from('fiscal_documents').insert({ order_id, status: initialStatus, recipient_snapshot: { ...recipient, sale_origin: saleOrigin }, validation_errors: problems, validation_details: validationDetails, validated_at: validationDetails.checked_at, fiscal_environment: settings?.fiscal_environment ?? 'test', requested_by: actor }).select().single();
       if (created.error) throw created.error;
       doc = created.data;
     } else if (action === 'prepare') {
-      const updated = await supa.from('fiscal_documents').update({ status: initialStatus, recipient_snapshot: recipient, validation_errors: problems, validation_details: validationDetails, validated_at: validationDetails.checked_at, fiscal_environment: settings?.fiscal_environment ?? 'test', error_message: null }).eq('id', doc.id).select().single();
+      const updated = await supa.from('fiscal_documents').update({ status: initialStatus, recipient_snapshot: { ...recipient, sale_origin: saleOrigin }, validation_errors: problems, validation_details: validationDetails, validated_at: validationDetails.checked_at, fiscal_environment: settings?.fiscal_environment ?? 'test', error_message: null }).eq('id', doc.id).select().single();
       if (updated.error) throw updated.error;
       doc = updated.data;
     }
@@ -120,7 +146,7 @@ Deno.serve(async (req) => {
     if (action === 'issue' && !invoiceId) {
       const { data: link } = await supa.from('bling_order_links').select('bling_order_id').eq('order_id', order_id).maybeSingle();
       if (!link?.bling_order_id) return jsonResponse({ ok: false, error: 'Envie este pedido ao Bling antes de emitir a nota.' }, 409);
-      const created = await callBling({ path: '/nfe', method: 'POST', body: { pedidoVenda: { id: Number(link.bling_order_id) } } });
+      const created = await callBling({ path: '/nfe', method: 'POST', body: { pedidoVenda: { id: Number(link.bling_order_id) }, observacoes: saleOrigin.note } });
       if (created.status >= 400) throw new Error(blingError(created.status, created.data));
       invoiceId = String(created.data?.data?.id ?? '');
       if (!invoiceId) throw new Error('O Bling não retornou o número interno da nota.');
