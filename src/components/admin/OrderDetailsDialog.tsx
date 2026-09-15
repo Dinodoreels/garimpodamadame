@@ -27,6 +27,7 @@ import { Input } from '@/components/ui/input';
 import { LinkedLabelsSection } from './LinkedLabelsSection';
 import { FiscalOrderSection } from './FiscalOrderSection';
 import { resolveOrderSource } from '@/lib/orderSource';
+import { MelhorEnvioSection } from './MelhorEnvioSection';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
@@ -500,6 +501,15 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
           </TabsContent>
 
           <TabsContent value="tracking" className="space-y-6 mt-4">
+            <MelhorEnvioSection
+              orderId={order.id}
+              source={order.source}
+              service={order.shipping_service}
+              carrier={order.shipping_carrier}
+              estimate={order.shipping_estimated_days}
+            />
+
+            <Separator />
             <TrackingForm 
               orderId={order.id} 
               currentTrackingCode={(order as any).tracking_code}
