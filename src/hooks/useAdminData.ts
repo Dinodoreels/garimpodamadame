@@ -28,6 +28,13 @@ export interface AdminOrder {
   bling_channel?: string | null;
   bling_order_number?: string | null;
   bling_raw_payload?: any;
+  shipping_provider?: string | null;
+  shipping_carrier?: string | null;
+  shipping_service?: string | null;
+  shipping_service_code?: string | null;
+  shipping_estimated_days?: number | null;
+  shipping_original_cost?: number | null;
+  melhor_envio_shipment?: any;
 }
 
 export interface AdminCustomer {
@@ -76,16 +83,20 @@ export function useAdminData() {
 
     const orderIds = (data ?? []).map(order => order.id);
     const storeIds = [...new Set(data?.map(order => order.store_id).filter(Boolean) as string[])];
-    const [{ data: links }, { data: stores }] = await Promise.all([
+    const [{ data: links }, { data: stores }, { data: shipments }] = await Promise.all([
       orderIds.length
         ? supabase.from('bling_order_links').select('order_id, channel, bling_order_number, raw_payload').in('order_id', orderIds)
         : Promise.resolve({ data: [] }),
       storeIds.length
         ? supabase.from('stores').select('id, name').in('id', storeIds)
         : Promise.resolve({ data: [] }),
+      orderIds.length
+        ? supabase.from('melhor_envio_shipments').select('*').in('order_id', orderIds)
+        : Promise.resolve({ data: [] }),
     ]);
     const linkMap = new Map((links ?? []).map(link => [link.order_id, link]));
     const storeMap = new Map((stores ?? []).map(store => [store.id, store.name]));
+    const shipmentMap = new Map((shipments ?? []).map(shipment => [shipment.order_id, shipment]));
 
     // Fetch creator names for manual orders
     const creatorIds = [...new Set(data?.map(o => o.created_by).filter(Boolean) as string[])];
@@ -114,6 +125,7 @@ export function useAdminData() {
         bling_channel: link?.channel ?? null,
         bling_order_number: link?.bling_order_number ?? null,
         bling_raw_payload: link?.raw_payload ?? null,
+        melhor_envio_shipment: shipmentMap.get(order.id) ?? null,
       };
     }) || [];
 
@@ -227,7 +239,7 @@ export function useAdminData() {
 
   // Atualiza automaticamente quando vendas/itens/estoque mudam em qualquer canal
   useRealtimeRefetch(
-    ['orders', 'order_items', 'product_variants', 'fiscal_documents'],
+    ['orders', 'order_items', 'product_variants', 'fiscal_documents', 'melhor_envio_shipments', 'melhor_envio_shipment_events'],
     () => {
       if (!isVendedor) return;
       fetchOrders();

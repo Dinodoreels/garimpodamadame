@@ -32,6 +32,13 @@ interface CheckoutRequest {
   discount_amount?: number
   loyalty_points_used?: number
   loyalty_discount?: number
+  shipping_option?: {
+    carrier: string
+    service: string
+    service_code: string
+    estimated_days: number
+    original_cost: number
+  }
 }
 
 Deno.serve(async (req) => {
@@ -68,7 +75,7 @@ Deno.serve(async (req) => {
     const userId = claimsData.user.id
 
     const body: CheckoutRequest = await req.json()
-    const { items, shipping_cost, shipping_address, discount_code, discount_amount, loyalty_points_used, loyalty_discount } = body
+    const { items, shipping_cost, shipping_address, discount_code, discount_amount, loyalty_points_used, shipping_option } = body
 
     if (!items || items.length === 0) {
       return new Response(
@@ -121,6 +128,14 @@ Deno.serve(async (req) => {
         discount_code: discount_code || null,
         discount_amount: discountValue,
         loyalty_points_used: loyalty_points_used || 0,
+        source: 'website',
+        shipping_provider: shipping_option ? 'melhor_envio' : null,
+        shipping_carrier: shipping_option?.carrier || null,
+        shipping_service: shipping_option?.service || null,
+        shipping_service_code: shipping_option?.service_code || null,
+        shipping_estimated_days: shipping_option?.estimated_days || null,
+        shipping_original_cost: shipping_option?.original_cost ?? shippingValue,
+        shipping_quote_data: shipping_option || {},
       })
       .select()
       .single()

@@ -162,14 +162,18 @@ Deno.serve(async (req) => {
     // ── Route to active provider ──
     if (activeProvider === 'melhor_envio') {
       try {
-        const melhorEnvioToken = shippingConfig?.melhor_envio?.token || '';
+        const melhorEnvioToken = Deno.env.get('MELHOR_ENVIO_TOKEN') || '';
         options = await fetchMelhorEnvioQuotes(
           melhorEnvioToken, originZip, cleanZip,
           totalWeight, maxLength, maxWidth, totalHeight,
           items,
         );
       } catch (e) {
-        console.error('Melhor Envio API error, falling back:', e);
+        console.error('Melhor Envio API error:', e);
+        return new Response(JSON.stringify({ error: 'A cotação do Melhor Envio está temporariamente indisponível. Tente novamente.' }), {
+          status: 503,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
     } else if (activeProvider === 'correios' || !activeProvider) {
       // Use native Correios simulation
@@ -275,7 +279,7 @@ async function fetchMelhorEnvioQuotes(
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
       'Accept': 'application/json',
-      'User-Agent': 'Loja (contato@loja.com)',
+      'User-Agent': 'Garimpo da Madame (contato@ogarimpodigital.com.br)',
     },
     body: JSON.stringify(body),
   });
