@@ -326,7 +326,7 @@ export function BlingTab() {
             </div>
           </div>
 
-          {config?.last_error && (
+          {config?.last_error && !hasAuthorizationError(config.last_error) && (
             <Alert variant="destructive"><AlertDescription className="text-xs">{friendlyBlingError(config.last_error)}</AlertDescription></Alert>
           )}
 
