@@ -12,3 +12,6 @@
 - [x] Orientar o administrador com o link oficial para criar o aplicativo da API Bling
 - [x] Impedir nova autorização desnecessária e limpar o estado preso do Bling sem derrubar a conexão válida
 - [x] Permitir trocar imediatamente as credenciais e a conta do Bling sem apagar dados da loja
+- [x] Criar prévia administrativa do catálogo Bling com comparação por SKU e conflitos bloqueados
+- [x] Importar produtos revisados em lotes como rascunhos, respeitando a origem escolhida para preço e estoque
+- [x] Reunir catálogo, estoque e pedidos na ação “Buscar tudo do Bling”, com histórico por conta autorizada
