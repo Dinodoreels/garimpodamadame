@@ -18,6 +18,17 @@ export function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+export function friendlyBlingAuthError(data: unknown): string {
+  const raw = JSON.stringify(data ?? {});
+  if (/invalid_grant|invalid refresh token/i.test(raw)) {
+    return "A autorização anterior do Bling expirou ou foi cancelada. Confira as credenciais e conecte novamente.";
+  }
+  if (/invalid_client|client_id.*inv[aá]lido/i.test(raw)) {
+    return "O Client ID foi recusado pelo Bling. Use o Client ID e o Client Secret do mesmo aplicativo cadastrado no Bling.";
+  }
+  return raw;
+}
+
 export function getSupabaseAdmin() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -139,7 +150,7 @@ async function refreshAccessToken(cfg: BlingConfig): Promise<string> {
     { grant_type: "refresh_token", refresh_token: cfg.refresh_token },
   );
   if (status !== 200 || !data?.access_token) {
-    const msg = `Falha ao renovar acesso do Bling [${status}]: ${JSON.stringify(data)}`;
+    const msg = friendlyBlingAuthError(data);
     await getSupabaseAdmin()
       .from("bling_config")
       .update({ last_error: msg })

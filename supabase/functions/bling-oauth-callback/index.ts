@@ -1,4 +1,4 @@
-import { callBling, corsHeaders, getCallbackUrl, getConfig, getSupabaseAdmin, logSync, requestToken } from "../_shared/bling.ts";
+import { callBling, corsHeaders, friendlyBlingAuthError, getCallbackUrl, getConfig, getSupabaseAdmin, logSync, requestToken } from "../_shared/bling.ts";
 
 // The edge gateway rewrites every response body's Content-Type to text/plain,
 // so an inline HTML page would be shown as raw source. Redirect back to the
@@ -49,8 +49,18 @@ Deno.serve(async (req) => {
       { grant_type: "authorization_code", code, redirect_uri: getCallbackUrl() },
     );
     if (status !== 200 || !data?.access_token) {
-      await logSync({ entity_type: "oauth", action: "callback", status: "error", response: data, error_message: `HTTP ${status}` });
-      return backToPanel(origin, "error", `O Bling recusou a autorização (${status}). Confira o Client ID, o Client Secret e a URL de retorno.`);
+      const message = friendlyBlingAuthError(data);
+      await logSync({ entity_type: "oauth", action: "callback", status: "error", response: data, error_message: message });
+      await getSupabaseAdmin().from("bling_config").update({
+        access_token: null,
+        refresh_token: null,
+        token_expires_at: null,
+        company_name: null,
+        is_active: false,
+        last_error: message,
+        oauth_state: null,
+      }).eq("id", cfg.id);
+      return backToPanel(origin, "error", message);
     }
 
     const supa = getSupabaseAdmin();

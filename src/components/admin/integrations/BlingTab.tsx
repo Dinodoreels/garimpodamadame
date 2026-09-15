@@ -20,7 +20,9 @@ type Config = {
   id: string;
   client_id: string | null;
   client_secret: string | null;
+  access_token: string | null;
   refresh_token: string | null;
+  token_expires_at: string | null;
   company_name: string | null;
   is_active: boolean;
   sync_products: boolean;
@@ -51,6 +53,20 @@ const AUTHORITY_LABEL: Record<Authority, string> = {
 
 const CALLBACK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bling-oauth-callback`;
 const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bling-webhook`;
+
+const hasAuthorizationError = (message: string | null | undefined) =>
+  !!message && /invalid_grant|invalid refresh token|client_id.*inv[aá]lido|invalid_client/i.test(message);
+
+const friendlyBlingError = (message: string | null | undefined) => {
+  if (!message) return 'O Bling não informou o motivo da falha.';
+  if (/invalid_grant|invalid refresh token/i.test(message)) {
+    return 'A autorização anterior expirou ou foi cancelada. Confira as credenciais e conecte novamente.';
+  }
+  if (/client_id.*inv[aá]lido|invalid_client/i.test(message)) {
+    return 'O Client ID foi recusado pelo Bling. Copie novamente o Client ID e o Client Secret do mesmo aplicativo cadastrado no Bling.';
+  }
+  return message;
+};
 
 export function BlingTab() {
   const [config, setConfig] = useState<Config | null>(null);
@@ -113,7 +129,7 @@ export function BlingTab() {
     const finish = async () => {
       const loaded = await load();
       if (result === 'ok') toast.success('Bling conectado com sucesso', { description: loaded?.company_name ? `Empresa: ${loaded.company_name}` : undefined });
-      else toast.error('Não foi possível conectar', { description: msg || undefined });
+      else toast.error('Não foi possível conectar', { description: friendlyBlingError(msg) });
 
       params.delete('bling');
       params.delete('bling_msg');
@@ -132,7 +148,7 @@ export function BlingTab() {
       oauthWindow.current = null;
       const loaded = await load();
       if (e.data.result === 'ok') toast.success('Bling conectado com sucesso', { description: loaded?.company_name ? `Empresa: ${loaded.company_name}` : 'A empresa autorizada já está ativa no painel.' });
-      else toast.error('Não foi possível conectar', { description: e.data.message || undefined });
+      else toast.error('Não foi possível conectar', { description: friendlyBlingError(e.data.message) });
     };
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
@@ -164,7 +180,7 @@ export function BlingTab() {
     const { data, error } = await supabase.functions.invoke(name, { body });
     setBusy(null);
     if (error || (data as any)?.error) {
-      toast.error('Erro', { description: (data as any)?.error || error?.message });
+      toast.error('Erro', { description: friendlyBlingError((data as any)?.error || error?.message) });
       return null;
     }
     return data as any;
@@ -172,7 +188,40 @@ export function BlingTab() {
 
   const connect = async () => {
     if (connected && !window.confirm('Deseja trocar a conta do Bling ou autorizar novamente a empresa atual?')) return;
-    await patch({ client_id: clientId.trim(), client_secret: clientSecret.trim() });
+    const nextClientId = clientId.trim();
+    const nextClientSecret = clientSecret.trim();
+    if (!nextClientId || !nextClientSecret) {
+      toast.error('Preencha o Client ID e o Client Secret do aplicativo Bling.');
+      return;
+    }
+
+    const credentialsChanged = nextClientId !== config?.client_id || nextClientSecret !== config?.client_secret;
+    const values: Partial<Config> = {
+      client_id: nextClientId,
+      client_secret: nextClientSecret,
+    };
+    if (credentialsChanged) {
+      Object.assign(values, {
+        access_token: null,
+        refresh_token: null,
+        token_expires_at: null,
+        company_name: null,
+        is_active: false,
+        last_error: null,
+      });
+    }
+
+    const { data: saved, error: saveError } = await supabase
+      .from('bling_config')
+      .update(values)
+      .eq('id', config?.id ?? '')
+      .select('*')
+      .single();
+    if (saveError || !saved) {
+      toast.error('Não foi possível salvar as credenciais', { description: saveError?.message });
+      return;
+    }
+    setConfig(saved as Config);
     const res = await call('bling-oauth-start');
     if (res?.url) {
       const popup = window.open(res.url, 'bling-oauth', 'width=620,height=760');
@@ -195,7 +244,7 @@ export function BlingTab() {
     return <div className="flex justify-center py-16"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>;
   }
 
-  const connected = !!config?.refresh_token;
+  const connected = !!config?.refresh_token && !hasAuthorizationError(config?.last_error);
 
   return (
     <div className="space-y-6">
@@ -235,6 +284,15 @@ export function BlingTab() {
             </Alert>
           )}
 
+          {config?.refresh_token && hasAuthorizationError(config?.last_error) && (
+            <Alert variant="destructive">
+              <XCircle className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Conexão expirada.</strong> {friendlyBlingError(config.last_error)}
+              </AlertDescription>
+            </Alert>
+          )}
+
           {oauthPending && (
             <Alert>
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -269,7 +327,7 @@ export function BlingTab() {
           </div>
 
           {config?.last_error && (
-            <Alert variant="destructive"><AlertDescription className="text-xs">{config.last_error}</AlertDescription></Alert>
+            <Alert variant="destructive"><AlertDescription className="text-xs">{friendlyBlingError(config.last_error)}</AlertDescription></Alert>
           )}
 
           <div className="flex flex-wrap gap-2">
