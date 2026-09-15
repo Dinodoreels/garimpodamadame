@@ -33,7 +33,6 @@ Deno.serve(async (req) => {
       decision_reason: reason,
       decided_by: userId,
       decided_at: now,
-      status: decision === 'approved' ? 'approved' : 'rejected',
       error_message: null,
     }).eq('id', runId);
     if (updateError) throw updateError;

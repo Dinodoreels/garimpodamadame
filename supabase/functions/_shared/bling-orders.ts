@@ -108,10 +108,44 @@ export async function pushOrderToBling(orderId: string) {
 const STATUS_MAP: Record<string, string> = {
   "6": "cancelled",
   "9": "paid",
+  "10": "processing",
   "12": "shipped",
   "15": "shipped",
   "24": "paid",
 };
+
+function orderState(order: any) {
+  const id = String(order?.situacao?.id ?? '');
+  const label = String(order?.situacao?.valor ?? order?.situacao?.nome ?? order?.situacao?.descricao ?? '').toLowerCase();
+  let status = STATUS_MAP[id] ?? 'pending';
+  if (/cancel|estorn/.test(label)) status = 'cancelled';
+  else if (/entreg|conclu/.test(label)) status = 'delivered';
+  else if (/enviad|transport|despach/.test(label)) status = 'shipped';
+  else if (/pago|aprov|atendid/.test(label)) status = 'paid';
+  else if (/separa|process/.test(label)) status = 'processing';
+  return { id, label, status };
+}
+
+function tracking(order: any) {
+  const volume = order?.transporte?.volumes?.[0] ?? order?.transporte?.volume ?? {};
+  const object = volume?.objetos?.[0] ?? {};
+  return {
+    code: String(object?.codigoRastreamento ?? volume?.codigoRastreamento ?? order?.transporte?.codigoRastreamento ?? '').trim() || null,
+    url: String(object?.urlRastreamento ?? volume?.urlRastreamento ?? order?.transporte?.urlRastreamento ?? '').trim() || null,
+  };
+}
+
+async function localVariant(supa: ReturnType<typeof getSupabaseAdmin>, item: any) {
+  const blingProductId = String(item?.produto?.id ?? '');
+  if (blingProductId) {
+    const { data: link } = await supa.from('bling_product_links').select('product_id, variant_id').eq('bling_product_id', blingProductId).maybeSingle();
+    if (link?.variant_id) return link;
+  }
+  const sku = String(item?.codigo ?? item?.produto?.codigo ?? '').trim();
+  if (!sku) return null;
+  const { data: variant } = await supa.from('product_variants').select('id, product_id').eq('sku', sku).maybeSingle();
+  return variant ? { product_id: variant.product_id, variant_id: variant.id } : null;
+}
 
 /** Import marketplace orders that Bling received (Mercado Livre, Shopee, Magalu, Amazon, TikTok...). */
 export async function pullMarketplaceOrders(sinceIso?: string) {
@@ -125,16 +159,22 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
   const dataInicial = since.slice(0, 10);
 
-  const { status, data } = await callBling({
-    path: "/pedidos/vendas",
-    query: { dataAlteracaoInicial: `${dataInicial} 00:00:00`, limite: 100 },
-    config: cfg,
-  });
-  if (status >= 400) throw new Error(blingError(status, data));
-
-  const list = data?.data ?? [];
+  const list: any[] = [];
+  for (let page = 1; page <= 100; page++) {
+    const { status, data } = await callBling({
+      path: "/pedidos/vendas",
+      query: { dataAlteracaoInicial: `${dataInicial} 00:00:00`, pagina: page, limite: 100 },
+      config: cfg,
+    });
+    if (status >= 400) throw new Error(blingError(status, data));
+    const rows = Array.isArray(data?.data) ? data.data : [];
+    list.push(...rows);
+    if (rows.length < 100) break;
+  }
   const imported: string[] = [];
+  const updated: string[] = [];
   const skipped: string[] = [];
+  const errors: Array<{ id: string; error: string }> = [];
 
   for (const summary of list) {
     const blingId = String(summary.id);
@@ -143,13 +183,13 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
       .select("id, order_id")
       .eq("bling_order_id", blingId)
       .maybeSingle();
-    if (link) {
-      skipped.push(blingId);
+    const detail = await callBling({ path: `/pedidos/vendas/${blingId}`, config: cfg });
+    if (detail.status >= 400) {
+      const message = blingError(detail.status, detail.data);
+      errors.push({ id: blingId, error: message });
+      await logSync({ entity_type: 'order', entity_id: blingId, action: 'pull_detail', status: 'error', error_message: message });
       continue;
     }
-
-    const detail = await callBling({ path: `/pedidos/vendas/${blingId}`, config: cfg });
-    if (detail.status >= 400) continue;
     const o = detail.data?.data ?? {};
 
     const channelName = o?.loja?.nome ?? o?.loja?.descricao ?? (o?.loja?.id ? `canal ${o.loja.id}` : "bling");
@@ -157,6 +197,58 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     const subtotal = items.reduce((s: number, i: any) => s + Number(i.valor ?? 0) * Number(i.quantidade ?? 1), 0);
     const shipping = Number(o?.transporte?.frete ?? 0);
     const total = Number(o?.total ?? subtotal + shipping);
+    const mapped = orderState(o);
+    const tracked = tracking(o);
+    const now = new Date().toISOString();
+    const orderUpdates: Record<string, unknown> = {
+      status: mapped.status,
+      subtotal,
+      shipping_cost: shipping,
+      total,
+      tracking_code: tracked.code,
+      tracking_url: tracked.url,
+      guest_info: {
+        name: o?.contato?.nome ?? null,
+        cpf: o?.contato?.numeroDocumento ?? null,
+        email: o?.contato?.email ?? null,
+        phone: o?.contato?.celular ?? o?.contato?.telefone ?? null,
+        marketplace: channelName,
+        bling_order_number: o?.numero ?? null,
+      },
+      shipping_address: o?.transporte?.etiqueta ? {
+        recipient_name: o.transporte.etiqueta.nome ?? null,
+        street: o.transporte.etiqueta.endereco ?? null,
+        number: o.transporte.etiqueta.numero ?? null,
+        complement: o.transporte.etiqueta.complemento ?? null,
+        neighborhood: o.transporte.etiqueta.bairro ?? null,
+        city: o.transporte.etiqueta.municipio ?? null,
+        state: o.transporte.etiqueta.uf ?? null,
+        zip_code: o.transporte.etiqueta.cep ?? null,
+      } : null,
+    };
+    if (['paid', 'processing', 'shipped', 'delivered'].includes(mapped.status)) orderUpdates.paid_at = o?.dataPagamento ?? now;
+    if (['shipped', 'delivered'].includes(mapped.status)) orderUpdates.shipped_at = o?.dataSaida ?? now;
+    if (mapped.status === 'delivered') orderUpdates.delivered_at = now;
+
+    if (link?.order_id) {
+      const { data: current, error: currentError } = await supa.from('orders').select('status').eq('id', link.order_id).maybeSingle();
+      if (currentError) {
+        errors.push({ id: blingId, error: currentError.message });
+        continue;
+      }
+      const { error: updateError } = await supa.from('orders').update(orderUpdates).eq('id', link.order_id);
+      if (updateError) {
+        errors.push({ id: blingId, error: updateError.message });
+        await logSync({ entity_type: 'order', entity_id: blingId, action: 'update', status: 'error', error_message: updateError.message });
+        continue;
+      }
+      if (current?.status !== mapped.status) {
+        await supa.from('order_status_history').insert({ order_id: link.order_id, status: mapped.status, note: `Atualizado pelo Bling (${channelName})` });
+      }
+      await supa.from('bling_order_links').update({ bling_status: mapped.id, channel: String(channelName), raw_payload: o, last_synced_at: now }).eq('id', link.id);
+      updated.push(blingId);
+      continue;
+    }
 
     const { data: orderNumber } = await supa.rpc("generate_order_number");
 
@@ -164,31 +256,9 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
       .from("orders")
       .insert({
         order_number: orderNumber,
-        status: STATUS_MAP[String(o?.situacao?.id ?? "")] ?? "pending",
-        subtotal,
-        shipping_cost: shipping,
-        total,
+        ...orderUpdates,
         source: `bling:${String(channelName).toLowerCase()}`,
-        guest_info: {
-          name: o?.contato?.nome ?? null,
-          cpf: o?.contato?.numeroDocumento ?? null,
-          email: o?.contato?.email ?? null,
-          phone: o?.contato?.telefone ?? null,
-          marketplace: channelName,
-          bling_order_number: o?.numero ?? null,
-        },
-        shipping_address: o?.transporte?.etiqueta
-          ? {
-            recipient_name: o.transporte.etiqueta.nome ?? null,
-            street: o.transporte.etiqueta.endereco ?? null,
-            number: o.transporte.etiqueta.numero ?? null,
-            complement: o.transporte.etiqueta.complemento ?? null,
-            neighborhood: o.transporte.etiqueta.bairro ?? null,
-            city: o.transporte.etiqueta.municipio ?? null,
-            state: o.transporte.etiqueta.uf ?? null,
-            zip_code: o.transporte.etiqueta.cep ?? null,
-          }
-          : null,
+        payment_method: String(channelName).toLowerCase(),
       })
       .select("id")
       .single();
@@ -198,17 +268,24 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     }
 
     if (items.length) {
-      await supa.from("order_items").insert(
-        items.map((i: any) => ({
+      const itemRows = [];
+      for (const i of items) {
+        const local = await localVariant(supa, i);
+        itemRows.push({
           order_id: created.id,
+          product_id: local?.product_id ?? null,
+          variant_id: local?.variant_id ?? null,
           shopify_product_id: String(i?.produto?.id ?? i?.codigo ?? "bling"),
           shopify_variant_id: String(i?.codigo ?? i?.produto?.codigo ?? "bling"),
           product_title: i?.descricao ?? "Item",
+          variant_title: i?.produto?.nome ?? null,
           quantity: Number(i?.quantidade ?? 1),
           unit_price: Number(i?.valor ?? 0),
           total_price: Number(i?.valor ?? 0) * Number(i?.quantidade ?? 1),
-        })),
-      );
+        });
+      }
+      const { error: itemsError } = await supa.from("order_items").insert(itemRows);
+      if (itemsError) await logSync({ entity_type: 'order', entity_id: blingId, action: 'pull_items', status: 'error', error_message: itemsError.message });
     }
 
     await supa.from("bling_order_links").insert({
@@ -217,10 +294,12 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
       bling_order_number: String(o?.numero ?? ""),
       channel: String(channelName),
       direction: "pull",
-      bling_status: String(o?.situacao?.id ?? ""),
+      bling_status: mapped.id,
       raw_payload: o,
       last_synced_at: new Date().toISOString(),
     });
+
+    await supa.from('order_status_history').insert({ order_id: created.id, status: mapped.status, note: `Importado do Bling (${channelName})` });
 
     imported.push(blingId);
   }
@@ -229,6 +308,6 @@ export async function pullMarketplaceOrders(sinceIso?: string) {
     .update({ last_order_pull_at: new Date().toISOString(), last_sync_at: new Date().toISOString() })
     .eq("id", cfg.id);
 
-  await logSync({ entity_type: "order", action: "pull", status: "success", response: { imported: imported.length, skipped: skipped.length } });
-  return { imported: imported.length, skipped: skipped.length };
+  await logSync({ entity_type: "order", action: "pull", status: errors.length ? "error" : "success", response: { imported: imported.length, updated: updated.length, skipped: skipped.length, errors: errors.length }, error_message: errors.length ? `${errors.length} pedido(s) com erro` : null });
+  return { imported: imported.length, updated: updated.length, skipped: skipped.length, errors: errors.length, error_details: errors.slice(0, 20) };
 }
