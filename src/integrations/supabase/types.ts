@@ -2477,6 +2477,68 @@ export type Database = {
           },
         ]
       }
+      marketplace_shipping_labels: {
+        Row: {
+          attempts: number
+          bling_order_id: string
+          created_at: string
+          format: string
+          id: string
+          label_url: string | null
+          last_checked_at: string | null
+          last_error: string | null
+          order_id: string
+          platform: string
+          printed_at: string | null
+          provider_note: string | null
+          provider_payload: Json
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          bling_order_id: string
+          created_at?: string
+          format?: string
+          id?: string
+          label_url?: string | null
+          last_checked_at?: string | null
+          last_error?: string | null
+          order_id: string
+          platform: string
+          printed_at?: string | null
+          provider_note?: string | null
+          provider_payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          bling_order_id?: string
+          created_at?: string
+          format?: string
+          id?: string
+          label_url?: string | null
+          last_checked_at?: string | null
+          last_error?: string | null
+          order_id?: string
+          platform?: string
+          printed_at?: string | null
+          provider_note?: string | null
+          provider_payload?: Json
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_shipping_labels_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       melhor_envio_config: {
         Row: {
           access_token: string | null
