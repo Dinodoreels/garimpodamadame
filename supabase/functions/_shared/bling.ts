@@ -18,6 +18,17 @@ export function jsonResponse(body: unknown, status = 200) {
   });
 }
 
+export function friendlyBlingAuthError(data: unknown): string {
+  const raw = JSON.stringify(data ?? {});
+  if (/invalid_grant|invalid refresh token/i.test(raw)) {
+    return "A autorização anterior do Bling expirou ou foi cancelada. Confira as credenciais e conecte novamente.";
+  }
+  if (/invalid_client|client_id.*inv[aá]lido/i.test(raw)) {
+    return "O Client ID foi recusado pelo Bling. Use o Client ID e o Client Secret do mesmo aplicativo cadastrado no Bling.";
+  }
+  return raw;
+}
+
 export function getSupabaseAdmin() {
   return createClient(
     Deno.env.get("SUPABASE_URL")!,
@@ -134,12 +145,38 @@ async function refreshAccessToken(cfg: BlingConfig): Promise<string> {
   if (!cfg.client_id || !cfg.client_secret || !cfg.refresh_token) {
     throw new Error("Bling não conectado. Faça a conexão no painel.");
   }
+
+  const originalRefreshToken = cfg.refresh_token;
+  const latestBeforeRefresh = await getConfig();
+  if (
+    latestBeforeRefresh?.refresh_token &&
+    latestBeforeRefresh.refresh_token !== originalRefreshToken &&
+    latestBeforeRefresh.access_token
+  ) {
+    const latestExpiry = latestBeforeRefresh.token_expires_at
+      ? Date.parse(latestBeforeRefresh.token_expires_at)
+      : 0;
+    if (latestExpiry - Date.now() >= 120_000) return latestBeforeRefresh.access_token;
+  }
+
   const { status, data } = await requestToken(
     { client_id: cfg.client_id, client_secret: cfg.client_secret },
-    { grant_type: "refresh_token", refresh_token: cfg.refresh_token },
+    { grant_type: "refresh_token", refresh_token: originalRefreshToken },
   );
   if (status !== 200 || !data?.access_token) {
-    const msg = `Falha ao renovar acesso do Bling [${status}]: ${JSON.stringify(data)}`;
+    const latestAfterFailure = await getConfig();
+    if (
+      latestAfterFailure?.refresh_token &&
+      latestAfterFailure.refresh_token !== originalRefreshToken &&
+      latestAfterFailure.access_token
+    ) {
+      const latestExpiry = latestAfterFailure.token_expires_at
+        ? Date.parse(latestAfterFailure.token_expires_at)
+        : 0;
+      if (latestExpiry - Date.now() >= 120_000) return latestAfterFailure.access_token;
+    }
+
+    const msg = friendlyBlingAuthError(data);
     await getSupabaseAdmin()
       .from("bling_config")
       .update({ last_error: msg })

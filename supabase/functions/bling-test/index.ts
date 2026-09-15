@@ -1,4 +1,4 @@
-import { assertAdmin, blingError, callBling, corsHeaders, getCallbackUrl, getConfig, jsonResponse, logSync } from "../_shared/bling.ts";
+import { assertAdmin, blingError, callBling, corsHeaders, getCallbackUrl, getConfig, getSupabaseAdmin, jsonResponse, logSync } from "../_shared/bling.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -18,10 +18,14 @@ Deno.serve(async (req) => {
       await logSync({ entity_type: "connection", action: "test", status: "error", error_message: err });
       return jsonResponse({ ok: false, error: err }, status);
     }
+    await getSupabaseAdmin()
+      .from("bling_config")
+      .update({ last_error: null, is_active: true })
+      .eq("id", cfg.id);
     await logSync({ entity_type: "connection", action: "test", status: "success" });
     return jsonResponse({ ok: true, company: cfg.company_name, sample_count: data?.data?.length ?? 0, callback_url: getCallbackUrl() });
   } catch (e) {
     if (e instanceof Response) return e;
-    return jsonResponse({ ok: false, error: e instanceof Error ? e.message : String(e) }, 500);
+    return jsonResponse({ ok: false, error: e instanceof Error ? e.message : String(e) });
   }
 });
