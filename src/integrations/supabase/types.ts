@@ -296,6 +296,127 @@ export type Database = {
         }
         Relationships: []
       }
+      bling_import_items: {
+        Row: {
+          account_key: string
+          applied_at: string | null
+          apply_status: string
+          bling_data: Json
+          bling_product_id: string
+          bling_sku: string | null
+          classification: string
+          created_at: string
+          differences: Json
+          error_message: string | null
+          id: string
+          local_product_id: string | null
+          local_variant_id: string | null
+          run_id: string
+          selected: boolean
+          updated_at: string
+        }
+        Insert: {
+          account_key: string
+          applied_at?: string | null
+          apply_status?: string
+          bling_data?: Json
+          bling_product_id: string
+          bling_sku?: string | null
+          classification: string
+          created_at?: string
+          differences?: Json
+          error_message?: string | null
+          id?: string
+          local_product_id?: string | null
+          local_variant_id?: string | null
+          run_id: string
+          selected?: boolean
+          updated_at?: string
+        }
+        Update: {
+          account_key?: string
+          applied_at?: string | null
+          apply_status?: string
+          bling_data?: Json
+          bling_product_id?: string
+          bling_sku?: string | null
+          classification?: string
+          created_at?: string
+          differences?: Json
+          error_message?: string | null
+          id?: string
+          local_product_id?: string | null
+          local_variant_id?: string | null
+          run_id?: string
+          selected?: boolean
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bling_import_items_local_product_id_fkey"
+            columns: ["local_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_import_items_local_variant_id_fkey"
+            columns: ["local_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bling_import_items_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "bling_import_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bling_import_runs: {
+        Row: {
+          account_key: string
+          company_name: string | null
+          completed_at: string | null
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          id: string
+          orders_result: Json | null
+          status: string
+          totals: Json
+          updated_at: string
+        }
+        Insert: {
+          account_key: string
+          company_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          orders_result?: Json | null
+          status?: string
+          totals?: Json
+          updated_at?: string
+        }
+        Update: {
+          account_key?: string
+          company_name?: string | null
+          completed_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          id?: string
+          orders_result?: Json | null
+          status?: string
+          totals?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
       bling_order_links: {
         Row: {
           bling_order_id: string
