@@ -2,8 +2,8 @@ import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from './b
 
 export const normalizeSku = (value: unknown) => String(value ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
-export async function accountKey(clientId: string) {
-  const bytes = new TextEncoder().encode(clientId);
+export async function accountKey(clientId: string, companyName?: string | null) {
+  const bytes = new TextEncoder().encode(`${clientId}|${companyName ?? ''}`);
   const hash = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(hash)).map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 24);
 }
@@ -42,7 +42,7 @@ export function productSnapshot(raw: any) {
     width_cm: dimensions?.largura == null ? null : Number(dimensions.largura),
     height_cm: dimensions?.altura == null ? null : Number(dimensions.altura),
     length_cm: dimensions?.profundidade == null ? null : Number(dimensions.profundidade),
-    stock: Number(raw?.estoque?.saldoVirtualTotal ?? raw?.estoque?.saldoFisicoTotal ?? raw?.saldoVirtualTotal ?? raw?.saldoFisicoTotal ?? 0),
+    stock: raw?.estoque?.saldoVirtualTotal ?? raw?.estoque?.saldoFisicoTotal ?? raw?.saldoVirtualTotal ?? raw?.saldoFisicoTotal ?? null,
     images: imageRows.map((img: any) => String(img?.link ?? img?.url ?? '')).filter(Boolean).slice(0, 10),
   };
 }
@@ -51,7 +51,7 @@ export async function prepareImportRun(userId: string) {
   const supa = getSupabaseAdmin();
   const cfg = await getConfig();
   if (!cfg?.is_active || !cfg.client_id || !cfg.refresh_token) throw new Error('Conecte e teste a conta do Bling antes de buscar os dados.');
-  const key = await accountKey(cfg.client_id);
+  const key = await accountKey(cfg.client_id, cfg.company_name);
   const { data: run, error: runError } = await supa.from('bling_import_runs').insert({
     account_key: key,
     company_name: cfg.company_name,
@@ -80,7 +80,7 @@ export async function prepareImportRun(userId: string) {
       const conflict = !normalized || (!linked && matches.length > 1);
       const differences: Record<string, any> = {};
       if (local && Number(local.price) !== snap.price) differences.price = { store: Number(local.price), bling: snap.price };
-      if (local && Number(local.inventory_quantity) !== snap.stock) differences.stock = { store: Number(local.inventory_quantity), bling: snap.stock };
+      if (local && snap.stock != null && Number(local.inventory_quantity) !== Number(snap.stock)) differences.stock = { store: Number(local.inventory_quantity), bling: Number(snap.stock) };
       const classification = conflict ? 'conflict' : linked ? (Object.keys(differences).length ? 'different' : 'linked') : matches.length === 1 ? 'different' : 'new';
       return {
         run_id: run.id,
