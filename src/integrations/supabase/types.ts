@@ -2477,6 +2477,167 @@ export type Database = {
           },
         ]
       }
+      melhor_envio_shipment_events: {
+        Row: {
+          actor_id: string | null
+          created_at: string
+          event_type: string
+          id: string
+          message: string | null
+          order_id: string
+          provider_event_id: string | null
+          request_data: Json
+          response_data: Json
+          shipment_id: string
+          status: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          created_at?: string
+          event_type: string
+          id?: string
+          message?: string | null
+          order_id: string
+          provider_event_id?: string | null
+          request_data?: Json
+          response_data?: Json
+          shipment_id: string
+          status?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          created_at?: string
+          event_type?: string
+          id?: string
+          message?: string | null
+          order_id?: string
+          provider_event_id?: string | null
+          request_data?: Json
+          response_data?: Json
+          shipment_id?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhor_envio_shipment_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "melhor_envio_shipment_events_shipment_id_fkey"
+            columns: ["shipment_id"]
+            isOneToOne: false
+            referencedRelation: "melhor_envio_shipments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      melhor_envio_shipments: {
+        Row: {
+          cancelled_at: string | null
+          carrier: string | null
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          external_cart_id: string | null
+          external_order_id: string | null
+          external_protocol: string | null
+          id: string
+          insurance_value: number | null
+          label_format: string | null
+          label_generated_at: string | null
+          label_url: string | null
+          last_error: string | null
+          order_id: string
+          package_data: Json
+          posted_at: string | null
+          price: number | null
+          provider_payload: Json
+          purchased_at: string | null
+          recipient_data: Json
+          sender_data: Json
+          service: string | null
+          service_code: string
+          source: string
+          status: string
+          tracking_code: string | null
+          tracking_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          cancelled_at?: string | null
+          carrier?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          external_cart_id?: string | null
+          external_order_id?: string | null
+          external_protocol?: string | null
+          id?: string
+          insurance_value?: number | null
+          label_format?: string | null
+          label_generated_at?: string | null
+          label_url?: string | null
+          last_error?: string | null
+          order_id: string
+          package_data?: Json
+          posted_at?: string | null
+          price?: number | null
+          provider_payload?: Json
+          purchased_at?: string | null
+          recipient_data?: Json
+          sender_data?: Json
+          service?: string | null
+          service_code: string
+          source?: string
+          status?: string
+          tracking_code?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cancelled_at?: string | null
+          carrier?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string | null
+          external_cart_id?: string | null
+          external_order_id?: string | null
+          external_protocol?: string | null
+          id?: string
+          insurance_value?: number | null
+          label_format?: string | null
+          label_generated_at?: string | null
+          label_url?: string | null
+          last_error?: string | null
+          order_id?: string
+          package_data?: Json
+          posted_at?: string | null
+          price?: number | null
+          provider_payload?: Json
+          purchased_at?: string | null
+          recipient_data?: Json
+          sender_data?: Json
+          service?: string | null
+          service_code?: string
+          source?: string
+          status?: string
+          tracking_code?: string | null
+          tracking_url?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "melhor_envio_shipments_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notification_queue: {
         Row: {
           attempts: number
@@ -2734,7 +2895,14 @@ export type Database = {
           payment_status_detail: string | null
           shipped_at: string | null
           shipping_address: Json | null
+          shipping_carrier: string | null
           shipping_cost: number | null
+          shipping_estimated_days: number | null
+          shipping_original_cost: number | null
+          shipping_provider: string | null
+          shipping_quote_data: Json
+          shipping_service: string | null
+          shipping_service_code: string | null
           shopify_checkout_id: string | null
           source: string | null
           status: string
@@ -2769,7 +2937,14 @@ export type Database = {
           payment_status_detail?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
+          shipping_carrier?: string | null
           shipping_cost?: number | null
+          shipping_estimated_days?: number | null
+          shipping_original_cost?: number | null
+          shipping_provider?: string | null
+          shipping_quote_data?: Json
+          shipping_service?: string | null
+          shipping_service_code?: string | null
           shopify_checkout_id?: string | null
           source?: string | null
           status?: string
@@ -2804,7 +2979,14 @@ export type Database = {
           payment_status_detail?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
+          shipping_carrier?: string | null
           shipping_cost?: number | null
+          shipping_estimated_days?: number | null
+          shipping_original_cost?: number | null
+          shipping_provider?: string | null
+          shipping_quote_data?: Json
+          shipping_service?: string | null
+          shipping_service_code?: string | null
           shopify_checkout_id?: string | null
           source?: string | null
           status?: string

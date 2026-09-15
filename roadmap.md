@@ -36,3 +36,9 @@
 - [x] Bloquear emissão real e mostrar checklist fiscal por empresa, Bling, produtos, cliente, pedido e pagamento
 - [x] Mostrar a plataforma real do pedido e registrar a origem no complemento fiscal
 - [ ] Homologar regras tributárias com o contador e liberar produção explicitamente
+
+# Melhor Envio
+
+- [ ] Conectar o Melhor Envio somente às vendas do site, mantendo fretes de marketplaces separados e estoque compartilhado
+- [ ] Cotação real, opção escolhida, etiqueta, impressão, rastreio e histórico
+- [ ] Validar em produção sem comprar etiqueta automaticamente
