@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Eye, MoreHorizontal } from 'lucide-react';
+import { Eye, ImageOff, MoreHorizontal } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -65,7 +65,7 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap">Pedido</TableHead>
-              <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap hidden sm:table-cell">Cliente</TableHead>
+              <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap hidden sm:table-cell">Cliente e produtos</TableHead>
               <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap hidden md:table-cell">Data</TableHead>
               <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap hidden lg:table-cell">Origem</TableHead>
               <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap">Status</TableHead>
@@ -88,8 +88,19 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
                 return (
                   <TableRow key={order.id} className="hover:bg-muted/30">
                     <TableCell className="font-medium whitespace-nowrap">{order.order_number}</TableCell>
-                    <TableCell className="font-light hidden sm:table-cell">
-                      {order.profile?.full_name || (order as any).guest_info?.name || 'N/A'}
+                     <TableCell className="hidden min-w-[320px] sm:table-cell">
+                       <p className="font-light">{order.profile?.full_name || (order as any).guest_info?.name || 'N/A'}</p>
+                       <div className="mt-2 space-y-2">
+                         {(order.order_items ?? []).map((item: any) => (
+                           <div key={item.id} className="flex items-center gap-2 text-xs">
+                             {item.image_url ? <img src={item.image_url} alt={item.product_title} className="h-9 w-9 shrink-0 rounded-sm border object-cover" loading="lazy" /> : <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm border bg-muted"><ImageOff className="h-4 w-4 text-muted-foreground" /></span>}
+                             <div className="min-w-0">
+                               <p className="font-medium leading-tight">{item.product_title}</p>
+                               <p className="text-muted-foreground">{item.variant_title ? `${item.variant_title} · ` : ''}{item.sku ? `SKU ${item.sku} · ` : ''}{item.quantity} × {formatCurrency(Number(item.unit_price))}</p>
+                             </div>
+                           </div>
+                         ))}
+                       </div>
                     </TableCell>
                     <TableCell className="font-light text-muted-foreground hidden md:table-cell whitespace-nowrap">
                       {format(new Date(order.created_at), "dd MMM yyyy", { locale: ptBR })}
