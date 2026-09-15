@@ -87,10 +87,10 @@ Deno.serve(async (req) => {
               price: remote.price,
               status: 'draft',
               is_available: false,
-              weight_grams: remote.weight_grams,
-              width_cm: remote.width_cm,
-              height_cm: remote.height_cm,
-              length_cm: remote.length_cm,
+              weight_grams: remote.weight_grams == null ? null : Math.max(0, Math.round(Number(remote.weight_grams))),
+              width_cm: remote.width_cm == null ? null : Math.max(0, Math.round(Number(remote.width_cm))),
+              height_cm: remote.height_cm == null ? null : Math.max(0, Math.round(Number(remote.height_cm))),
+              length_cm: remote.length_cm == null ? null : Math.max(0, Math.round(Number(remote.length_cm))),
             }).select('id').single();
             if (productError) throw productError;
             productId = product.id;
