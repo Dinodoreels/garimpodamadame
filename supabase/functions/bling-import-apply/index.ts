@@ -211,9 +211,11 @@ Deno.serve(async (req) => {
           const { count } = await supa.from('product_images').select('id', { count: 'exact', head: true }).eq('product_id', productId);
           hasProductImage = Number(count ?? 0) > 0;
         }
+        // Products with a valid SKU and price remain visible even when the source has
+        // not supplied media yet. The storefront already renders a clear no-image
+        // state, while stock still controls whether purchasing is allowed.
         const publishable = Boolean(normalizeSku(sku))
-          && Number(remote.price) > 0
-          && hasProductImage;
+          && Number(remote.price) > 0;
         const availableForSale = publishable && Number(publishVariant?.inventory_quantity ?? 0) > 0;
         await supa.from('products').update({
           title: remote.name,
@@ -270,7 +272,7 @@ Deno.serve(async (req) => {
         await supa.from('bling_sync_queue').delete().eq('product_id', productId).in('action', ['product', 'stock']).gte('created_at', applyStartedAt).eq('status', 'pending');
 
         await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, bling_data: { ...item.bling_data, ...remote, missing_fields: missingFields }, apply_status: applyStatus, error_message: missingFields.length ? `Pendente: ${missingFields.join(', ')}` : null, applied_at: new Date().toISOString() }).eq('id', item.id);
-        results.push({ id: item.id, ok: true, status: applyStatus, published: publishable, available_for_sale: availableForSale, missing_fields: missingFields });
+        results.push({ id: item.id, ok: true, status: applyStatus, published: publishable, available_for_sale: availableForSale, has_image: hasProductImage, missing_fields: missingFields });
       } catch (error) {
         const message = errorMessage(error);
         await supa.from('bling_import_items').update({ apply_status: 'error', error_message: message }).eq('id', item.id);

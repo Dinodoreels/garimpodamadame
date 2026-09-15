@@ -62,3 +62,4 @@
 - [x] Ler também fotos internas, miniaturas e fotos de variações retornadas pelo Bling
 - [x] Rebuscar o catálogo real e republicar automaticamente os produtos que recuperarem fotos
 - [x] Guardar as fotos recuperadas permanentemente para evitar links temporários do Bling
+- [x] Exibir todos os produtos com SKU e preço, mesmo quando a plataforma não fornecer foto, mantendo estoque zerado como ESGOTADO
