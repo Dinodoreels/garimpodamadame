@@ -170,8 +170,8 @@ Deno.serve(async (req) => {
         }
         const publishable = Boolean(normalizeSku(sku))
           && Number(remote.price) > 0
-          && Number(publishVariant?.inventory_quantity ?? 0) > 0
           && hasProductImage;
+        const availableForSale = publishable && Number(publishVariant?.inventory_quantity ?? 0) > 0;
         await supa.from('products').update({
           title: remote.name,
           description: remote.description,
@@ -183,13 +183,13 @@ Deno.serve(async (req) => {
           height_cm: remote.height_cm == null ? null : Math.max(0, Math.round(Number(remote.height_cm))),
           length_cm: remote.length_cm == null ? null : Math.max(0, Math.round(Number(remote.length_cm))),
           status: publishable ? 'active' : 'draft',
-          is_available: publishable,
+          is_available: availableForSale,
         }).eq('id', productId);
         await supa.from('product_variants').update({
           title: String(detailed?.variacao?.nome ?? detailed?.variacao ?? 'Default'),
           sku,
           cost: remote.cost,
-          is_available: publishable,
+          is_available: availableForSale,
         }).eq('id', variantId);
 
         const linkData = {
@@ -227,7 +227,7 @@ Deno.serve(async (req) => {
         await supa.from('bling_sync_queue').delete().eq('product_id', productId).in('action', ['product', 'stock']).gte('created_at', applyStartedAt).eq('status', 'pending');
 
         await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, bling_data: { ...item.bling_data, ...remote, missing_fields: missingFields }, apply_status: applyStatus, error_message: missingFields.length ? `Pendente: ${missingFields.join(', ')}` : null, applied_at: new Date().toISOString() }).eq('id', item.id);
-        results.push({ id: item.id, ok: true, status: applyStatus, published: publishable, missing_fields: missingFields });
+        results.push({ id: item.id, ok: true, status: applyStatus, published: publishable, available_for_sale: availableForSale, missing_fields: missingFields });
       } catch (error) {
         const message = errorMessage(error);
         await supa.from('bling_import_items').update({ apply_status: 'error', error_message: message }).eq('id', item.id);
