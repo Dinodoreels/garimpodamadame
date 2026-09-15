@@ -576,7 +576,7 @@ export function BlingTab() {
                 {decisionHistory.length > 0 && <div className="space-y-2"><p className="text-sm font-medium">Histórico de decisões</p>{decisionHistory.map((entry) => <div key={entry.id} className="flex items-start justify-between gap-3 rounded-md border p-3 text-sm"><div><Badge variant={entry.decision === 'approved' ? 'secondary' : 'destructive'}>{entry.decision === 'approved' ? 'Aprovado' : 'Reprovado'}</Badge><p className="mt-1 text-muted-foreground">{entry.reason}</p></div><time className="shrink-0 text-xs text-muted-foreground">{new Date(entry.created_at).toLocaleString('pt-BR')}</time></div>)}</div>}
               </div>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs text-muted-foreground">Produtos completos são publicados automaticamente. Itens sem foto, preço, estoque ou SKU ficam como rascunho.</p>
+                <p className="text-xs text-muted-foreground">Produtos com foto, preço e SKU são publicados automaticamente. Itens sem estoque aparecem como ESGOTADO; itens sem foto, preço ou SKU ficam como rascunho.</p>
                 <Button onClick={applySelected} disabled={importRun.decision !== 'approved' || busy === 'bling-import-apply' || !importItems.some((item) => item.selected && item.classification !== 'conflict' && !['created', 'linked', 'updated'].includes(item.apply_status))}>
                   {busy === 'bling-import-apply' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Aplicar selecionados
                 </Button>

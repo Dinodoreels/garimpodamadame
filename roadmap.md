@@ -58,3 +58,4 @@
 - [x] Manter etiquetas de marketplaces separadas do Melhor Envio, que atende apenas vendas do site
 - [x] Preencher automaticamente fotos, título, descrição, preço, custo disponível, marca, SKU, variações, dimensões e estoque dos produtos importados
 - [x] Marcar como pendente qualquer dado ausente na origem, sem inventar informações
+- [x] Publicar produtos do Bling com estoque zero como ESGOTADO, mantendo a compra bloqueada
