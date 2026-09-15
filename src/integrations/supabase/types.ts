@@ -2477,6 +2477,51 @@ export type Database = {
           },
         ]
       }
+      melhor_envio_config: {
+        Row: {
+          access_token: string | null
+          account_email: string | null
+          account_name: string | null
+          connected_at: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          oauth_state: string | null
+          refresh_token: string | null
+          singleton: boolean
+          token_expires_at: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_email?: string | null
+          account_name?: string | null
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          oauth_state?: string | null
+          refresh_token?: string | null
+          singleton?: boolean
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          account_email?: string | null
+          account_name?: string | null
+          connected_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          oauth_state?: string | null
+          refresh_token?: string | null
+          singleton?: boolean
+          token_expires_at?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       melhor_envio_shipment_events: {
         Row: {
           actor_id: string | null
