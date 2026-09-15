@@ -29,6 +29,7 @@ Deno.serve(async (req) => {
         continue;
       }
       try {
+        const applyStartedAt = new Date().toISOString();
         const detailed = await fetchBlingProductDetail(item.bling_product_id);
         const remote = productSnapshot({ ...item.bling_data, ...detailed });
         const sku = remote.sku.trim();
@@ -92,6 +93,9 @@ Deno.serve(async (req) => {
           last_error: null,
         }, { onConflict: 'product_id,variant_id' });
         if (linkError) throw linkError;
+
+        // Pulling from Bling must not create a pending outbound echo for the same change.
+        await supa.from('bling_sync_queue').delete().eq('product_id', productId).in('action', ['product', 'stock']).gte('created_at', applyStartedAt).eq('status', 'pending');
 
         await supa.from('bling_import_items').update({ local_product_id: productId, local_variant_id: variantId, apply_status: applyStatus, error_message: null, applied_at: new Date().toISOString() }).eq('id', item.id);
         results.push({ id: item.id, ok: true, status: applyStatus });
