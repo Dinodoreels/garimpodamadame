@@ -116,6 +116,7 @@ export function productSnapshot(raw: any) {
     price: Number(raw?.preco ?? 0),
     cost: raw?.precoCusto == null ? null : Number(raw.precoCusto),
     description: raw?.descricaoCurta ?? raw?.descricaoComplementar ?? null,
+    product_type: raw?.categoria?.descricao ?? raw?.categoria?.nome ?? raw?.tipo?.nome ?? (typeof raw?.tipo === 'string' && raw.tipo.length > 1 ? raw.tipo : null),
     status: raw?.situacao ?? null,
     brand: raw?.marca?.nome ?? raw?.marca ?? null,
     weight_grams: raw?.pesoLiquido == null ? null : Number(raw.pesoLiquido) * 1000,
