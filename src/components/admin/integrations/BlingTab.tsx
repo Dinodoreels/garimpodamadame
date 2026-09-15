@@ -49,7 +49,7 @@ type Config = {
 type LogRow = { id: string; entity_type: string; action: string; status: string; error_message: string | null; created_at: string };
 type LinkRow = { id: string; bling_sku: string | null; bling_product_id: string | null; status: string; last_error: string | null };
 type ImportRun = { id: string; status: string; decision: 'pending' | 'approved' | 'rejected'; decision_reason: string | null; decided_at: string | null; totals: Record<string, number>; orders_result: Record<string, number> | null; created_at: string; error_message: string | null };
-type ImportItem = { id: string; bling_product_id: string; bling_sku: string | null; classification: 'new' | 'linked' | 'different' | 'conflict'; selected: boolean; bling_data: { name?: string; price?: number; stock?: number | null; images?: string[]; auto_sku_generated?: boolean; auto_sku_error?: string | null }; differences: Record<string, unknown>; apply_status: string; error_message: string | null };
+type ImportItem = { id: string; bling_product_id: string; bling_sku: string | null; classification: 'new' | 'linked' | 'different' | 'conflict'; selected: boolean; local_product_id: string | null; bling_data: { name?: string; price?: number; stock?: number | null; images?: string[]; auto_sku_generated?: boolean; auto_sku_error?: string | null }; differences: Record<string, unknown>; apply_status: string; error_message: string | null };
 type ImportDecision = { id: string; decision: 'approved' | 'rejected'; reason: string; created_at: string };
 
 const AUTHORITY_LABEL: Record<Authority, string> = {
