@@ -68,6 +68,14 @@ export interface ProductFormData {
   body: string;
   product_type: string;
   vendor: string;
+  manufacturer?: string;
+  ncm?: string;
+  cest?: string;
+  fiscal_origin?: number | null;
+  condition?: string;
+  warranty_months?: number | null;
+  marketplace_attributes?: Record<string, string>;
+  suggestions_confirmed?: boolean;
   tags: string;
   fulfillment_type: 'in_stock' | 'dropship';
   dropship_lead_time?: number;
@@ -81,6 +89,7 @@ export interface ProductFormData {
   variants: Array<{
     price: string;
     sku: string;
+    gtin?: string;
     cost?: number;
     option1?: string;
     option2?: string;

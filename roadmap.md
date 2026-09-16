@@ -68,3 +68,13 @@
 
 - [x] Ampliar a busca manual para reconciliar todos os pedidos dos últimos 90 dias, com paginação e sem duplicações
 - [x] Confirmar no painel o total real importado após executar a nova busca no Bling
+
+# Cadastro completo e publicação multicanal
+
+- [x] Criar campos de marca, fabricante, GTIN, dados fiscais, condição, garantia e atributos por canal
+- [x] Criar vínculos de canais, categorias, publicações e histórico com acesso administrativo
+- [x] Calcular preenchimento e pendências antes da publicação
+- [x] Enriquecer o envio ao Bling e impedir dados físicos fictícios no TikTok
+- [ ] Concluir a confirmação visual de sugestões e os campos novos na edição de produto
+- [ ] Buscar lojas/categorias conectadas no Bling e publicar anúncios completos por canal
+- [ ] Validar a automação em cada canal conectado com um produto real completo

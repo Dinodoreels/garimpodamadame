@@ -14,6 +14,14 @@ interface SyncUnit {
   widthCm: number | null;
   heightCm: number | null;
   description: string | null;
+  brand: string | null;
+  gtin: string | null;
+  ncm: string | null;
+  cest: string | null;
+  fiscalOrigin: number | null;
+  condition: string;
+  warrantyMonths: number | null;
+  categoryId: string | null;
 }
 
 function slugSku(base: string, suffix: string | null) {
@@ -42,6 +50,18 @@ function buildPayload(u: SyncUnit) {
     unidade: "UN",
     ...(u.cost != null ? { estrutura: undefined, precoCusto: Number(u.cost.toFixed(2)) } : {}),
     descricaoCurta: (u.description ?? u.name).slice(0, 500),
+    marca: u.brand ? { descricao: u.brand.slice(0, 80) } : undefined,
+    gtin: u.gtin || undefined,
+    tributacao: (u.ncm || u.cest || u.fiscalOrigin != null)
+      ? {
+        ncm: u.ncm || undefined,
+        cest: u.cest || undefined,
+        origem: u.fiscalOrigin ?? undefined,
+      }
+      : undefined,
+    condicao: u.condition === "used" ? 1 : 0,
+    garantia: u.warrantyMonths != null ? u.warrantyMonths : undefined,
+    categoria: u.categoryId ? { id: Number(u.categoryId) } : undefined,
     pesoLiquido: u.weightGrams ? u.weightGrams / 1000 : undefined,
     pesoBruto: u.weightGrams ? u.weightGrams / 1000 : undefined,
     dimensoes: (u.lengthCm || u.widthCm || u.heightCm)
@@ -113,6 +133,14 @@ export async function syncProductToBling(productId: string) {
       widthCm: product.width_cm,
       heightCm: product.height_cm,
       description: product.description,
+      brand: product.vendor ?? product.manufacturer,
+      gtin: v.gtin,
+      ncm: product.ncm,
+      cest: product.cest,
+      fiscalOrigin: product.fiscal_origin,
+      condition: product.condition ?? "new",
+      warrantyMonths: product.warranty_months,
+      categoryId: product.marketplace_attributes?.bling_category_id ?? null,
     }))
     : [{
       variantId: null,
@@ -127,6 +155,14 @@ export async function syncProductToBling(productId: string) {
       widthCm: product.width_cm,
       heightCm: product.height_cm,
       description: product.description,
+      brand: product.vendor ?? product.manufacturer,
+      gtin: null,
+      ncm: product.ncm,
+      cest: product.cest,
+      fiscalOrigin: product.fiscal_origin,
+      condition: product.condition ?? "new",
+      warrantyMonths: product.warranty_months,
+      categoryId: product.marketplace_attributes?.bling_category_id ?? null,
     }];
 
   const results: any[] = [];
