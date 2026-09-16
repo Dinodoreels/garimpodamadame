@@ -21,6 +21,15 @@ type Candidate = {
 const text = (value: unknown, max = 500) => typeof value === "string" ? value.trim().slice(0, max) : "";
 const digits = (value: unknown, max = 14) => text(value, max).replace(/\D/g, "").slice(0, max);
 const finite = (value: unknown) => Number.isFinite(Number(value)) ? Number(value) : null;
+const words = (value: unknown) => new Set(text(value, 200).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]+/g, " ").split(" ").filter(word => word.length > 2));
+
+function titleScore(query: string, candidate: unknown) {
+  const queryWords = words(query);
+  const candidateWords = words(candidate);
+  if (!queryWords.size || !candidateWords.size) return 0;
+  const overlap = [...queryWords].filter(word => candidateWords.has(word)).length;
+  return overlap / queryWords.size;
+}
 
 function imageUrls(raw: Record<string, any>) {
   const media = raw?.midia?.imagens ?? {};
@@ -107,7 +116,10 @@ async function lookupBling(query: string, gtin: string): Promise<Candidate | nul
   if (response.status >= 400) return null;
   const rows = Array.isArray(response.data?.data) ? response.data.data : [];
   if (!rows.length) return null;
-  let selected = rows.find((row: any) => digits(row?.gtin) === gtin || digits(row?.codigo) === gtin) ?? rows[0];
+  const exactBarcode = gtin ? rows.find((row: any) => digits(row?.gtin) === gtin || digits(row?.codigo) === gtin) : null;
+  const ranked = rows.map((row: any) => ({ row, score: titleScore(query, row?.nome) })).sort((a: any, b: any) => b.score - a.score);
+  let selected = exactBarcode ?? (ranked[0]?.score >= 0.6 ? ranked[0].row : null);
+  if (!selected) return null;
   if (selected?.id) {
     const detail = await callBling({ path: `/produtos/${selected.id}` });
     if (detail.status < 400 && detail.data?.data) selected = detail.data.data;
