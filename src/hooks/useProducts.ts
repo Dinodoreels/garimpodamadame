@@ -46,7 +46,7 @@ export interface Product {
   fiscal_origin?: number | null;
   condition?: string;
   warranty_months?: number | null;
-  marketplace_attributes?: Record<string, string>;
+  marketplace_attributes?: unknown;
   suggestions_confirmed_at?: string | null;
   catalog_completeness?: number;
   catalog_pending_fields?: string[];

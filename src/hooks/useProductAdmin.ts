@@ -40,6 +40,10 @@ export interface ProductFormData {
   warranty_months?: number | null;
   marketplace_attributes?: Record<string, string>;
   suggestions_confirmed?: boolean;
+  weight_grams?: number;
+  length_cm?: number;
+  width_cm?: number;
+  height_cm?: number;
   price: number;
   compare_at_price?: number;
   status?: 'active' | 'draft' | 'archived';
@@ -145,6 +149,10 @@ export function useCreateProduct() {
           warranty_months: data.warranty_months ?? null,
           marketplace_attributes: data.marketplace_attributes || {},
           suggestions_confirmed_at: data.suggestions_confirmed ? new Date().toISOString() : null,
+          weight_grams: data.weight_grams ?? null,
+          length_cm: data.length_cm ?? null,
+          width_cm: data.width_cm ?? null,
+          height_cm: data.height_cm ?? null,
           price: data.price,
           compare_at_price: data.compare_at_price || null,
           status: data.status || 'active',
@@ -277,6 +285,10 @@ export function useUpdateProduct() {
           warranty_months: data.warranty_months ?? null,
           marketplace_attributes: data.marketplace_attributes || {},
           suggestions_confirmed_at: data.suggestions_confirmed ? new Date().toISOString() : null,
+          weight_grams: data.weight_grams ?? null,
+          length_cm: data.length_cm ?? null,
+          width_cm: data.width_cm ?? null,
+          height_cm: data.height_cm ?? null,
           price: data.price,
           compare_at_price: data.compare_at_price || null,
           status: data.status || 'active',

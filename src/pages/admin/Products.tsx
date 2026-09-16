@@ -544,7 +544,9 @@ export default function Products() {
       fiscal_origin: selectedProduct.fiscal_origin ?? null,
       condition: selectedProduct.condition || 'new',
       warranty_months: selectedProduct.warranty_months ?? null,
-      marketplace_attributes: selectedProduct.marketplace_attributes || {},
+      marketplace_attributes: (selectedProduct.marketplace_attributes && typeof selectedProduct.marketplace_attributes === 'object' && !Array.isArray(selectedProduct.marketplace_attributes)
+        ? selectedProduct.marketplace_attributes
+        : {}) as Record<string, string>,
       suggestions_confirmed: Boolean(selectedProduct.suggestions_confirmed_at),
       weight_grams: (selectedProduct as any).weight_grams ?? undefined,
       length_cm: (selectedProduct as any).length_cm ?? undefined,
