@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Loader2, ImagePlus, X, ChevronDown, Sparkles, Package, Truck, Plus, Minus, Video, ChevronLeft, ChevronRight, Maximize2, ArrowLeft, Search, Trash2, Calculator } from 'lucide-react';
+import { Loader2, ImagePlus, X, ChevronDown, Sparkles, Package, Truck, Plus, Minus, Video, ChevronLeft, ChevronRight, Maximize2, ArrowLeft, Trash2, Calculator } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -542,68 +542,6 @@ export function SimpleProductDialog({
       .slice(0, 8) + '-' + Date.now().toString(36).slice(-4).toUpperCase();
   };
 
-  const handleAutoFill = async () => {
-    if (!title && mediaItems.length === 0) {
-      toast.error('Adicione um título ou imagem primeiro');
-      return;
-    }
-
-    setIsAiLoading(true);
-    try {
-      let imageBase64: string | undefined;
-      let imageMime: string | undefined;
-
-      const firstImage = mediaItems.find(m => m.type === 'image');
-      if (firstImage) {
-        const payload = await getImagePayload(firstImage);
-        if (payload) {
-          imageBase64 = payload.data;
-          imageMime = payload.mime;
-        } else {
-          console.warn('Não foi possível ler a imagem para envio à IA');
-        }
-      }
-
-      const { data, error } = await supabase.functions.invoke('product-ai-assistant', {
-        body: {
-          action: 'autoFill',
-          title,
-          type: productType,
-          vendor,
-          description,
-          imageBase64,
-          imageMime,
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.error) {
-        toast.error(data.error || 'A IA não conseguiu processar a resposta.');
-      } else if (data) {
-        const filledKeys = ['title','type','description','tags','weight_grams','length_cm','width_cm','height_cm']
-          .filter(k => data[k] !== undefined && data[k] !== null && data[k] !== '');
-        if (filledKeys.length === 0) {
-          toast.error('A IA não conseguiu extrair informações. Tente outra imagem ou preencha o título.');
-        } else {
-          if (data.title && !title) setTitle(data.title);
-          if (data.type) setProductType(data.type);
-          if (data.description) setDescription(data.description);
-          if (data.weight_grams) setWeightGrams(String(data.weight_grams));
-          if (data.length_cm) setLengthCm(String(data.length_cm));
-          if (data.width_cm) setWidthCm(String(data.width_cm));
-          if (data.height_cm) setHeightCm(String(data.height_cm));
-          toast.success(`Campos preenchidos automaticamente! (${filledKeys.length})`);
-        }
-      }
-    } catch (err) {
-      console.error('AI Error:', err);
-      toast.error('Erro ao auto-preencher');
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
   const handleCompleteAutoFill = async () => {
     const firstImage = mediaItems.find(item => item.type === 'image');
     if (!firstImage && !gtin.trim() && !title.trim()) {
@@ -670,53 +608,6 @@ export function SimpleProductDialog({
       console.error('Complete auto-fill error:', error);
       const message = error instanceof Error ? error.message : 'Não foi possível preencher o produto.';
       toast.error(message);
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
-  const handleResearchProduct = async () => {
-    if (!title) {
-      toast.error('Adicione um título primeiro');
-      return;
-    }
-
-    setIsAiLoading(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('product-ai-assistant', {
-        body: {
-          action: 'researchProduct',
-          title,
-          type: productType,
-          vendor,
-        }
-      });
-
-      if (error) throw error;
-
-      if (data && !data.error && !data.rawAnalysis) {
-        if (data.price && !price) {
-          const formatted = Number(data.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-          setPrice(formatted);
-        }
-        if (data.type) setProductType(data.type);
-        if (data.description) setDescription(data.description);
-        if (data.weight_grams) setWeightGrams(String(data.weight_grams));
-        if (data.length_cm) setLengthCm(String(data.length_cm));
-        if (data.width_cm) setWidthCm(String(data.width_cm));
-        if (data.height_cm) setHeightCm(String(data.height_cm));
-        if (data.colors?.length) setSelectedColors(data.colors);
-        if (data.sizes?.length) {
-          setSelectedSizes(data.sizes);
-          setShowAdvanced(true);
-        }
-        toast.success('Dados do produto preenchidos via pesquisa!');
-      } else {
-        toast.error('Não foi possível pesquisar o produto');
-      }
-    } catch (err) {
-      console.error('Research Error:', err);
-      toast.error('Erro ao pesquisar produto');
     } finally {
       setIsAiLoading(false);
     }
