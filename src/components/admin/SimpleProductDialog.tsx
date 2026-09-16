@@ -54,6 +54,24 @@ type MediaItem = {
   isExisting?: boolean;
 };
 
+type AutoFillSuggestions = {
+  title?: string | null;
+  description?: string | null;
+  product_type?: string | null;
+  vendor?: string | null;
+  manufacturer?: string | null;
+  gtin?: string | null;
+  price?: number | null;
+  cost?: number | null;
+  weight_grams?: number | null;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  colors?: string[];
+  sizes?: string[];
+  images?: string[];
+};
+
 interface SimpleProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -133,6 +151,7 @@ export function SimpleProductDialog({
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [autoFillSources, setAutoFillSources] = useState<string[]>([]);
   
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -199,6 +218,7 @@ export function SimpleProductDialog({
     setShowAdvanced(false);
     setShowFullscreen(false);
     setSupplierId('');
+    setAutoFillSources([]);
   }, []);
 
   const handleCreateSupplier = async () => {
@@ -579,6 +599,77 @@ export function SimpleProductDialog({
     } catch (err) {
       console.error('AI Error:', err);
       toast.error('Erro ao auto-preencher');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
+
+  const handleCompleteAutoFill = async () => {
+    const firstImage = mediaItems.find(item => item.type === 'image');
+    if (!firstImage && !gtin.trim() && !title.trim()) {
+      toast.error('Adicione uma foto, código de barras ou título primeiro');
+      return;
+    }
+
+    setIsAiLoading(true);
+    try {
+      const imagePayload = firstImage ? await getImagePayload(firstImage) : null;
+      const imageDataUrl = imagePayload ? `data:${imagePayload.mime};base64,${imagePayload.data}` : undefined;
+      const { data, error } = await supabase.functions.invoke('product-auto-fill', {
+        body: {
+          title,
+          description,
+          product_type: productType,
+          vendor,
+          gtin,
+          image_data_url: imageDataUrl,
+        },
+      });
+
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+
+      const suggestions = (data?.suggestions ?? {}) as AutoFillSuggestions;
+      const category = categories.find(item =>
+        item.value.toLocaleLowerCase('pt-BR') === suggestions.product_type?.toLocaleLowerCase('pt-BR')
+        || item.label.toLocaleLowerCase('pt-BR') === suggestions.product_type?.toLocaleLowerCase('pt-BR')
+      );
+
+      if (suggestions.title) setTitle(suggestions.title);
+      if (suggestions.description) setDescription(suggestions.description);
+      if (category) setProductType(category.value);
+      if (suggestions.vendor) setVendor(suggestions.vendor);
+      if (suggestions.manufacturer) setManufacturer(suggestions.manufacturer);
+      if (suggestions.gtin) setGtin(suggestions.gtin);
+      if (suggestions.price != null && suggestions.price > 0) setPrice(formatPriceForDisplay(suggestions.price));
+      if (suggestions.cost != null && suggestions.cost >= 0) setCost(formatPriceForDisplay(suggestions.cost));
+      if (suggestions.weight_grams != null && suggestions.weight_grams > 0) setWeightGrams(String(Math.round(suggestions.weight_grams)));
+      if (suggestions.length_cm != null && suggestions.length_cm > 0) setLengthCm(String(suggestions.length_cm));
+      if (suggestions.width_cm != null && suggestions.width_cm > 0) setWidthCm(String(suggestions.width_cm));
+      if (suggestions.height_cm != null && suggestions.height_cm > 0) setHeightCm(String(suggestions.height_cm));
+      if (suggestions.colors?.length) setSelectedColors(suggestions.colors);
+      if (suggestions.sizes?.length) setSelectedSizes(suggestions.sizes);
+
+      const knownImages = new Set(mediaItems.map(item => item.preview));
+      const importedImages = (suggestions.images ?? [])
+        .filter(url => /^https?:\/\//i.test(url) && !knownImages.has(url))
+        .map(url => ({ id: crypto.randomUUID(), preview: url, type: 'image' as const, isExisting: true }));
+      if (importedImages.length) setMediaItems(current => [...current, ...importedImages]);
+
+      setSuggestionsConfirmed(false);
+      setShowAdvanced(true);
+      const sources = Array.isArray(data?.found_sources) ? data.found_sources.filter((value: unknown): value is string => typeof value === 'string') : [];
+      setAutoFillSources(sources);
+      toast.success('Produto preenchido para revisão', {
+        description: sources.length ? `Fontes: ${sources.join(', ')}.` : 'Confira os campos antes de salvar.',
+      });
+      if (Array.isArray(data?.warnings) && data.warnings.length) {
+        toast.warning('Algumas fontes não responderam', { description: 'Os dados encontrados nas outras fontes foram mantidos.' });
+      }
+    } catch (error) {
+      console.error('Complete auto-fill error:', error);
+      const message = error instanceof Error ? error.message : 'Não foi possível preencher o produto.';
+      toast.error(message);
     } finally {
       setIsAiLoading(false);
     }
@@ -1172,6 +1263,22 @@ export function SimpleProductDialog({
                     </div>
                   </div>
 
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleCompleteAutoFill}
+                    disabled={isAiLoading}
+                    className="w-full justify-center font-medium"
+                  >
+                    {isAiLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+                    {isAiLoading ? 'Buscando informações...' : 'Preencher automaticamente'}
+                  </Button>
+                  {autoFillSources.length > 0 && (
+                    <div className="rounded-md border bg-muted/30 p-3 text-xs text-muted-foreground">
+                      Dados encontrados em {autoFillSources.join(', ')}. Revise os campos abaixo antes de salvar.
+                    </div>
+                  )}
+
                   {/* Supplier */}
                   <div className="space-y-1.5 md:space-y-2">
                     <Label className="text-xs font-medium">Fornecedor (opcional)</Label>
@@ -1750,37 +1857,6 @@ export function SimpleProductDialog({
                     </div>
                   )}
 
-                  {/* AI Buttons */}
-                  <div className="flex gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleAutoFill}
-                      disabled={isAiLoading}
-                      className="flex-1 font-light"
-                    >
-                      {isAiLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Sparkles className="h-4 w-4 mr-2" />
-                      )}
-                      Auto-preencher
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={handleResearchProduct}
-                      disabled={isAiLoading}
-                      className="flex-1 font-light"
-                    >
-                      {isAiLoading ? (
-                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                      ) : (
-                        <Search className="h-4 w-4 mr-2" />
-                      )}
-                      Pesquisar Online
-                    </Button>
-                  </div>
                 </CollapsibleContent>
               </Collapsible>
             </form>
