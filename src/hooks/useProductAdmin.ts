@@ -32,6 +32,18 @@ export interface ProductFormData {
   handle?: string;
   product_type?: string;
   vendor?: string;
+  manufacturer?: string;
+  ncm?: string;
+  cest?: string;
+  fiscal_origin?: number | null;
+  condition?: string;
+  warranty_months?: number | null;
+  marketplace_attributes?: Record<string, string>;
+  suggestions_confirmed?: boolean;
+  weight_grams?: number;
+  length_cm?: number;
+  width_cm?: number;
+  height_cm?: number;
   price: number;
   compare_at_price?: number;
   status?: 'active' | 'draft' | 'archived';
@@ -42,6 +54,7 @@ export interface ProductFormData {
   variants?: {
     title: string;
     sku?: string;
+    gtin?: string;
     price: number;
     compare_at_price?: number;
     cost?: number;
@@ -128,6 +141,18 @@ export function useCreateProduct() {
           handle,
           product_type: data.product_type || null,
           vendor: data.vendor || null,
+          manufacturer: data.manufacturer || null,
+          ncm: data.ncm || null,
+          cest: data.cest || null,
+          fiscal_origin: data.fiscal_origin ?? null,
+          condition: data.condition || 'new',
+          warranty_months: data.warranty_months ?? null,
+          marketplace_attributes: data.marketplace_attributes || {},
+          suggestions_confirmed_at: data.suggestions_confirmed ? new Date().toISOString() : null,
+          weight_grams: data.weight_grams ?? null,
+          length_cm: data.length_cm ?? null,
+          width_cm: data.width_cm ?? null,
+          height_cm: data.height_cm ?? null,
           price: data.price,
           compare_at_price: data.compare_at_price || null,
           status: data.status || 'active',
@@ -188,6 +213,7 @@ export function useCreateProduct() {
               product_id: product.id,
               title: v.title || 'Default',
               sku: v.sku || null,
+              gtin: v.gtin || null,
               price: v.price,
               compare_at_price: v.compare_at_price || null,
               cost: v.cost || 0,
@@ -223,6 +249,7 @@ export function useCreateProduct() {
         }
       }
 
+      await supabase.rpc('calculate_product_catalog_readiness', { target_product_id: product.id });
       return product;
     },
     onSuccess: () => {
@@ -250,6 +277,18 @@ export function useUpdateProduct() {
           handle: data.handle || generateHandle(data.title),
           product_type: data.product_type || null,
           vendor: data.vendor || null,
+          manufacturer: data.manufacturer || null,
+          ncm: data.ncm || null,
+          cest: data.cest || null,
+          fiscal_origin: data.fiscal_origin ?? null,
+          condition: data.condition || 'new',
+          warranty_months: data.warranty_months ?? null,
+          marketplace_attributes: data.marketplace_attributes || {},
+          suggestions_confirmed_at: data.suggestions_confirmed ? new Date().toISOString() : null,
+          weight_grams: data.weight_grams ?? null,
+          length_cm: data.length_cm ?? null,
+          width_cm: data.width_cm ?? null,
+          height_cm: data.height_cm ?? null,
           price: data.price,
           compare_at_price: data.compare_at_price || null,
           status: data.status || 'active',
@@ -308,6 +347,7 @@ export function useUpdateProduct() {
               product_id: id,
               title: v.title || 'Default',
               sku: v.sku || null,
+              gtin: v.gtin || null,
               price: v.price,
               compare_at_price: v.compare_at_price || null,
               cost: v.cost || 0,
@@ -324,6 +364,7 @@ export function useUpdateProduct() {
         }
       }
 
+      await supabase.rpc('calculate_product_catalog_readiness', { target_product_id: product.id });
       return product;
     },
     onSuccess: () => {

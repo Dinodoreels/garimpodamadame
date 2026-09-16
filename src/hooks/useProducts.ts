@@ -12,6 +12,7 @@ export interface ProductVariant {
   id: string;
   title: string;
   sku: string | null;
+  gtin?: string | null;
   price: number;
   cost: number | null;
   compare_at_price: number | null;
@@ -39,6 +40,16 @@ export interface Product {
   handle: string;
   product_type: string | null;
   vendor: string | null;
+  manufacturer?: string | null;
+  ncm?: string | null;
+  cest?: string | null;
+  fiscal_origin?: number | null;
+  condition?: string;
+  warranty_months?: number | null;
+  marketplace_attributes?: unknown;
+  suggestions_confirmed_at?: string | null;
+  catalog_completeness?: number;
+  catalog_pending_fields?: string[];
   price: number;
   compare_at_price: number | null;
   status: string;

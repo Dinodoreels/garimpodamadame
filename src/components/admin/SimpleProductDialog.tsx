@@ -24,6 +24,7 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
@@ -92,6 +93,14 @@ export function SimpleProductDialog({
   const [price, setPrice] = useState('');
   const [productType, setProductType] = useState('');
   const [vendor, setVendor] = useState('');
+  const [manufacturer, setManufacturer] = useState('');
+  const [gtin, setGtin] = useState('');
+  const [ncm, setNcm] = useState('');
+  const [cest, setCest] = useState('');
+  const [fiscalOrigin, setFiscalOrigin] = useState('');
+  const [condition, setCondition] = useState('new');
+  const [warrantyMonths, setWarrantyMonths] = useState('');
+  const [suggestionsConfirmed, setSuggestionsConfirmed] = useState(false);
   const [description, setDescription] = useState('');
   const [selectedColors, setSelectedColors] = useState<string[]>([]);
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
@@ -107,10 +116,10 @@ export function SimpleProductDialog({
   const [dropshipLeadTime, setDropshipLeadTime] = useState(7);
   
   // Weight & dimensions state
-  const [weightGrams, setWeightGrams] = useState('300');
-  const [lengthCm, setLengthCm] = useState('20');
-  const [widthCm, setWidthCm] = useState('15');
-  const [heightCm, setHeightCm] = useState('10');
+  const [weightGrams, setWeightGrams] = useState('');
+  const [lengthCm, setLengthCm] = useState('');
+  const [widthCm, setWidthCm] = useState('');
+  const [heightCm, setHeightCm] = useState('');
   const [expiryDate, setExpiryDate] = useState<string>('');
   
   // Variant inventory state
@@ -163,6 +172,14 @@ export function SimpleProductDialog({
     setPrice('');
     setProductType('');
     setVendor('');
+    setManufacturer('');
+    setGtin('');
+    setNcm('');
+    setCest('');
+    setFiscalOrigin('');
+    setCondition('new');
+    setWarrantyMonths('');
+    setSuggestionsConfirmed(false);
     setDescription('');
     setSelectedColors([]);
     setSelectedSizes([]);
@@ -170,10 +187,10 @@ export function SimpleProductDialog({
     setCurrentMediaIndex(0);
     setFulfillmentType('in_stock');
     setDropshipLeadTime(7);
-    setWeightGrams('300');
-    setLengthCm('20');
-    setWidthCm('15');
-    setHeightCm('10');
+    setWeightGrams('');
+    setLengthCm('');
+    setWidthCm('');
+    setHeightCm('');
     setExpiryDate('');
     setVariantInventory({});
     setVariantEnabled({});
@@ -244,6 +261,14 @@ export function SimpleProductDialog({
       setPrice(formatPriceForDisplay(initialData.variants?.[0]?.price));
       setProductType(initialData.product_type || '');
       setVendor(initialData.vendor || '');
+      setManufacturer(initialData.manufacturer || '');
+      setGtin(initialData.variants?.[0]?.gtin || '');
+      setNcm(initialData.ncm || '');
+      setCest(initialData.cest || '');
+      setFiscalOrigin(initialData.fiscal_origin == null ? '' : String(initialData.fiscal_origin));
+      setCondition(initialData.condition || 'new');
+      setWarrantyMonths(initialData.warranty_months == null ? '' : String(initialData.warranty_months));
+      setSuggestionsConfirmed(Boolean(initialData.suggestions_confirmed));
       setDescription(initialData.body || '');
       
       const colorOption = initialData.options?.find(o => o.name === 'Cor');
@@ -265,6 +290,10 @@ export function SimpleProductDialog({
       setFulfillmentType(initialData.fulfillment_type || 'in_stock');
       setDropshipLeadTime(initialData.dropship_lead_time || 7);
       setExpiryDate(initialData.expiry_date ? String(initialData.expiry_date).slice(0, 10) : '');
+      setWeightGrams(initialData.weight_grams ? String(initialData.weight_grams) : '');
+      setLengthCm(initialData.length_cm ? String(initialData.length_cm) : '');
+      setWidthCm(initialData.width_cm ? String(initialData.width_cm) : '');
+      setHeightCm(initialData.height_cm ? String(initialData.height_cm) : '');
       
       const inventory: Record<string, number> = {};
       const enabled: Record<string, boolean> = {};
@@ -642,6 +671,7 @@ export function SimpleProductDialog({
         variants.push({
           price: String(priceNumber),
           sku: generateSKU(title),
+          gtin: gtin.trim() || undefined,
           cost: costNumber,
           inventory_quantity: stock,
           is_available: stock > 0,
@@ -662,6 +692,7 @@ export function SimpleProductDialog({
             variants.push({
               price: String(priceNumber),
               sku: generateSKU(title) + (color ? `-${color.slice(0, 3).toUpperCase()}` : '') + (size ? `-${size}` : ''),
+              gtin: variants.length === 0 ? gtin.trim() || undefined : undefined,
               cost: variantCostValue,
               option1: color || undefined,
               option2: size || undefined,
@@ -710,13 +741,20 @@ export function SimpleProductDialog({
         body: description,
         product_type: productType,
         vendor,
+        manufacturer,
+        ncm: ncm.replace(/\D/g, '') || undefined,
+        cest: cest.replace(/\D/g, '') || undefined,
+        fiscal_origin: fiscalOrigin === '' ? null : Number(fiscalOrigin),
+        condition,
+        warranty_months: warrantyMonths ? Number(warrantyMonths) : null,
+        suggestions_confirmed: suggestionsConfirmed,
         tags: '',
         fulfillment_type: fulfillmentType,
         dropship_lead_time: fulfillmentType === 'dropship' ? dropshipLeadTime : undefined,
-        weight_grams: parseInt(weightGrams) || 300,
-        length_cm: parseInt(lengthCm) || 20,
-        width_cm: parseInt(widthCm) || 15,
-        height_cm: parseInt(heightCm) || 10,
+        weight_grams: parseInt(weightGrams) || undefined,
+        length_cm: parseInt(lengthCm) || undefined,
+        width_cm: parseInt(widthCm) || undefined,
+        height_cm: parseInt(heightCm) || undefined,
         expiry_date: expiryDate || null,
         variants,
         options,
@@ -1113,7 +1151,7 @@ export function SimpleProductDialog({
 
                   {/* Vendor */}
                   <div className="space-y-1.5 md:space-y-2">
-                    <Label htmlFor="vendor" className="text-xs font-medium">Marca (opcional)</Label>
+                    <Label htmlFor="vendor" className="text-xs font-medium">Marca</Label>
                     <Input
                       id="vendor"
                       value={vendor}
@@ -1121,6 +1159,17 @@ export function SimpleProductDialog({
                       placeholder="Ex: Nike, Adidas..."
                       className="font-light"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label htmlFor="manufacturer" className="text-xs font-medium">Fabricante</Label>
+                      <Input id="manufacturer" value={manufacturer} onChange={(e) => setManufacturer(e.target.value)} placeholder="Nome do fabricante" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label htmlFor="gtin" className="text-xs font-medium">GTIN / EAN</Label>
+                      <Input id="gtin" inputMode="numeric" value={gtin} onChange={(e) => setGtin(e.target.value.replace(/\D/g, '').slice(0, 14))} placeholder="Código de barras" />
+                    </div>
                   </div>
 
                   {/* Supplier */}
@@ -1338,6 +1387,21 @@ export function SimpleProductDialog({
                       placeholder="Descrição do produto..."
                       className="font-light min-h-[60px] md:min-h-[80px]"
                     />
+                  </div>
+
+                  <div className="space-y-3 border-t pt-3">
+                    <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Dados fiscais e dos canais</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <div className="space-y-1"><Label className="text-xs">NCM</Label><Input inputMode="numeric" value={ncm} onChange={(e) => setNcm(e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="8 dígitos" /></div>
+                      <div className="space-y-1"><Label className="text-xs">CEST</Label><Input inputMode="numeric" value={cest} onChange={(e) => setCest(e.target.value.replace(/\D/g, '').slice(0, 7))} placeholder="Se aplicável" /></div>
+                      <div className="space-y-1"><Label className="text-xs">Origem fiscal</Label><Select value={fiscalOrigin} onValueChange={setFiscalOrigin}><SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger><SelectContent><SelectItem value="0">0 — Nacional</SelectItem><SelectItem value="1">1 — Importação direta</SelectItem><SelectItem value="2">2 — Adquirida no Brasil</SelectItem><SelectItem value="3">3 — Nacional, conteúdo importado</SelectItem><SelectItem value="4">4 — Nacional, processo básico</SelectItem><SelectItem value="5">5 — Nacional, até 40% importado</SelectItem><SelectItem value="6">6 — Importação sem similar</SelectItem><SelectItem value="7">7 — Adquirida sem similar</SelectItem><SelectItem value="8">8 — Nacional, mais de 70% importado</SelectItem></SelectContent></Select></div>
+                      <div className="space-y-1"><Label className="text-xs">Garantia (meses)</Label><Input type="number" min="0" value={warrantyMonths} onChange={(e) => setWarrantyMonths(e.target.value)} placeholder="Ex: 3" /></div>
+                    </div>
+                    <div className="space-y-1"><Label className="text-xs">Condição</Label><Select value={condition} onValueChange={setCondition}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="new">Novo</SelectItem><SelectItem value="used">Usado</SelectItem><SelectItem value="refurbished">Recondicionado</SelectItem></SelectContent></Select></div>
+                    <label className="flex items-start gap-2 rounded-md border p-3 text-xs">
+                      <Checkbox checked={suggestionsConfirmed} onCheckedChange={(checked) => setSuggestionsConfirmed(checked === true)} />
+                      <span>Revisei e confirmo as informações sugeridas. Dados legais e fiscais não foram presumidos automaticamente.</span>
+                    </label>
                   </div>
 
                   {/* Colors & Sizes */}

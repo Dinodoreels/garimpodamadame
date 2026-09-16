@@ -31,6 +31,14 @@ export async function syncProductToTikTok(productId: string) {
   if (pErr) throw pErr;
   if (!product) throw new Error("Produto não encontrado");
   if (!product.product_type) throw new Error("Produto sem categoria");
+  const missingCore = [
+    !product.description && "descrição",
+    !product.vendor && "marca",
+    !(Number(product.weight_grams) > 0) && "peso real",
+    !(Number(product.length_cm) > 0 && Number(product.width_cm) > 0 && Number(product.height_cm) > 0) && "dimensões reais",
+    !product.suggestions_confirmed_at && "confirmação das sugestões",
+  ].filter(Boolean);
+  if (missingCore.length) throw new Error(`Complete antes de publicar: ${missingCore.join(", ")}`);
 
   const { data: cat } = await supa
     .from("product_categories")
@@ -73,8 +81,8 @@ export async function syncProductToTikTok(productId: string) {
 
   const skusPayload = variants.map((v: any) => {
     const salesAttributes: any[] = [];
-    [v.option1, v.option2].forEach((opt, idx) => {
-      if (opt) salesAttributes.push({ name: idx === 0 ? "Variação 1" : "Variação 2", value_name: opt });
+    [v.option1, v.option2, v.option3].forEach((opt, idx) => {
+      if (opt) salesAttributes.push({ name: `Variação ${idx + 1}`, value_name: opt });
     });
     return {
       seller_sku: v.sku,
@@ -89,14 +97,18 @@ export async function syncProductToTikTok(productId: string) {
     description: product.description || product.title,
     category_id: mapping.tiktok_category_id,
     main_images: imageUris.slice(0, 9).map((uri) => ({ uri })),
-    package_weight: { value: String(((product.weight_grams || 300) / 1000).toFixed(3)), unit: "KILOGRAM" },
+    package_weight: { value: String((Number(product.weight_grams) / 1000).toFixed(3)), unit: "KILOGRAM" },
     package_dimensions: {
-      length: String(product.length_cm || 20),
-      width: String(product.width_cm || 15),
-      height: String(product.height_cm || 10),
+      length: String(product.length_cm),
+      width: String(product.width_cm),
+      height: String(product.height_cm),
       unit: "CENTIMETER",
     },
     skus: skusPayload,
+    product_attributes: Object.entries(product.marketplace_attributes?.tiktok ?? {}).map(([id, value]) => ({
+      id,
+      values: [{ name: String(value) }],
+    })),
   };
 
   const isUpdate = !!existingLink?.tiktok_product_id;
