@@ -2477,6 +2477,235 @@ export type Database = {
           },
         ]
       }
+      marketplace_category_mappings: {
+        Row: {
+          attribute_mappings: Json
+          bling_category_id: string | null
+          channel_id: string
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string
+          id: string
+          local_category_id: string | null
+          local_category_value: string
+          marketplace_category_id: string
+          marketplace_category_name: string | null
+          required_attributes: Json
+          updated_at: string
+        }
+        Insert: {
+          attribute_mappings?: Json
+          bling_category_id?: string | null
+          channel_id: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          local_category_id?: string | null
+          local_category_value: string
+          marketplace_category_id: string
+          marketplace_category_name?: string | null
+          required_attributes?: Json
+          updated_at?: string
+        }
+        Update: {
+          attribute_mappings?: Json
+          bling_category_id?: string | null
+          channel_id?: string
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string
+          id?: string
+          local_category_id?: string | null
+          local_category_value?: string
+          marketplace_category_id?: string
+          marketplace_category_name?: string | null
+          required_attributes?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_category_mappings_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_category_mappings_local_category_id_fkey"
+            columns: ["local_category_id"]
+            isOneToOne: false
+            referencedRelation: "product_categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_channels: {
+        Row: {
+          auto_publish: boolean
+          created_at: string
+          external_store_id: string
+          id: string
+          is_connected: boolean
+          last_synced_at: string | null
+          logo_key: string | null
+          name: string
+          provider: string
+          raw_data: Json
+          updated_at: string
+        }
+        Insert: {
+          auto_publish?: boolean
+          created_at?: string
+          external_store_id: string
+          id?: string
+          is_connected?: boolean
+          last_synced_at?: string | null
+          logo_key?: string | null
+          name: string
+          provider: string
+          raw_data?: Json
+          updated_at?: string
+        }
+        Update: {
+          auto_publish?: boolean
+          created_at?: string
+          external_store_id?: string
+          id?: string
+          is_connected?: boolean
+          last_synced_at?: string | null
+          logo_key?: string | null
+          name?: string
+          provider?: string
+          raw_data?: Json
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      marketplace_product_events: {
+        Row: {
+          actor_id: string | null
+          channel_id: string | null
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          product_id: string
+          status: string
+        }
+        Insert: {
+          actor_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          product_id: string
+          status: string
+        }
+        Update: {
+          actor_id?: string | null
+          channel_id?: string | null
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          product_id?: string
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_events_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_product_events_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketplace_product_publications: {
+        Row: {
+          channel_id: string
+          created_at: string
+          external_listing_id: string | null
+          id: string
+          last_attempt_at: string | null
+          last_error: string | null
+          last_payload: Json | null
+          last_response: Json | null
+          pending_fields: string[]
+          product_id: string
+          published_at: string | null
+          readiness_percent: number
+          status: string
+          updated_at: string
+          variant_id: string | null
+        }
+        Insert: {
+          channel_id: string
+          created_at?: string
+          external_listing_id?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          last_payload?: Json | null
+          last_response?: Json | null
+          pending_fields?: string[]
+          product_id: string
+          published_at?: string | null
+          readiness_percent?: number
+          status?: string
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Update: {
+          channel_id?: string
+          created_at?: string
+          external_listing_id?: string | null
+          id?: string
+          last_attempt_at?: string | null
+          last_error?: string | null
+          last_payload?: Json | null
+          last_response?: Json | null
+          pending_fields?: string[]
+          product_id?: string
+          published_at?: string | null
+          readiness_percent?: number
+          status?: string
+          updated_at?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketplace_product_publications_channel_id_fkey"
+            columns: ["channel_id"]
+            isOneToOne: false
+            referencedRelation: "marketplace_channels"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_product_publications_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "marketplace_product_publications_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       marketplace_shipping_labels: {
         Row: {
           attempts: number
@@ -3466,10 +3695,12 @@ export type Database = {
           cost: number | null
           created_at: string
           expiry_date: string | null
+          gtin: string | null
           id: string
           inventory_policy: string
           inventory_quantity: number
           is_available: boolean
+          marketplace_attributes: Json
           option1: string | null
           option2: string | null
           option3: string | null
@@ -3485,10 +3716,12 @@ export type Database = {
           cost?: number | null
           created_at?: string
           expiry_date?: string | null
+          gtin?: string | null
           id?: string
           inventory_policy?: string
           inventory_quantity?: number
           is_available?: boolean
+          marketplace_attributes?: Json
           option1?: string | null
           option2?: string | null
           option3?: string | null
@@ -3504,10 +3737,12 @@ export type Database = {
           cost?: number | null
           created_at?: string
           expiry_date?: string | null
+          gtin?: string | null
           id?: string
           inventory_policy?: string
           inventory_quantity?: number
           is_available?: boolean
+          marketplace_attributes?: Json
           option1?: string | null
           option2?: string | null
           option3?: string | null
@@ -3530,10 +3765,15 @@ export type Database = {
       }
       products: {
         Row: {
+          catalog_completeness: number
+          catalog_pending_fields: string[]
+          cest: string | null
           compare_at_price: number | null
+          condition: string
           created_at: string
           description: string | null
           expiry_date: string | null
+          fiscal_origin: number | null
           handle: string
           height_cm: number | null
           id: string
@@ -3541,22 +3781,33 @@ export type Database = {
           is_consignment: boolean | null
           is_lote: boolean
           length_cm: number | null
+          manufacturer: string | null
+          marketplace_attributes: Json
+          ncm: string | null
           position: number | null
           price: number
           product_type: string | null
           status: string
+          suggestion_data: Json
+          suggestions_confirmed_at: string | null
           supplier_id: string | null
           title: string
           updated_at: string
           vendor: string | null
+          warranty_months: number | null
           weight_grams: number | null
           width_cm: number | null
         }
         Insert: {
+          catalog_completeness?: number
+          catalog_pending_fields?: string[]
+          cest?: string | null
           compare_at_price?: number | null
+          condition?: string
           created_at?: string
           description?: string | null
           expiry_date?: string | null
+          fiscal_origin?: number | null
           handle: string
           height_cm?: number | null
           id?: string
@@ -3564,22 +3815,33 @@ export type Database = {
           is_consignment?: boolean | null
           is_lote?: boolean
           length_cm?: number | null
+          manufacturer?: string | null
+          marketplace_attributes?: Json
+          ncm?: string | null
           position?: number | null
           price?: number
           product_type?: string | null
           status?: string
+          suggestion_data?: Json
+          suggestions_confirmed_at?: string | null
           supplier_id?: string | null
           title: string
           updated_at?: string
           vendor?: string | null
+          warranty_months?: number | null
           weight_grams?: number | null
           width_cm?: number | null
         }
         Update: {
+          catalog_completeness?: number
+          catalog_pending_fields?: string[]
+          cest?: string | null
           compare_at_price?: number | null
+          condition?: string
           created_at?: string
           description?: string | null
           expiry_date?: string | null
+          fiscal_origin?: number | null
           handle?: string
           height_cm?: number | null
           id?: string
@@ -3587,14 +3849,20 @@ export type Database = {
           is_consignment?: boolean | null
           is_lote?: boolean
           length_cm?: number | null
+          manufacturer?: string | null
+          marketplace_attributes?: Json
+          ncm?: string | null
           position?: number | null
           price?: number
           product_type?: string | null
           status?: string
+          suggestion_data?: Json
+          suggestions_confirmed_at?: string | null
           supplier_id?: string | null
           title?: string
           updated_at?: string
           vendor?: string | null
+          warranty_months?: number | null
           weight_grams?: number | null
           width_cm?: number | null
         }
@@ -4917,6 +5185,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      calculate_product_catalog_readiness: {
+        Args: { target_product_id: string }
+        Returns: Json
+      }
       can_commerce_inbound: { Args: { _user_id: string }; Returns: boolean }
       can_consignor_access_order: {
         Args: { _order_id: string; _user_id: string }
