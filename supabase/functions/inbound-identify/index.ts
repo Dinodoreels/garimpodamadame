@@ -94,43 +94,51 @@ type VisionResult = {
   reasoning_note: string;
 };
 
-async function gatewayJson(prompt: string, schemaName: string, schema: Record<string, unknown>, imageBase64?: string) {
-  const key = Deno.env.get('LOVABLE_API_KEY');
-  if (!key) return null;
-  const content: Record<string, unknown>[] = [{ type: 'input_text', text: prompt }];
-  if (imageBase64) content.push({ type: 'input_image', image_url: imageBase64 });
+function parseGeminiJson(raw: string) {
+  const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
+  return cleaned ? JSON.parse(cleaned) : null;
+}
+
+async function geminiJson(prompt: string, schema: Record<string, unknown>, imageBase64?: string) {
+  const key = Deno.env.get('GEMINI_API_KEY');
+  if (!key) throw new Error('A API Gemini ainda não foi configurada para o Garimpo Scan.');
+  const parts: Record<string, unknown>[] = [{ text: prompt }];
+  if (imageBase64) {
+    const match = imageBase64.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+    if (!match) throw new Error('Formato de imagem não aceito pelo Gemini.');
+    parts.push({ inlineData: { mimeType: match[1], data: match[2] } });
+  }
 
   let lastError: Error | null = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 700 * (2 ** (attempt - 1)) + Math.floor(Math.random() * 250)));
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
+    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Lovable-API-Key': key, 'X-Lovable-AIG-SDK': 'fetch' },
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
-        model: 'openai/gpt-6-astra', stream: true, store: false,
-        reasoning: { effort: 'low', summary: 'auto' }, include: ['reasoning.encrypted_content'],
-        input: [{ role: 'user', content }],
-        text: { format: { type: 'json_schema', name: schemaName, strict: true, schema } },
+        contents: [{ role: 'user', parts }],
+        generationConfig: { responseMimeType: 'application/json', responseJsonSchema: schema },
       }),
     });
     if (response.ok) {
-      const output = await readResponseStream(response);
-      return output ? JSON.parse(output) : null;
+      const body = await response.json();
+      const output = body?.candidates?.[0]?.content?.parts
+        ?.map((part: Record<string, unknown>) => typeof part.text === 'string' ? part.text : '')
+        .join('') ?? '';
+      return parseGeminiJson(output);
     }
     const message = await response.text();
-    const error = new Error(message || 'Falha na análise por IA.');
+    const error = new Error(message || 'Falha na análise pelo Gemini.');
     (error as Error & { status?: number }).status = response.status;
     lastError = error;
     if (response.status !== 429 && response.status < 500) throw error;
-    if (response.status < 500 && response.status !== 429) throw error;
   }
-  throw lastError ?? new Error('Falha na análise por IA.');
+  throw lastError ?? new Error('Falha na análise pelo Gemini.');
 }
 
 async function analyzeImage(imageBase64: string): Promise<VisionResult | null> {
-  return gatewayJson(
+  return geminiJson(
     'Analise esta foto real de um produto usado para cadastro comercial. Responda em JSON. Identifique somente características visualmente sustentadas. Se marca ou modelo não forem legíveis, use null e não invente. Crie uma busca curta e objetiva em português para encontrar o mesmo produto em anúncios brasileiros. Não forneça dados fiscais.',
-    'inbound_visual_product',
     {
       type: 'object', additionalProperties: false,
       properties: {
@@ -170,34 +178,10 @@ function selectComparables(candidates: Candidate[]) {
     .slice(0, 3);
 }
 
-async function readResponseStream(response: Response) {
-  if (!response.body) return '';
-  const reader = response.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = '';
-  let output = '';
-  while (true) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    const lines = buffer.split('\n');
-    buffer = lines.pop() ?? '';
-    for (const line of lines) {
-      if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
-      try {
-        const event = JSON.parse(line.slice(6));
-        if (event.type === 'response.output_text.delta') output += event.delta ?? '';
-      } catch { /* keepalive */ }
-    }
-  }
-  return output;
-}
-
 async function synthesize(barcode: string, hint: string, candidates: Candidate[]) {
   if (!candidates.length) return null;
-  return gatewayJson(
+  return geminiJson(
     `Gere JSON de cadastro comercial em português brasileiro usando somente as referências reais abaixo. Compare marca, modelo, condição e preço. Não invente GTIN, marca, categoria fiscal, NCM, CEST, origem, peso ou dimensões. Sugira o preço mais adequado. Código: ${barcode || 'não informado'}. Observação visual: ${hint || 'nenhuma'}. Referências: ${JSON.stringify(candidates)}`,
-    'inbound_product',
     {
         type: 'object', additionalProperties: false,
         properties: {
