@@ -1,5 +1,6 @@
-import { assertAdmin, corsHeaders, jsonResponse } from "../_shared/bling.ts";
+import { assertAdmin, corsHeaders, getSupabaseAdmin, jsonResponse } from "../_shared/bling.ts";
 import { syncProductToBling } from "../_shared/bling-product-sync.ts";
+import { runAutomaticTikTokPublication } from "../_shared/bling-auto-publish.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -13,6 +14,14 @@ Deno.serve(async (req) => {
     for (const id of ids) {
       try {
         const r = await syncProductToBling(id);
+        const supa = getSupabaseAdmin();
+        await supa
+          .from("bling_sync_queue")
+          .update({ status: "done", processed_at: new Date().toISOString(), last_error: null })
+          .eq("product_id", id)
+          .eq("action", "product")
+          .in("status", ["pending", "processing"]);
+        await runAutomaticTikTokPublication([id]);
         results.push({ product_id: id, ok: true, ...r });
       } catch (e) {
         results.push({ product_id: id, ok: false, error: e instanceof Error ? e.message : String(e) });

@@ -27,6 +27,8 @@ export function useProductCategories() {
       if (error) throw error;
       return data as ProductCategory[];
     },
+    retry: 1,
+    meta: { errorMessage: 'Não foi possível carregar as categorias.' },
   });
 }
 

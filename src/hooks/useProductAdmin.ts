@@ -101,7 +101,7 @@ export function useAdminProducts(limit: number = 2000) {
             images:product_images(*),
             variants:product_variants(*),
             options:product_options(*),
-            bling_links:bling_product_links(id, bling_product_id, bling_sku, status)
+            bling_links:bling_product_links(id, bling_product_id, bling_sku, status, last_error)
           `)
           .order('position', { ascending: true })
           .range(from, to);
@@ -282,12 +282,19 @@ export function useCreateProduct() {
       }
 
       await supabase.rpc('calculate_product_catalog_readiness', { target_product_id: product.id });
-      return product;
+      const { data: blingResult, error: blingError } = await supabase.functions.invoke('bling-sync-product', {
+        body: { product_id: product.id },
+      });
+      return { ...product, blingResult, blingError: blingError?.message ?? null };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      toast.success('Produto criado com sucesso!');
+    onSuccess: async (product) => {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['admin-products'] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+      ]);
+      const sync = product.blingResult?.results?.[0];
+      if (sync?.ok) toast.success('Produto salvo e enviado ao Bling.');
+      else toast.success('Produto salvo no catálogo.', { description: 'O envio ao Bling continuará automaticamente.' });
     },
     onError: (error: Error) => {
       toast.error('Erro ao criar produto', { description: error.message });
@@ -397,13 +404,20 @@ export function useUpdateProduct() {
       }
 
       await supabase.rpc('calculate_product_catalog_readiness', { target_product_id: product.id });
-      return product;
+      const { data: blingResult, error: blingError } = await supabase.functions.invoke('bling-sync-product', {
+        body: { product_id: product.id },
+      });
+      return { ...product, blingResult, blingError: blingError?.message ?? null };
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
-      queryClient.invalidateQueries({ queryKey: ['products'] });
+    onSuccess: async (product) => {
+      await Promise.all([
+        queryClient.refetchQueries({ queryKey: ['admin-products'] }),
+        queryClient.invalidateQueries({ queryKey: ['products'] }),
+      ]);
       queryClient.invalidateQueries({ queryKey: ['product'] });
-      toast.success('Produto atualizado com sucesso!');
+      const sync = product.blingResult?.results?.[0];
+      if (sync?.ok) toast.success('Produto atualizado e enviado ao Bling.');
+      else toast.success('Produto atualizado no catálogo.', { description: 'O envio ao Bling continuará automaticamente.' });
     },
     onError: (error: Error) => {
       toast.error('Erro ao atualizar produto', { description: error.message });

@@ -116,7 +116,7 @@ export function SimpleProductDialog({
   mode = 'create',
   initialData,
 }: SimpleProductDialogProps) {
-  const { data: categories = [] } = useProductCategories();
+  const { data: categories = [], isError: categoriesError } = useProductCategories();
   const createCategoryMutation = useCreateCategory();
   const deleteCategoryMutation = useDeleteCategory();
   const { data: productColors = [] } = useProductColors();
@@ -397,9 +397,12 @@ export function SimpleProductDialog({
       if (data?.error) throw new Error(data.error);
       const categories = (data?.categories ?? []) as TikTokCategory[];
       setTikTokCategories(categories);
-      if (!categories.length) setTikTokMessage(data?.message ?? 'O TikTok não retornou categorias para esta loja. Verifique no Bling se a loja permite gerenciar anúncios e tente novamente.');
+       if (!categories.length) setTikTokMessage(data?.message ?? 'O Bling não liberou a lista oficial do TikTok. A categoria ampla do produto continuará sendo enviada automaticamente ao Bling.');
     } catch (error) {
-      setTikTokMessage(error instanceof Error ? error.message : 'Não foi possível buscar as categorias do TikTok.');
+      const detail = error instanceof Error ? error.message : '';
+      setTikTokMessage(detail.includes('Grpc client not found')
+        ? 'O Bling não liberou a lista oficial do TikTok para esta loja. A categoria ampla do produto continuará sendo enviada automaticamente ao Bling.'
+        : detail || 'Não foi possível buscar as categorias do TikTok. A categoria ampla continuará sendo enviada ao Bling.');
       setTikTokStatus('error');
     } finally {
       setLoadingTikTokCategories(false);
@@ -434,6 +437,12 @@ export function SimpleProductDialog({
   );
   const attributeId = (attribute: Record<string, unknown>) => String(attribute.id ?? attribute.codigo ?? '');
   const attributeName = (attribute: Record<string, unknown>) => String(attribute.name ?? attribute.nome ?? attribute.descricao ?? attribute.id ?? 'Atributo');
+  const pendingFieldLabels: Record<string, string> = {
+    weight: 'Peso',
+    dimensions: 'Comprimento, largura e altura',
+    confirmation: 'Confirmação dos dados revisados',
+    tiktok_category: 'Categoria oficial do TikTok',
+  };
 
   const handleConfirmAndPublishTikTok = async () => {
     if (!initialData?.id || !suggestionsConfirmed || !selectedTikTokCategory) return;
@@ -1226,6 +1235,7 @@ export function SimpleProductDialog({
                           </button>
                         </SelectContent>
                       </Select>
+                      {categoriesError && <p className="text-xs text-destructive">Não foi possível carregar as categorias. Feche e abra o cadastro para tentar novamente.</p>}
                     </div>
                   </div>
 
@@ -1571,7 +1581,7 @@ export function SimpleProductDialog({
                                     {category.path_name ?? category.name}
                                   </Button>
                                 ))}
-                                {!loadingTikTokCategories && !filteredTikTokCategories.length && <p className="p-3 text-xs text-muted-foreground">Nenhuma categoria disponível.</p>}
+                                {!loadingTikTokCategories && !filteredTikTokCategories.length && <p className="p-3 text-xs text-muted-foreground">O Bling ainda não liberou a lista oficial do TikTok. A categoria ampla será enviada automaticamente.</p>}
                               </div>
                             </PopoverContent>
                           </Popover>
@@ -1599,6 +1609,16 @@ export function SimpleProductDialog({
                         })}
 
                         {tiktokMessage && <p className={cn('text-xs', tiktokStatus === 'error' ? 'text-destructive' : 'text-muted-foreground')}>{tiktokMessage}</p>}
+                        {tiktokPublication?.publication?.pending_fields?.length ? (
+                          <div className="rounded-md border border-border bg-muted/40 p-3 text-xs">
+                            <p className="font-medium">Falta preencher antes de publicar:</p>
+                            <ul className="mt-1 list-disc space-y-1 pl-4 text-muted-foreground">
+                              {tiktokPublication.publication.pending_fields.map((field) => (
+                                <li key={field}>{pendingFieldLabels[field] ?? field}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null}
                         <Button type="button" className="w-full" disabled={!suggestionsConfirmed || !selectedTikTokCategory || publishingTikTok} onClick={handleConfirmAndPublishTikTok}>
                           {publishingTikTok ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                           Confirmar e publicar no TikTok
