@@ -116,6 +116,28 @@ Deno.serve(async (req) => {
       return jsonResponse({ categories, channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" } });
     }
     const productId = typeof body.product_id === "string" ? body.product_id : "";
+    if (body.action === "confirm_product") {
+      if (!/^[0-9a-f-]{36}$/i.test(productId)) return jsonResponse({ error: "Produto inválido." }, 400);
+      const confirmedAt = new Date().toISOString();
+      const { data: product, error: productLookupError } = await supa
+        .from("products")
+        .select("id,title,product_type,vendor,manufacturer,description,price,ncm,cest,fiscal_origin,marketplace_attributes")
+        .eq("id", productId)
+        .maybeSingle();
+      if (productLookupError) throw productLookupError;
+      if (!product) return jsonResponse({ error: "Produto não encontrado." }, 404);
+      const { error: confirmationError } = await supa.from("products").update({ suggestions_confirmed_at: confirmedAt }).eq("id", productId);
+      if (confirmationError) throw confirmationError;
+      await supa.from("marketplace_product_events").insert({
+        product_id: productId,
+        channel_id: savedChannel.id,
+        actor_id: actorId,
+        event_type: "data_confirmed",
+        status: "success",
+        details: { confirmed_at: confirmedAt, source: "admin_review", reviewed_fields: ["title", "description", "vendor", "manufacturer", "price", "product_type", "ncm", "cest", "fiscal_origin"] },
+      });
+      return jsonResponse({ ok: true, product, confirmed_at: confirmedAt });
+    }
     const categoryId = typeof body.category_id === "string" ? body.category_id.trim() : "";
     const categoryName = typeof body.category_name === "string" ? body.category_name.trim() : "";
     const attributes = body.attributes && typeof body.attributes === "object" && !Array.isArray(body.attributes)
