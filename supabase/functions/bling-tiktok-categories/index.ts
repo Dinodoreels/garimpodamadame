@@ -30,8 +30,19 @@ Deno.serve(async (req) => {
 
     if (req.method === "GET") {
       const productType = new URL(req.url).searchParams.get("product_type") ?? undefined;
-      const categories = await getTikTokCategories(channel, productType);
-      return jsonResponse({ categories, channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" } });
+      try {
+        const categories = await getTikTokCategories(channel, productType);
+        return jsonResponse({ categories, channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" } });
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        return jsonResponse({
+          categories: [],
+          availability: "blocked_by_bling",
+          message: "A loja TikTok está conectada, mas o Bling não liberou as categorias de anúncios para esta conexão. No Bling, abra a integração TikTok Shop, habilite o gerenciamento de produtos/anúncios e reconecte o aplicativo.",
+          detail,
+          channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" },
+        });
+      }
     }
     if (req.method !== "POST") return jsonResponse({ error: "Método não permitido." }, 405);
 
@@ -59,8 +70,19 @@ Deno.serve(async (req) => {
     }
     if (body.action === "list") {
       const productType = typeof body.product_type === "string" ? body.product_type : undefined;
-      const categories = await getTikTokCategories(channel, productType);
-      return jsonResponse({ categories, channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" } });
+      try {
+        const categories = await getTikTokCategories(channel, productType);
+        return jsonResponse({ categories, channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" } });
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        return jsonResponse({
+          categories: [],
+          availability: "blocked_by_bling",
+          message: "A loja TikTok está conectada, mas o Bling não liberou as categorias de anúncios para esta conexão. No Bling, abra a integração TikTok Shop, habilite o gerenciamento de produtos/anúncios e reconecte o aplicativo.",
+          detail,
+          channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" },
+        });
+      }
     }
     if (body.action === "confirm_product") {
       if (!/^[0-9a-f-]{36}$/i.test(productId)) return jsonResponse({ error: "Produto inválido." }, 400);

@@ -397,7 +397,7 @@ export function SimpleProductDialog({
       if (data?.error) throw new Error(data.error);
       const categories = (data?.categories ?? []) as TikTokCategory[];
       setTikTokCategories(categories);
-      if (!categories.length) setTikTokMessage('O TikTok não retornou categorias para esta loja. Verifique no Bling se a loja permite gerenciar anúncios e tente novamente.');
+      if (!categories.length) setTikTokMessage(data?.message ?? 'O TikTok não retornou categorias para esta loja. Verifique no Bling se a loja permite gerenciar anúncios e tente novamente.');
     } catch (error) {
       setTikTokMessage(error instanceof Error ? error.message : 'Não foi possível buscar as categorias do TikTok.');
       setTikTokStatus('error');
