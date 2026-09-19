@@ -206,7 +206,7 @@ export async function syncProductToBling(productId: string) {
 
     const newId = String(data?.data?.id ?? blingId);
 
-    await supa.from("bling_product_links").upsert({
+    const { error: linkError } = await supa.from("bling_product_links").upsert({
       product_id: productId,
       variant_id: u.variantId,
       bling_product_id: newId,
@@ -215,13 +215,24 @@ export async function syncProductToBling(productId: string) {
       last_pushed_at: new Date().toISOString(),
       last_error: null,
     }, { onConflict: "product_id,variant_id" });
+    if (linkError) throw linkError;
 
     // Push stock when the store is the authority
     if (cfg.sync_stock && cfg.stock_authority === "store" && cfg.deposito_id && u.variantId) {
       try {
         await pushStockToBling(newId, u.quantity, cfg.sync_prices && cfg.price_authority === "store" ? u.price : undefined);
+        await logSync({
+          entity_type: "stock",
+          entity_id: productId,
+          action: "push",
+          status: "success",
+          payload: { variant_id: u.variantId, bling_product_id: newId, deposito_id: cfg.deposito_id, quantity: u.quantity },
+        });
       } catch (e) {
-        await logSync({ entity_type: "stock", entity_id: productId, action: "push", status: "error", error_message: e instanceof Error ? e.message : String(e) });
+        const stockError = e instanceof Error ? e.message : String(e);
+        await supa.from("bling_product_links").update({ status: "error", last_error: stockError }).eq("product_id", productId).eq("variant_id", u.variantId);
+        await logSync({ entity_type: "stock", entity_id: productId, action: "push", status: "error", payload: { variant_id: u.variantId, bling_product_id: newId, deposito_id: cfg.deposito_id, quantity: u.quantity }, error_message: stockError });
+        throw e;
       }
     }
 

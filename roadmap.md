@@ -105,3 +105,12 @@
 - [x] Atualizar produtos vinculados e estoque sem criar ciclos de sincronização
 - [x] Adicionar a ação “Atualizar do Bling agora” com resumo de aplicados, pendentes e erros
 - [x] Validar com o produto real mais recente encontrado no Bling, mantido em revisão por falta de foto
+
+# Estoque principal no painel e TikTok Shop
+
+- [ ] Definir o nosso sistema como fonte principal do estoque
+- [ ] Salvar corretamente o vínculo retornado pelo Bling antes de enviar o saldo
+- [ ] Enviar e confirmar as 1.000 unidades do produto real no depósito Geral
+- [ ] Manter a busca do Bling sem sobrescrever o estoque principal do painel
+- [ ] Conectar a conta TikTok Shop e validar categoria e atributos reais
+- [ ] Publicar o produto e sincronizar o estoque no TikTok após a conexão
