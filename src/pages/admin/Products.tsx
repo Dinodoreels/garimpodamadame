@@ -105,7 +105,7 @@ function ChannelBadges({ product }: { product: Product }) {
   const publication = product.marketplace_publications?.[0];
   const blingLink = product.bling_links?.[0];
   const pendingFields = publication?.pending_fields ?? [];
-  const missingPhysicalData = pendingFields.includes('weight') || pendingFields.includes('dimensions');
+  const missingPhysicalData = pendingFields.some((field) => field === 'weight' || field === 'dimensions' || field === 'weight dimensions');
   return (
     <div className="mt-1 flex flex-wrap gap-1">
       {blingLink?.bling_product_id ? <Badge variant="outline" className="gap-1"><Link2 className="h-3 w-3" />Enviado ao Bling</Badge> : <Badge variant="outline">Aguardando Bling</Badge>}

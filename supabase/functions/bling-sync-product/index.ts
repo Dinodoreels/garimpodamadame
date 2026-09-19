@@ -21,8 +21,13 @@ Deno.serve(async (req) => {
           .eq("product_id", id)
           .eq("action", "product")
           .in("status", ["pending", "processing"]);
-        await runAutomaticTikTokPublication([id]);
-        results.push({ product_id: id, ok: true, ...r });
+        let tiktok: unknown = null;
+        try {
+          tiktok = await runAutomaticTikTokPublication([id]);
+        } catch (publishError) {
+          tiktok = { ok: false, error: publishError instanceof Error ? publishError.message : String(publishError) };
+        }
+        results.push({ product_id: id, ok: true, tiktok, ...r });
       } catch (e) {
         results.push({ product_id: id, ok: false, error: e instanceof Error ? e.message : String(e) });
       }

@@ -440,6 +440,7 @@ export function SimpleProductDialog({
   const pendingFieldLabels: Record<string, string> = {
     weight: 'Peso',
     dimensions: 'Comprimento, largura e altura',
+    'weight dimensions': 'Peso e comprimento, largura e altura',
     confirmation: 'Confirmação dos dados revisados',
     tiktok_category: 'Categoria oficial do TikTok',
   };
