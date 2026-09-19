@@ -78,6 +78,26 @@ async function importOrder(tkOrder: any) {
     return { skipped: true };
   }
 
+  const directExternalKey = `marketplace:tiktok-shop:${tiktokOrderId}`;
+  const { data: sharedOrder } = await supa
+    .from("orders")
+    .select("id")
+    .eq("external_order_key", directExternalKey)
+    .maybeSingle();
+  if (sharedOrder?.id) {
+    await supa.from("orders").update({ status: mapped.status }).eq("id", sharedOrder.id);
+    await supa.from("tiktok_order_links").upsert({
+      order_id: sharedOrder.id,
+      tiktok_order_id: tiktokOrderId,
+      tiktok_status: tkOrder.status,
+      last_synced_at: new Date().toISOString(),
+      raw_payload: tkOrder,
+    }, { onConflict: "tiktok_order_id" });
+    const stock = await applyOrderStock(supa, sharedOrder.id, "tiktok:direct");
+    await logSync({ entity_type: "order", entity_id: tiktokOrderId, action: "deduplicate", status: "success", response: { order_id: sharedOrder.id, stock } });
+    return { skipped: true, order_id: sharedOrder.id };
+  }
+
   // New order — build items
   const lineItems: any[] = tkOrder.line_items ?? [];
   if (lineItems.length === 0) {
@@ -133,7 +153,7 @@ async function importOrder(tkOrder: any) {
     source: "tiktok",
     payment_method: "tiktok_shop",
     guest_info: { name: recipient.name ?? "", phone: recipient.phone ?? "", email: tkOrder.buyer_email ?? null },
-    external_order_key: `marketplace:tiktok-shop:${tiktokOrderId}`,
+    external_order_key: directExternalKey,
     stock_accounting_started_at: new Date().toISOString(),
   };
   if (mapped.paid) insertPayload.paid_at = new Date((tkOrder.paid_time ?? Math.floor(Date.now() / 1000)) * 1000).toISOString();

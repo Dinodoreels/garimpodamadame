@@ -344,6 +344,34 @@ export async function pullMarketplaceOrders(options: PullOrdersOptions | string 
       continue;
     }
 
+    if (orderExternalKey) {
+      const { data: sharedOrder } = await supa
+        .from('orders')
+        .select('id, status')
+        .eq('external_order_key', orderExternalKey)
+        .maybeSingle();
+      if (sharedOrder?.id) {
+        await supa.from('orders').update(orderUpdates).eq('id', sharedOrder.id);
+        await supa.from('bling_order_links').upsert({
+          order_id: sharedOrder.id,
+          bling_order_id: blingId,
+          bling_order_number: String(o?.numero ?? ''),
+          channel: String(channelName),
+          direction: 'pull',
+          bling_status: mapped.id,
+          raw_payload: o,
+          last_synced_at: now,
+        }, { onConflict: 'bling_order_id' });
+        if (sharedOrder.status !== mapped.status) {
+          await supa.from('order_status_history').insert({ order_id: sharedOrder.id, status: mapped.status, note: `Vínculo consolidado pelo Bling (${channelName})` });
+        }
+        await accountMarketplaceStock(supa, sharedOrder.id, blingId, String(channelName));
+        await syncMarketplaceLabel(sharedOrder.id, blingId, String(channelName));
+        skipped.push(blingId);
+        continue;
+      }
+    }
+
     const { data: orderNumber } = await supa.rpc("generate_order_number");
 
     const { data: created, error: createErr } = await supa
