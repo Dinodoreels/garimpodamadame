@@ -47,7 +47,8 @@ Deno.serve(async (req) => {
     const actorId = await resolveActor(req);
     const body = await req.json().catch(() => ({}));
     const productId = typeof body.product_id === "string" ? body.product_id : "";
-    const letBlingChooseCategory = body.let_bling_choose_category === true;
+    const automatic = body.automatic === true;
+    const letBlingChooseCategory = body.let_bling_choose_category === true || automatic;
     if (!/^[0-9a-f-]{36}$/i.test(productId)) return errorResponse("Produto inválido.", 400);
 
     const supa = getSupabaseAdmin();
