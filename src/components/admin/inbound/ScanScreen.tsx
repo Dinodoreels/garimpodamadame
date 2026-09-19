@@ -116,10 +116,10 @@ export function ScanScreen({ fullscreen = false }: Props) {
           condition_code: (res.result!.condition_guess as string) || f.condition_code,
           suggested_price: res.result!.estimated_price_brl != null ? String(res.result!.estimated_price_brl) : res.result!.price != null ? String(res.result!.price) : '',
         }));
-        if ((res.confidence ?? 0) < 0.75) {
-          setAiWarning('As fontes não deram certeza suficiente. Ao gravar, a peça vai para Pendências.');
-        } else if ((res.candidates?.length ?? 0) < 3) {
+        if ((res.candidates?.length ?? 0) < 3) {
           setAiWarning(`Foram encontrados ${res.candidates?.length ?? 0} de 3 anúncios válidos. Revise antes de gravar.`);
+        } else if ((res.confidence ?? 0) < 0.75) {
+          setAiWarning('As fontes não deram certeza suficiente. Ao gravar, a peça vai para Pendências.');
         } else if (res.warnings?.length) {
           setAiWarning(res.warnings.join(' '));
         }
@@ -284,11 +284,11 @@ export function ScanScreen({ fullscreen = false }: Props) {
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" /> {aiWarning}
             </p>
           )}
-          {identified?.candidates && identified.candidates.length > 0 && (
+          {identified && identified.source !== 'catalog' && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Anúncios encontrados ({identified.candidates.length}/3)</p>
-              <div className="grid gap-3 md:grid-cols-3">
-                {identified.candidates.slice(0, 3).map((candidate, index) => (
+              <p className="text-sm font-medium">Anúncios encontrados ({identified.candidates?.length ?? 0}/3)</p>
+              {(identified.candidates?.length ?? 0) > 0 ? <div className="grid gap-3 md:grid-cols-3">
+                {identified.candidates?.slice(0, 3).map((candidate, index) => (
                   <div key={candidate.id ?? `${candidate.product_url}-${index}`} className="overflow-hidden rounded-md border bg-card">
                     {candidate.image_url && <img src={candidate.image_url} alt={candidate.title ?? 'Produto encontrado'} className="aspect-square w-full object-cover" />}
                     <div className="space-y-1 p-3">
@@ -299,7 +299,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
                     </div>
                   </div>
                 ))}
-              </div>
+              </div> : <p className="text-sm text-muted-foreground">Nenhum anúncio com preço confirmado foi encontrado. O item ficará para revisão.</p>}
             </div>
           )}
         </CardContent>
