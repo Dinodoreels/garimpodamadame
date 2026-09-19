@@ -175,6 +175,55 @@ async function serpLookup(params: URLSearchParams): Promise<Candidate[]> {
   return mapSerpRows(body, params.get('engine') === 'google_lens' ? 'Google Lens' : 'Google Shopping');
 }
 
+function priceFromPage(html: string) {
+  const structured = html.match(/"price"\s*:\s*"?([0-9]+(?:[.,][0-9]{1,2})?)/i)?.[1];
+  if (structured) return parsePrice(structured);
+  const visible = html.match(/R\$\s*[0-9.]+(?:,[0-9]{2})?/i)?.[0];
+  return parsePrice(visible);
+}
+
+async function geminiSearchLookup(query: string): Promise<Candidate[]> {
+  const key = Deno.env.get('GEMINI_API_KEY');
+  if (!key || !query) return [];
+  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+    body: JSON.stringify({
+      contents: [{ role: 'user', parts: [{ text: `Pesquise anúncios brasileiros atuais de venda deste produto: ${query}. Priorize páginas do produto com preço em reais. Não estime preços e não invente links.` }] }],
+      tools: [{ google_search: {} }],
+    }),
+  });
+  if (!response.ok) {
+    const providerMessage = await response.text();
+    console.error('Gemini Search error', response.status, providerMessage.slice(0, 1200));
+    const error = new Error(geminiErrorMessage(response.status));
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
+  }
+  const body = await response.json();
+  const chunks = body?.candidates?.[0]?.groundingMetadata?.groundingChunks ?? [];
+  const candidates: Candidate[] = [];
+  for (const chunk of chunks.slice(0, 8)) {
+    const url = text(chunk?.web?.uri, 2000);
+    const title = text(chunk?.web?.title, 300);
+    if (!url || !title) continue;
+    try {
+      const page = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(8000) });
+      if (!page.ok) continue;
+      const html = await page.text();
+      const price = priceFromPage(html.slice(0, 500_000));
+      if (!price) continue;
+      const finalUrl = page.url || url;
+      candidates.push({
+        title, brand: null, category: null, gtin: null, image_url: null,
+        product_url: finalUrl, price, condition: null, confidence: 0.72,
+        source: new URL(finalUrl).hostname.replace(/^www\./, ''),
+      });
+    } catch { /* fonte inacessível ou sem preço verificável */ }
+  }
+  return candidates;
+}
+
 function selectComparables(candidates: Candidate[]) {
   const seen = new Set<string>();
   return candidates
@@ -261,7 +310,10 @@ Deno.serve(async (req) => {
         || text(sourceCandidates.find(candidate => candidate.title)?.title, 180);
       if (!barcode && searchQuery) {
         try { sourceCandidates.push(...await serpLookup(new URLSearchParams({ engine: 'google_shopping', q: searchQuery }))); }
-        catch (error) { warnings.push(error instanceof Error ? error.message : 'Falha ao buscar preços pelo produto identificado.'); }
+        catch {
+          try { sourceCandidates.push(...await geminiSearchLookup(searchQuery)); }
+          catch (error) { warnings.push(error instanceof Error ? error.message : 'Falha ao buscar preços pelo produto identificado.'); }
+        }
       }
 
       const comparables = selectComparables(sourceCandidates);
