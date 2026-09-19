@@ -43,6 +43,13 @@
       "when": 1789796739302,
       "tag": "0005_fix_bling_links_and_stock_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789810414002,
+      "tag": "0006_deduplicate_bling_product_queue",
+      "breakpoints": true
     }
   ]
 }

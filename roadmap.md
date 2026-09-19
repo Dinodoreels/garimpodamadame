@@ -123,3 +123,6 @@
 - [x] Automatizar a publicação direta no TikTok de produtos completos de todas as categorias, reutilizando vínculos reais e sem duplicidade
 - [x] Criar e reutilizar automaticamente no Bling as categorias reais confirmadas no cadastro, sem duplicidade
 - [ ] Classificar os produtos que ainda não possuem categoria real antes da publicação automática
+- [x] Cadastrar as categorias amplas aprovadas e exibi-las no cadastro de produtos
+- [x] Evitar envios pendentes duplicados ao Bling e sincronizar imediatamente após salvar
+- [x] Mostrar em português as pendências de peso, medidas e categoria do TikTok

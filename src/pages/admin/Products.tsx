@@ -103,16 +103,21 @@ async function uploadImageToStorage(base64: string, filename: string): Promise<s
 
 function ChannelBadges({ product }: { product: Product }) {
   const publication = product.marketplace_publications?.[0];
+  const blingLink = product.bling_links?.[0];
+  const pendingFields = publication?.pending_fields ?? [];
+  const missingPhysicalData = pendingFields.some((field) => field === 'weight' || field === 'dimensions' || field === 'weight dimensions');
   return (
     <div className="mt-1 flex flex-wrap gap-1">
-      {product.bling_links?.length ? <Badge variant="outline" className="gap-1"><Link2 className="h-3 w-3" />Bling</Badge> : null}
+      {blingLink?.bling_product_id ? <Badge variant="outline" className="gap-1"><Link2 className="h-3 w-3" />Enviado ao Bling</Badge> : <Badge variant="outline">Aguardando Bling</Badge>}
       {publication?.status === 'published' || product.tiktok_links?.some((link) => link.status === 'synced') ? (
         <Badge variant="secondary">TikTok publicado</Badge>
       ) : publication?.status === 'error' || product.tiktok_links?.some((link) => link.status === 'error') ? (
         <Badge variant="destructive">TikTok com erro</Badge>
-      ) : publication?.pending_fields?.includes('confirmation') ? (
+      ) : pendingFields.includes('confirmation') ? (
         <Badge variant="outline">TikTok: confirmar dados</Badge>
-      ) : publication?.pending_fields?.includes('tiktok_category') ? (
+      ) : missingPhysicalData ? (
+        <Badge variant="outline">TikTok: falta peso e medidas</Badge>
+      ) : pendingFields.includes('tiktok_category') ? (
         <Badge variant="outline">TikTok: falta categoria</Badge>
       ) : (
         <Badge variant="outline">TikTok não enviado</Badge>
