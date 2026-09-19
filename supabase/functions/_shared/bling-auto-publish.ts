@@ -9,18 +9,14 @@ export async function runAutomaticTikTokPublication(productIds?: string[]) {
 
   const supa = getSupabaseAdmin();
   let query = supa.from('products')
-    .select('id,product_type,marketplace_category_mappings!products_product_type_fkey(id)')
+    .select('id')
     .eq('status', 'active')
     .not('suggestions_confirmed_at', 'is', null)
     .limit(25);
   if (productIds?.length) query = query.in('id', productIds.slice(0, 50));
 
   // Category eligibility is authoritatively checked by bling-publish-product.
-  const { data: products, error } = await supa.from('products')
-    .select('id')
-    .eq('status', 'active')
-    .not('suggestions_confirmed_at', 'is', null)
-    .in('id', productIds?.length ? productIds.slice(0, 50) : (await supa.from('products').select('id').eq('status', 'active').not('suggestions_confirmed_at', 'is', null).limit(25)).data?.map((row) => row.id) ?? []);
+  const { data: products, error } = await query;
   if (error) throw error;
 
   const results: Array<{ product_id: string; status: string; error?: string }> = [];
