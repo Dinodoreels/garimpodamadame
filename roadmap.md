@@ -104,4 +104,4 @@
 - [x] Manter produtos incompletos ou com conflito separados para revisão administrativa
 - [x] Atualizar produtos vinculados e estoque sem criar ciclos de sincronização
 - [x] Adicionar a ação “Atualizar do Bling agora” com resumo de aplicados, pendentes e erros
-- [ ] Validar com o produto real mais recente encontrado no Bling
+- [x] Validar com o produto real mais recente encontrado no Bling, mantido em revisão por falta de foto
