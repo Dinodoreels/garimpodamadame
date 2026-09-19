@@ -119,7 +119,7 @@ export const scanService = {
     call<IdentifyResult>('inbound-identify', input),
 
   save: (input: SaveItemInput) =>
-    call<{ ok: boolean; item_id: string; state: string; pending: boolean }>('inbound-scan', {
+    call<{ ok: boolean; item_id: string; state: string; pending: boolean; publication?: { product_id?: string; new_product?: boolean } | null }>('inbound-scan', {
       action: 'save',
       ...input,
     }),
