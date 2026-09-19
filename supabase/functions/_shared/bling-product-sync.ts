@@ -79,10 +79,23 @@ function buildPayload(u: SyncUnit) {
   };
 }
 
-async function confirmBlingProduct(blingProductId: string, expectedCost: number | null) {
-  const { status, data } = await callBling({ path: `/produtos/${blingProductId}` });
-  if (status >= 400) throw new Error(blingError(status, data));
-  const remote = data?.data ?? data;
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function remoteImageCount(remote: any) {
+  const images = remote?.midia?.imagens ?? {};
+  return [images.externas, images.internas, images.imagensURL]
+    .reduce((total, entries) => total + (Array.isArray(entries) ? entries.length : 0), 0);
+}
+
+async function confirmBlingProduct(blingProductId: string, expectedCost: number | null, expectedImages: number) {
+  let remote: any = null;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    if (attempt > 0) await delay(2000);
+    const { status, data } = await callBling({ path: `/produtos/${blingProductId}` });
+    if (status >= 400) throw new Error(blingError(status, data));
+    remote = data?.data ?? data;
+    if (expectedImages === 0 || remoteImageCount(remote) > 0) break;
+  }
   const confirmedCost = remote?.precoCusto == null ? null : Number(remote.precoCusto);
   const costWarning = expectedCost != null && (
     confirmedCost == null ||
@@ -91,7 +104,11 @@ async function confirmBlingProduct(blingProductId: string, expectedCost: number 
   )
     ? `O Bling recebeu o produto, mas retornou custo ${confirmedCost ?? "não informado"}.`
     : null;
-  return { confirmedCost, remote, costWarning };
+  const confirmedImages = remoteImageCount(remote);
+  const imageWarning = expectedImages > 0 && confirmedImages === 0
+    ? `O Bling recebeu ${expectedImages} foto(s), mas não gravou nenhuma no produto.`
+    : null;
+  return { confirmedCost, confirmedImages, remote, costWarning, imageWarning };
 }
 
 export async function pushStockToBling(blingProductId: string, quantity: number, price?: number) {
@@ -226,16 +243,17 @@ export async function syncProductToBling(productId: string) {
     }
 
     const newId = String(data?.data?.id ?? blingId);
-    const confirmation = await confirmBlingProduct(newId, u.cost);
+    const confirmation = await confirmBlingProduct(newId, u.cost, Math.min(u.images.length, 5));
+    const warnings = [confirmation.costWarning, confirmation.imageWarning].filter(Boolean);
 
     const { error: linkError } = await supa.from("bling_product_links").upsert({
       product_id: productId,
       variant_id: u.variantId,
       bling_product_id: newId,
       bling_sku: u.sku,
-      status: confirmation.costWarning ? "partial" : "synced",
+      status: warnings.length ? "partial" : "synced",
       last_pushed_at: new Date().toISOString(),
-      last_error: confirmation.costWarning,
+      last_error: warnings.length ? warnings.join(" ") : null,
     }, { onConflict: "product_id,variant_id" });
     if (linkError) throw linkError;
 
@@ -274,7 +292,8 @@ export async function syncProductToBling(productId: string) {
       bling_product_id: newId,
       confirmed_stock: confirmedStock,
       confirmed_cost: confirmation.confirmedCost,
-      warning: confirmation.costWarning,
+      confirmed_images: confirmation.confirmedImages,
+      warning: warnings.length ? warnings.join(" ") : null,
     });
   }
 
