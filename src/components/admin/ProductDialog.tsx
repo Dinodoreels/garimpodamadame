@@ -64,6 +64,7 @@ export interface ImageData {
 }
 
 export interface ProductFormData {
+  id?: string;
   title: string;
   body: string;
   product_type: string;

@@ -557,6 +557,7 @@ export default function Products() {
     if (!selectedProduct) return undefined;
     
     return {
+      id: selectedProduct.id,
       title: selectedProduct.title || '',
       body: selectedProduct.description || '',
       product_type: selectedProduct.product_type || '',
