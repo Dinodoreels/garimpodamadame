@@ -1,5 +1,6 @@
 import { getConfig, getSupabaseAdmin, logSync } from './bling.ts';
 import { fetchAllBlingProducts, fetchBlingProductDetail, fetchBlingStock, normalizeSku, productSnapshot } from './bling-import.ts';
+import { runAutomaticTikTokPublication } from './bling-auto-publish.ts';
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
@@ -200,6 +201,10 @@ export async function pullLinkedBlingProducts(options: { blingProductIds?: strin
     }
 
     const summary = { processed, updated, failed, images_added: imagesAdded, new_products_found: newProducts, auto_applied: autoApplied, new_products_pending: reviewPending };
+    const publication = await runAutomaticTikTokPublication((links ?? []).map((link: any) => link.product_id)).catch(async (error) => {
+      await logSync({ entity_type: 'catalog', action: 'auto_publish_tiktok', status: 'error', error_message: errorMessage(error) });
+      return { processed: 0, published: 0, pending: 0, errors: 1 };
+    });
     await supa.from('bling_config').update({
       last_catalog_sync_at: new Date().toISOString(),
       last_catalog_sync_summary: summary,
@@ -207,7 +212,7 @@ export async function pullLinkedBlingProducts(options: { blingProductIds?: strin
       last_error: failed ? `${failed} produto(s) com erro na atualização automática.` : null,
     }).eq('id', cfg.id);
     await logSync({ entity_type: 'catalog', action: 'auto_pull', status: failed ? 'error' : 'success', payload: { started_at: startedAt }, response: summary, error_message: failed ? `${failed} produto(s) com erro` : null });
-    return summary;
+    return { ...summary, tiktok_publication: publication };
   } finally {
     await supa.rpc('release_bling_catalog_sync');
   }

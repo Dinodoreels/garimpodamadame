@@ -1539,7 +1539,7 @@ export function SimpleProductDialog({
                             <Music2 className="h-4 w-4 text-primary" />
                             <div>
                               <p className="text-sm font-medium">Publicação no TikTok Shop</p>
-                              <p className="text-xs text-muted-foreground">Canal conectado pelo Bling</p>
+                              <p className="text-xs text-muted-foreground">Canal conectado pelo Bling · publicação automática quando estiver completo</p>
                             </div>
                           </div>
                           {tiktokStatus === 'published' && <Badge variant="secondary"><CheckCircle2 className="mr-1 h-3 w-3" />Publicado</Badge>}
@@ -1604,7 +1604,7 @@ export function SimpleProductDialog({
                         {tiktokPublication?.publication && (
                           <div className="space-y-2 border-t pt-3 text-xs">
                             <div className="grid grid-cols-2 gap-2">
-                              <div><span className="text-muted-foreground">Situação</span><p className="font-medium">{tiktokPublication.publication.status ?? 'Não enviado'}</p></div>
+                              <div><span className="text-muted-foreground">Situação</span><p className="font-medium">{tiktokPublication.publication.status === 'published' ? 'Publicado automaticamente' : tiktokPublication.publication.status ?? 'Não enviado'}</p></div>
                               <div><span className="text-muted-foreground">Código do anúncio</span><p className="break-all font-medium">{tiktokPublication.publication.external_listing_id ?? 'Ainda não informado'}</p></div>
                               <div><span className="text-muted-foreground">Categoria</span><p className="font-medium">{tiktokPublication.category?.marketplace_category_name ?? 'Pendente'}</p></div>
                               <div><span className="text-muted-foreground">Última tentativa</span><p className="font-medium">{tiktokPublication.publication.last_attempt_at ? new Date(tiktokPublication.publication.last_attempt_at).toLocaleString('pt-BR') : 'Ainda não enviado'}</p></div>

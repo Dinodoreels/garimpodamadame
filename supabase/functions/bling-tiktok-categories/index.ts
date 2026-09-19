@@ -1,7 +1,5 @@
 import {
   assertAdmin,
-  blingError,
-  callBling,
   corsHeaders,
   getSupabaseAdmin,
   jsonResponse,
