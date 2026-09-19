@@ -84,13 +84,14 @@ async function confirmBlingProduct(blingProductId: string, expectedCost: number 
   if (status >= 400) throw new Error(blingError(status, data));
   const remote = data?.data ?? data;
   const confirmedCost = remote?.precoCusto == null ? null : Number(remote.precoCusto);
-  if (
-    expectedCost != null &&
-    (!Number.isFinite(confirmedCost) || Math.abs(confirmedCost - expectedCost) > 0.009)
-  ) {
-    throw new Error(`O Bling recebeu o produto, mas retornou custo ${confirmedCost ?? "não informado"}.`);
-  }
-  return { confirmedCost, remote };
+  const costWarning = expectedCost != null && (
+    confirmedCost == null ||
+    !Number.isFinite(confirmedCost) ||
+    Math.abs(confirmedCost - expectedCost) > 0.009
+  )
+    ? `O Bling recebeu o produto, mas retornou custo ${confirmedCost ?? "não informado"}.`
+    : null;
+  return { confirmedCost, remote, costWarning };
 }
 
 export async function pushStockToBling(blingProductId: string, quantity: number, price?: number) {
@@ -232,9 +233,9 @@ export async function syncProductToBling(productId: string) {
       variant_id: u.variantId,
       bling_product_id: newId,
       bling_sku: u.sku,
-      status: "synced",
+      status: confirmation.costWarning ? "partial" : "synced",
       last_pushed_at: new Date().toISOString(),
-      last_error: null,
+      last_error: confirmation.costWarning,
     }, { onConflict: "product_id,variant_id" });
     if (linkError) throw linkError;
 
@@ -273,6 +274,7 @@ export async function syncProductToBling(productId: string) {
       bling_product_id: newId,
       confirmed_stock: confirmedStock,
       confirmed_cost: confirmation.confirmedCost,
+      warning: confirmation.costWarning,
     });
   }
 
