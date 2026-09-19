@@ -1,6 +1,7 @@
 // Order flows between the store and Bling.
 import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from "./bling.ts";
 import { syncMarketplaceLabel } from './bling-marketplace-labels.ts';
+import { applyOrderStock } from './order-stock.ts';
 
 const onlyDigits = (v?: string | null) => (v ?? "").replace(/\D/g, "");
 
@@ -23,6 +24,38 @@ function marketplaceName(order: any, channels: Map<string, string>) {
   return known.find(([pattern]) => pattern.test(value))?.[1]
     ?? value
     ?? (storeId ? `canal ${storeId}` : 'Bling');
+}
+
+function marketplaceOrderReference(order: any): string | null {
+  const value = String(
+    order?.numeroLoja ?? order?.numeroPedidoLoja ?? order?.pedidoLoja?.numero ?? '',
+  ).trim();
+  return value || null;
+}
+
+function externalOrderKey(channelName: string, order: any): string | null {
+  const reference = marketplaceOrderReference(order);
+  if (!reference) return null;
+  const channel = channelName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return `marketplace:${channel}:${reference}`;
+}
+
+async function accountMarketplaceStock(
+  supa: ReturnType<typeof getSupabaseAdmin>,
+  orderId: string,
+  blingId: string,
+  channelName: string,
+) {
+  const result = await applyOrderStock(supa, orderId, `bling:${channelName.toLowerCase()}`);
+  await logSync({
+    entity_type: 'order',
+    entity_id: blingId,
+    action: 'stock_transition',
+    status: result.blocked ? 'blocked' : 'success',
+    response: result,
+    error_message: result.blocked ? 'Estoque do pedido requer revisão administrativa' : null,
+  });
+  return result;
 }
 
 /** Find or create a Bling contact for a store order. */
@@ -257,6 +290,7 @@ export async function pullMarketplaceOrders(options: PullOrdersOptions | string 
     const mapped = orderState(o);
     const tracked = tracking(o);
     const now = new Date().toISOString();
+    const orderExternalKey = externalOrderKey(String(channelName), o);
     const orderUpdates: Record<string, unknown> = {
       status: mapped.status,
       subtotal,
@@ -303,6 +337,7 @@ export async function pullMarketplaceOrders(options: PullOrdersOptions | string 
       if (current?.status !== mapped.status) {
         await supa.from('order_status_history').insert({ order_id: link.order_id, status: mapped.status, note: `Atualizado pelo Bling (${channelName})` });
       }
+      await accountMarketplaceStock(supa, link.order_id, blingId, String(channelName));
       await supa.from('bling_order_links').update({ bling_status: mapped.id, channel: String(channelName), raw_payload: o, last_synced_at: now }).eq('id', link.id);
       await syncMarketplaceLabel(link.order_id, blingId, String(channelName));
       updated.push(blingId);
@@ -316,6 +351,8 @@ export async function pullMarketplaceOrders(options: PullOrdersOptions | string 
       .insert({
         order_number: orderNumber,
         ...orderUpdates,
+        external_order_key: orderExternalKey,
+        stock_accounting_started_at: now,
         created_at: blingOrderDate(o) ?? now,
         payment_method: String(channelName).toLowerCase(),
       })
@@ -365,6 +402,7 @@ export async function pullMarketplaceOrders(options: PullOrdersOptions | string 
     }
 
     await supa.from('order_status_history').insert({ order_id: created.id, status: mapped.status, note: `Importado do Bling (${channelName})` });
+    await accountMarketplaceStock(supa, created.id, blingId, String(channelName));
     await syncMarketplaceLabel(created.id, blingId, String(channelName));
 
     imported.push(blingId);
