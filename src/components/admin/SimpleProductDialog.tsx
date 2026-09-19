@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { Loader2, ImagePlus, X, ChevronDown, Sparkles, Package, Truck, Plus, Minus, Video, ChevronLeft, ChevronRight, Maximize2, ArrowLeft, Trash2, Calculator } from 'lucide-react';
+import { Loader2, ImagePlus, X, ChevronDown, Sparkles, Package, Truck, Plus, Minus, Video, ChevronLeft, ChevronRight, Maximize2, ArrowLeft, Trash2, Calculator, Music2, Search, CheckCircle2, AlertCircle, Send } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -70,6 +70,13 @@ type AutoFillSuggestions = {
   colors?: string[];
   sizes?: string[];
   images?: string[];
+};
+
+type TikTokCategory = {
+  id: string;
+  name: string;
+  is_leaf: boolean;
+  required_attributes: Array<Record<string, unknown>>;
 };
 
 interface SimpleProductDialogProps {
@@ -152,6 +159,15 @@ export function SimpleProductDialog({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [autoFillSources, setAutoFillSources] = useState<string[]>([]);
+  const [tiktokCategories, setTikTokCategories] = useState<TikTokCategory[]>([]);
+  const [tiktokCategoryId, setTikTokCategoryId] = useState('');
+  const [tiktokCategorySearch, setTikTokCategorySearch] = useState('');
+  const [tiktokCategoryOpen, setTikTokCategoryOpen] = useState(false);
+  const [loadingTikTokCategories, setLoadingTikTokCategories] = useState(false);
+  const [publishingTikTok, setPublishingTikTok] = useState(false);
+  const [tiktokStatus, setTikTokStatus] = useState<'idle' | 'pending' | 'published' | 'error'>('idle');
+  const [tiktokMessage, setTikTokMessage] = useState('');
+  const [marketplaceAttributes, setMarketplaceAttributes] = useState<Record<string, string>>({});
   
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -219,6 +235,13 @@ export function SimpleProductDialog({
     setShowFullscreen(false);
     setSupplierId('');
     setAutoFillSources([]);
+    setTikTokCategories([]);
+    setTikTokCategoryId('');
+    setTikTokCategorySearch('');
+    setTikTokCategoryOpen(false);
+    setTikTokStatus('idle');
+    setTikTokMessage('');
+    setMarketplaceAttributes({});
   }, []);
 
   const handleCreateSupplier = async () => {
@@ -289,6 +312,7 @@ export function SimpleProductDialog({
       setCondition(initialData.condition || 'new');
       setWarrantyMonths(initialData.warranty_months == null ? '' : String(initialData.warranty_months));
       setSuggestionsConfirmed(Boolean(initialData.suggestions_confirmed));
+      setMarketplaceAttributes(initialData.marketplace_attributes ?? {});
       setDescription(initialData.body || '');
       
       const colorOption = initialData.options?.find(o => o.name === 'Cor');
@@ -339,6 +363,70 @@ export function SimpleProductDialog({
       resetForm();
     }
   }, [open, mode, initialData]);
+
+  const loadTikTokCategories = async () => {
+    setLoadingTikTokCategories(true);
+    setTikTokMessage('');
+    try {
+      const { data, error } = await supabase.functions.invoke('bling-tiktok-categories', { method: 'GET' });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      const categories = (data?.categories ?? []) as TikTokCategory[];
+      setTikTokCategories(categories.filter((category) => category.is_leaf));
+      if (!categories.length) setTikTokMessage('Nenhuma categoria vinculada foi encontrada no canal TikTok do Bling. Vincule a categoria no Bling e tente novamente.');
+    } catch (error) {
+      setTikTokMessage(error instanceof Error ? error.message : 'Não foi possível buscar as categorias do TikTok.');
+      setTikTokStatus('error');
+    } finally {
+      setLoadingTikTokCategories(false);
+    }
+  };
+
+  const selectedTikTokCategory = tiktokCategories.find((category) => category.id === tiktokCategoryId);
+  const filteredTikTokCategories = tiktokCategories.filter((category) =>
+    !tiktokCategorySearch.trim() || category.name.toLocaleLowerCase('pt-BR').includes(tiktokCategorySearch.toLocaleLowerCase('pt-BR'))
+  ).slice(0, 100);
+  const requiredTikTokAttributes = (selectedTikTokCategory?.required_attributes ?? []).filter((attribute) =>
+    attribute.required === true || attribute.obrigatorio === true
+  );
+  const attributeId = (attribute: Record<string, unknown>) => String(attribute.id ?? attribute.codigo ?? '');
+  const attributeName = (attribute: Record<string, unknown>) => String(attribute.name ?? attribute.nome ?? attribute.descricao ?? attribute.id ?? 'Atributo');
+
+  const handleConfirmAndPublishTikTok = async () => {
+    if (!initialData?.id || !suggestionsConfirmed || !selectedTikTokCategory) return;
+    const missingAttribute = requiredTikTokAttributes.find((attribute) => !marketplaceAttributes[attributeId(attribute)]?.trim());
+    if (missingAttribute) {
+      toast.error(`Preencha: ${attributeName(missingAttribute)}`);
+      return;
+    }
+    setPublishingTikTok(true);
+    setTikTokMessage('');
+    try {
+      const { data: confirmation, error: confirmationError } = await supabase.functions.invoke('bling-tiktok-categories', {
+        body: {
+          product_id: initialData.id,
+          category_id: selectedTikTokCategory.id,
+          category_name: selectedTikTokCategory.name,
+          attributes: marketplaceAttributes,
+        },
+      });
+      if (confirmationError) throw confirmationError;
+      if (confirmation?.error) throw new Error(confirmation.error);
+      const { data: publication, error: publicationError } = await supabase.functions.invoke('bling-publish-product', {
+        body: { product_id: initialData.id },
+      });
+      if (publicationError) throw publicationError;
+      if (publication?.error) throw new Error(publication.error);
+      setTikTokStatus(publication?.status === 'published' || publication?.ok ? 'published' : 'pending');
+      setTikTokMessage(publication?.status === 'published' || publication?.ok ? 'Produto publicado no TikTok Shop.' : 'Produto enviado e aguardando retorno do TikTok Shop.');
+      toast.success('Produto enviado ao TikTok Shop');
+    } catch (error) {
+      setTikTokStatus('error');
+      setTikTokMessage(error instanceof Error ? error.message : 'Não foi possível publicar no TikTok Shop.');
+    } finally {
+      setPublishingTikTok(false);
+    }
+  };
 
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
     const files = e.target.files;
@@ -730,6 +818,7 @@ export function SimpleProductDialog({
         condition,
         warranty_months: warrantyMonths ? Number(warrantyMonths) : null,
         suggestions_confirmed: suggestionsConfirmed,
+        marketplace_attributes: marketplaceAttributes,
         tags: '',
         fulfillment_type: fulfillmentType,
         dropship_lead_time: fulfillmentType === 'dropship' ? dropshipLeadTime : undefined,
@@ -1400,6 +1489,66 @@ export function SimpleProductDialog({
                       <Checkbox checked={suggestionsConfirmed} onCheckedChange={(checked) => setSuggestionsConfirmed(checked === true)} />
                       <span>Revisei e confirmo as informações sugeridas. Dados legais e fiscais não foram presumidos automaticamente.</span>
                     </label>
+                    {mode === 'edit' && initialData?.id && (
+                      <div className="space-y-3 rounded-md border p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2">
+                            <Music2 className="h-4 w-4 text-primary" />
+                            <div>
+                              <p className="text-sm font-medium">Publicação no TikTok Shop</p>
+                              <p className="text-xs text-muted-foreground">Canal conectado pelo Bling</p>
+                            </div>
+                          </div>
+                          {tiktokStatus === 'published' && <Badge variant="secondary"><CheckCircle2 className="mr-1 h-3 w-3" />Publicado</Badge>}
+                        </div>
+
+                        {!suggestionsConfirmed && (
+                          <div className="flex items-start gap-2 text-xs text-muted-foreground">
+                            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            Confirme os dados revisados acima para liberar a publicação.
+                          </div>
+                        )}
+
+                        <div className="space-y-2">
+                          <Label className="text-xs">Categoria real no TikTok</Label>
+                          <Popover open={tiktokCategoryOpen} onOpenChange={setTikTokCategoryOpen}>
+                            <PopoverTrigger asChild>
+                              <Button type="button" variant="outline" className="w-full justify-between font-normal" onClick={() => !tiktokCategories.length && loadTikTokCategories()}>
+                                <span className="truncate">{selectedTikTokCategory?.name || 'Buscar categoria do TikTok'}</span>
+                                {loadingTikTokCategories ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 text-muted-foreground" />}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-2" align="start">
+                              <Input value={tiktokCategorySearch} onChange={(event) => setTikTokCategorySearch(event.target.value)} placeholder="Digite para buscar..." className="mb-2" />
+                              <div className="max-h-64 overflow-auto">
+                                {filteredTikTokCategories.map((category) => (
+                                  <Button key={category.id} type="button" variant="ghost" className="h-auto w-full justify-start whitespace-normal py-2 text-left" onClick={() => { setTikTokCategoryId(category.id); setTikTokCategoryOpen(false); }}>
+                                    {category.name}
+                                  </Button>
+                                ))}
+                                {!loadingTikTokCategories && !filteredTikTokCategories.length && <p className="p-3 text-xs text-muted-foreground">Nenhuma categoria disponível.</p>}
+                              </div>
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+
+                        {requiredTikTokAttributes.map((attribute) => {
+                          const id = attributeId(attribute);
+                          return (
+                            <div key={id} className="space-y-1">
+                              <Label className="text-xs">{attributeName(attribute)}</Label>
+                              <Input value={marketplaceAttributes[id] ?? ''} onChange={(event) => setMarketplaceAttributes((current) => ({ ...current, [id]: event.target.value }))} />
+                            </div>
+                          );
+                        })}
+
+                        {tiktokMessage && <p className={cn('text-xs', tiktokStatus === 'error' ? 'text-destructive' : 'text-muted-foreground')}>{tiktokMessage}</p>}
+                        <Button type="button" className="w-full" disabled={!suggestionsConfirmed || !selectedTikTokCategory || publishingTikTok} onClick={handleConfirmAndPublishTikTok}>
+                          {publishingTikTok ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
+                          Confirmar e publicar no TikTok
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Colors & Sizes */}
