@@ -119,4 +119,4 @@
 - [ ] Manter o custo real do produto sincronizado no Bling junto com preço e estoque
 - [x] Mostrar no cadastro a categoria, atributos, código do anúncio, situação e retorno exato recebido do TikTok via Bling
 - [x] Publicar automaticamente no TikTok todos os produtos completos após receber categoria e atributos reais do Bling
-- [ ] Repetir a publicação isolada do Body Splash após o Bling ativar a integração ADS do TikTok (tentativa real recusada: `Integration not found`)
+- [ ] Repetir a publicação isolada do Body Splash após o Bling ativar a integração ADS do TikTok (nova tentativa em 19/09/2026 08:33 UTC recusada: `Integration not found`; categoria TikTok ainda não liberada)
