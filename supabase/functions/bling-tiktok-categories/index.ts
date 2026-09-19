@@ -121,12 +121,18 @@ Deno.serve(async (req) => {
       const confirmedAt = new Date().toISOString();
       const { data: product, error: productLookupError } = await supa
         .from("products")
-        .select("id,title,product_type,vendor,manufacturer,description,price,ncm,cest,fiscal_origin,marketplace_attributes")
+        .select("id,title,product_type,vendor,manufacturer,description,price,ncm,cest,fiscal_origin,marketplace_attributes,catalog_pending_fields")
         .eq("id", productId)
         .maybeSingle();
       if (productLookupError) throw productLookupError;
       if (!product) return jsonResponse({ error: "Produto não encontrado." }, 404);
-      const { error: confirmationError } = await supa.from("products").update({ suggestions_confirmed_at: confirmedAt }).eq("id", productId);
+      const remainingPendingFields = Array.isArray(product.catalog_pending_fields)
+        ? product.catalog_pending_fields.filter((field: unknown) => field !== "confirmation")
+        : [];
+      const { error: confirmationError } = await supa.from("products").update({
+        suggestions_confirmed_at: confirmedAt,
+        catalog_pending_fields: remainingPendingFields,
+      }).eq("id", productId);
       if (confirmationError) throw confirmationError;
       await supa.from("marketplace_product_events").insert({
         product_id: productId,
