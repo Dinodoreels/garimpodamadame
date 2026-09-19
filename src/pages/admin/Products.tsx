@@ -128,7 +128,19 @@ function SortableProductRow({ product, formatCurrency, handleEdit, handleDeleteC
           <div className="w-12 h-12 bg-muted" />
         )}
       </TableCell>
-      <TableCell className="font-medium max-w-[200px]"><span className="block truncate">{product.title}</span>{product.bling_links?.length ? <Badge variant="outline" className="mt-1 gap-1"><Link2 className="h-3 w-3" />Bling</Badge> : null}</TableCell>
+      <TableCell className="font-medium max-w-[200px]">
+        <span className="block truncate">{product.title}</span>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {product.bling_links?.length ? <Badge variant="outline" className="gap-1"><Link2 className="h-3 w-3" />Bling</Badge> : null}
+          {product.tiktok_links?.some((link) => link.status === 'synced') ? (
+            <Badge variant="secondary">TikTok publicado</Badge>
+          ) : product.tiktok_links?.some((link) => link.status === 'error') ? (
+            <Badge variant="destructive">TikTok com erro</Badge>
+          ) : (
+            <Badge variant="outline">TikTok não enviado</Badge>
+          )}
+        </div>
+      </TableCell>
       <TableCell className="font-light text-muted-foreground">{product.product_type || '-'}</TableCell>
       <TableCell className="font-light text-muted-foreground hidden lg:table-cell">{product.vendor || '-'}</TableCell>
       <TableCell>
@@ -188,7 +200,7 @@ export default function Products() {
   const [isUploading, setIsUploading] = useState(false);
   const [stockDialogOpen, setStockDialogOpen] = useState(false);
   const [stockProduct, setStockProduct] = useState<Product | null>(null);
-  useRealtimeInvalidator(['products', 'product_variants', 'product_images', 'bling_product_links'], ['admin-products']);
+  useRealtimeInvalidator(['products', 'product_variants', 'product_images', 'bling_product_links', 'tiktok_product_links'], ['admin-products']);
   const focusedProductId = new URLSearchParams(window.location.search).get('product');
 
   // Category management state

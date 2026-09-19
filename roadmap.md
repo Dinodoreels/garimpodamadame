@@ -108,9 +108,9 @@
 
 # Estoque principal no painel e TikTok Shop
 
-- [ ] Definir o nosso sistema como fonte principal do estoque
-- [ ] Salvar corretamente o vínculo retornado pelo Bling antes de enviar o saldo
-- [ ] Enviar e confirmar as 1.000 unidades do produto real no depósito Geral
-- [ ] Manter a busca do Bling sem sobrescrever o estoque principal do painel
+- [x] Definir o nosso sistema como fonte principal do estoque
+- [x] Salvar corretamente o vínculo retornado pelo Bling antes de enviar o saldo
+- [x] Enviar e confirmar as 1.000 unidades do produto real no depósito Geral
+- [x] Manter a busca do Bling sem sobrescrever o estoque principal do painel
 - [ ] Conectar a conta TikTok Shop e validar categoria e atributos reais
 - [ ] Publicar o produto e sincronizar o estoque no TikTok após a conexão

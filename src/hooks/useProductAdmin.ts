@@ -101,7 +101,8 @@ export function useAdminProducts(limit: number = 2000) {
             images:product_images(*),
             variants:product_variants(*),
             options:product_options(*),
-            bling_links:bling_product_links(id, bling_product_id, bling_sku, status)
+            bling_links:bling_product_links(id, bling_product_id, bling_sku, status),
+            tiktok_links:tiktok_product_links(id, tiktok_product_id, tiktok_status, status, last_error)
           `)
           .order('position', { ascending: true })
           .range(from, to);

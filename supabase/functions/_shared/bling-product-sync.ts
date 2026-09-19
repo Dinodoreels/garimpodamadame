@@ -224,9 +224,11 @@ export async function syncProductToBling(productId: string) {
     if (linkError) throw linkError;
 
     // Push stock when the store is the authority
+    let confirmedStock: number | null = null;
     if (cfg.sync_stock && cfg.stock_authority === "store" && cfg.deposito_id && u.variantId) {
       try {
-        await pushStockToBling(newId, u.quantity, cfg.sync_prices && cfg.price_authority === "store" ? u.price : undefined);
+        const stockResult = await pushStockToBling(newId, u.quantity, cfg.sync_prices && cfg.price_authority === "store" ? u.price : undefined);
+        confirmedStock = stockResult.confirmed_quantity;
         await logSync({
           entity_type: "stock",
           entity_id: productId,
@@ -243,7 +245,7 @@ export async function syncProductToBling(productId: string) {
     }
 
     await logSync({ entity_type: "product", entity_id: productId, action: isUpdate ? "update" : "create", status: "success", payload, response: data });
-    results.push({ sku: u.sku, ok: true, bling_product_id: newId });
+    results.push({ sku: u.sku, ok: true, bling_product_id: newId, confirmed_stock: confirmedStock });
   }
 
   const failed = results.filter((r) => !r.ok);
