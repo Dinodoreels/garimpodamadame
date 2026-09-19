@@ -179,7 +179,13 @@ Deno.serve(async (req) => {
     await upsertPublication({ external_listing_id: listingId, status: "published", pending_fields: [], last_error: null, last_payload: payload, last_response: publishResult.data, last_attempt_at: new Date().toISOString(), published_at: new Date().toISOString() });
     await supa.from("marketplace_product_events").insert({ product_id: productId, channel_id: savedChannel.id, actor_id: actorId, event_type: "published", status: "success", details: { listing_id: listingId, via: "bling" } });
     await logSync({ entity_type: "product", entity_id: productId, action: "publish_tiktok_via_bling", status: "success", payload, response: publishResult.data });
-    return jsonResponse({ ok: true, status: "published", listing_id: listingId });
+    return jsonResponse({
+      ok: true,
+      status: "published",
+      listing_id: listingId,
+      channel: { id: storeId, name: channel.descricao ?? channel.nome ?? "TikTok Shop", type },
+      tiktok_response: publishResult.data,
+    });
   } catch (error) {
     if (error instanceof Response) return error;
     const message = error instanceof Error

@@ -111,11 +111,31 @@ Deno.serve(async (req) => {
     if (req.method !== "POST") return jsonResponse({ error: "Método não permitido." }, 405);
 
     const body = await req.json().catch(() => ({}));
+    const productId = typeof body.product_id === "string" ? body.product_id : "";
+    if (body.action === "product_status") {
+      if (!/^[0-9a-f-]{36}$/i.test(productId)) return jsonResponse({ error: "Produto inválido." }, 400);
+      const [{ data: publication }, { data: mapping }, { data: events }] = await Promise.all([
+        supa.from("marketplace_product_publications")
+          .select("status,external_listing_id,pending_fields,last_error,last_payload,last_response,last_attempt_at,published_at,updated_at")
+          .eq("product_id", productId).eq("channel_id", savedChannel.id).is("variant_id", null).maybeSingle(),
+        supa.from("marketplace_category_mappings")
+          .select("marketplace_category_id,marketplace_category_name,required_attributes,attribute_mappings,confirmed_at")
+          .eq("channel_id", savedChannel.id).maybeSingle(),
+        supa.from("marketplace_product_events")
+          .select("event_type,status,details,created_at").eq("product_id", productId).eq("channel_id", savedChannel.id)
+          .order("created_at", { ascending: false }).limit(20),
+      ]);
+      return jsonResponse({
+        channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop", raw: channel },
+        category: mapping ?? null,
+        publication: publication ?? null,
+        events: events ?? [],
+      });
+    }
     if (body.action === "list") {
       const categories = await getCategories(channel);
       return jsonResponse({ categories, channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" } });
     }
-    const productId = typeof body.product_id === "string" ? body.product_id : "";
     if (body.action === "confirm_product") {
       if (!/^[0-9a-f-]{36}$/i.test(productId)) return jsonResponse({ error: "Produto inválido." }, 400);
       const confirmedAt = new Date().toISOString();
