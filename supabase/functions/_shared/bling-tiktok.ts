@@ -49,30 +49,74 @@ export async function getTikTokChannel() {
   return ((response.data?.data ?? []) as TikTokChannel[]).find((item) => isTikTokChannel(item) && item.situacao !== 0) ?? null;
 }
 
+async function getTikTokIntegrationType(channel: TikTokChannel) {
+  if (channel.tipoIntegracao) return channel.tipoIntegracao;
+  const response = await callBling({ path: '/canais-venda/tipos' });
+  if (response.status >= 400) return channel.tipo ?? 'TikTok';
+  const types = (response.data?.data ?? []) as Array<{ nome?: string; tipo?: string }>;
+  const match = types.find((item) => /tiktok/i.test(`${item.nome ?? ''} ${item.tipo ?? ''}`));
+  return match?.tipo ?? channel.tipo ?? 'TikTok';
+}
+
 export async function getTikTokCategories(channel: TikTokChannel, productType?: string) {
   const storeId = String(channel.id);
-  const integrationType = channel.tipoIntegracao ?? channel.tipo ?? 'TikTok';
-  const typeCandidates = [...new Set([productType?.trim(), 'P', 'produto', undefined])];
-  let lastResponse: Awaited<ReturnType<typeof callBling>> | null = null;
+  const integrationType = await getTikTokIntegrationType(channel);
+  const typeCandidates = [...new Set([productType?.trim(), undefined])];
+  let lastError: string | null = null;
   for (const tipoProduto of typeCandidates) {
-    const response = await callBling({ path: '/anuncios/categorias', query: { tipoIntegracao: integrationType, idLoja: storeId, tipoProduto } });
-    lastResponse = response;
-    if (response.status >= 400) continue;
-    const categories = normalizeTikTokCategories(response.data?.data ?? response.data);
-    if (categories.length) return categories;
-  }
-  const announcementCategories = lastResponse;
-  if (announcementCategories && announcementCategories.status >= 400 && announcementCategories.status !== 404) {
-    throw new Error(blingError(announcementCategories.status, announcementCategories.data));
+    const rootsResponse = await callBling({ path: '/anuncios/categorias', query: { tipoIntegracao: integrationType, idLoja: storeId, tipoProduto } });
+    if (rootsResponse.status >= 400) {
+      lastError = blingError(rootsResponse.status, rootsResponse.data);
+      continue;
+    }
+    const roots = normalizeTikTokCategories(rootsResponse.data?.data ?? rootsResponse.data);
+    if (!roots.length) continue;
+
+    const all = [...roots];
+    const queue = roots.map((category) => ({ category, depth: 0 }));
+    const visited = new Set<string>();
+    const maxRequests = 300;
+    let requests = 0;
+    while (queue.length && requests < maxRequests) {
+      const next = queue.shift();
+      if (!next || visited.has(next.category.id) || next.depth >= 8) continue;
+      visited.add(next.category.id);
+      requests += 1;
+      const childrenResponse = await callBling({
+        path: '/anuncios/categorias',
+        query: { tipoIntegracao: integrationType, idLoja: storeId, idCategoria: next.category.id, tipoProduto },
+      });
+      if (childrenResponse.status >= 400) continue;
+      const children = normalizeTikTokCategories(
+        childrenResponse.data?.data ?? childrenResponse.data,
+        next.category.id,
+        next.category.path_name,
+      );
+      if (!children.length) {
+        next.category.is_leaf = true;
+        continue;
+      }
+      next.category.is_leaf = false;
+      for (const child of children) {
+        const existing = all.find((candidate) => candidate.id === child.id);
+        if (!existing) all.push(child);
+        queue.push({ category: child, depth: next.depth + 1 });
+      }
+    }
+    return all;
   }
   const linkedCategories = await callBling({ path: '/categorias/lojas', query: { idLoja: storeId, limite: 100 } });
-  if (linkedCategories.status >= 400) throw new Error(blingError(linkedCategories.status, linkedCategories.data));
-  return normalizeTikTokCategories(linkedCategories.data?.data ?? []);
+  if (linkedCategories.status < 400) {
+    const linked = normalizeTikTokCategories(linkedCategories.data?.data ?? []);
+    if (linked.length) return linked;
+  }
+  if (lastError) throw new Error(`${lastError}. Verifique se o aplicativo do Bling possui acesso a anúncios e se o TikTok Shop permite gerenciar categorias.`);
+  return [];
 }
 
 export async function getTikTokCategoryAttributes(channel: TikTokChannel, categoryId: string) {
   const storeId = String(channel.id);
-  const integrationType = channel.tipoIntegracao ?? channel.tipo ?? 'TikTok';
+  const integrationType = await getTikTokIntegrationType(channel);
   const response = await callBling({
     path: `/anuncios/categorias/${encodeURIComponent(categoryId)}`,
     query: { tipoIntegracao: integrationType, idLoja: storeId },
