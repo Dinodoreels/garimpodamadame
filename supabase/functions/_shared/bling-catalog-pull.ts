@@ -152,8 +152,10 @@ export async function pullLinkedBlingProducts(options: { blingProductIds?: strin
           supa.from('products').select('title, description, vendor, product_type, price, weight_grams, width_cm, height_cm, length_cm').eq('id', link.product_id).maybeSingle(),
           supa.from('product_variants').select('price, cost, inventory_quantity').eq('id', link.variant_id).maybeSingle(),
         ]);
-        const productChanged = Object.entries(productUpdates).some(([key, value]) => String(localProduct?.[key] ?? '') !== String(value ?? ''));
-        const variantChanged = Object.entries(variantUpdates).some(([key, value]) => Number(localVariant?.[key] ?? 0) !== Number(value ?? 0));
+        const localProductRecord = (localProduct ?? {}) as Record<string, unknown>;
+        const localVariantRecord = (localVariant ?? {}) as Record<string, unknown>;
+        const productChanged = Object.entries(productUpdates).some(([key, value]) => String(localProductRecord[key] ?? '') !== String(value ?? ''));
+        const variantChanged = Object.entries(variantUpdates).some(([key, value]) => Number(localVariantRecord[key] ?? 0) !== Number(value ?? 0));
 
         if (productChanged) await supa.from('products').update(productUpdates).eq('id', link.product_id);
         if (variantChanged) await supa.from('product_variants').update(variantUpdates).eq('id', link.variant_id);
