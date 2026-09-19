@@ -106,9 +106,10 @@ export function ScanScreen({ fullscreen = false }: Props) {
         }));
         toast.success('Produto encontrado no catálogo — mesmo SKU reaproveitado.');
       } else if (res.result) {
+        const suggestedTitle = res.result.title?.toLowerCase().includes('não identific') ? '' : (res.result.title ?? '');
         setForm(f => ({
           ...f,
-          title: res.result!.title ?? '',
+          title: suggestedTitle,
           brand: res.result!.brand ?? '',
           category: res.result!.category ?? '',
           description: res.result!.description ?? '',
@@ -116,10 +117,11 @@ export function ScanScreen({ fullscreen = false }: Props) {
           condition_code: (res.result!.condition_guess as string) || f.condition_code,
           suggested_price: res.result!.estimated_price_brl != null ? String(res.result!.estimated_price_brl) : res.result!.price != null ? String(res.result!.price) : '',
         }));
-        if ((res.confidence ?? 0) < 0.75) {
+        if ((res.candidates?.length ?? 0) < 3) {
+          const sourceDetail = res.warnings?.length ? ` ${res.warnings.join(' ')}` : '';
+          setAiWarning(`Foram encontrados ${res.candidates?.length ?? 0} de 3 anúncios válidos. Tire uma foto mais próxima e bem iluminada ou informe o código de barras.${sourceDetail}`);
+        } else if ((res.confidence ?? 0) < 0.75) {
           setAiWarning('As fontes não deram certeza suficiente. Ao gravar, a peça vai para Pendências.');
-        } else if ((res.candidates?.length ?? 0) < 3) {
-          setAiWarning(`Foram encontrados ${res.candidates?.length ?? 0} de 3 anúncios válidos. Revise antes de gravar.`);
         } else if (res.warnings?.length) {
           setAiWarning(res.warnings.join(' '));
         }
@@ -139,6 +141,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
     setSaving(true);
     try {
       const match = identified?.source === 'catalog' ? identified.match : null;
+      const identificationNeedsReview = Boolean(identified?.needs_review);
       const res = await scanService.save({
         lot_id: lotId,
         barcode: barcode.trim() || null,
@@ -160,8 +163,8 @@ export function ScanScreen({ fullscreen = false }: Props) {
           : identified?.match ?? null,
         photo_base64: photo,
         identification_result_ids: identified?.result_ids,
-        force_review: forceReview,
-        auto_publish: !forceReview,
+        force_review: forceReview || identificationNeedsReview,
+        auto_publish: !forceReview && !identificationNeedsReview,
       });
       setTimes(t => [...t.slice(-19), Math.round((Date.now() - startedAt.current) / 1000)]);
       if (res.pending) {
@@ -276,7 +279,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
           )}
           {identified && identified.source !== 'catalog' && (
             <Badge variant="secondary" className="text-sm">
-              {identified.source === 'cosmos' ? 'Base GTIN' : identified.source === 'google_lens' ? 'Busca visual' : 'Fontes externas'} · confiança {Math.round((identified.confidence ?? 0) * 100)}%
+              {identified.source === 'cosmos' ? 'Base GTIN' : identified.source === 'google_lens' ? 'Busca visual' : 'Fontes externas'} · {identified.confidence != null && identified.confidence > 0 ? `confiança ${Math.round(identified.confidence * 100)}%` : 'sem confirmação'}
             </Badge>
           )}
           {aiWarning && (
@@ -284,11 +287,11 @@ export function ScanScreen({ fullscreen = false }: Props) {
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" /> {aiWarning}
             </p>
           )}
-          {identified?.candidates && identified.candidates.length > 0 && (
+          {identified && identified.source !== 'catalog' && (
             <div className="space-y-2">
-              <p className="text-sm font-medium">Anúncios encontrados ({identified.candidates.length}/3)</p>
-              <div className="grid gap-3 md:grid-cols-3">
-                {identified.candidates.slice(0, 3).map((candidate, index) => (
+              <p className="text-sm font-medium">Anúncios encontrados ({identified.candidates?.length ?? 0}/3)</p>
+              {(identified.candidates?.length ?? 0) > 0 ? <div className="grid gap-3 md:grid-cols-3">
+                {identified.candidates?.slice(0, 3).map((candidate, index) => (
                   <div key={candidate.id ?? `${candidate.product_url}-${index}`} className="overflow-hidden rounded-md border bg-card">
                     {candidate.image_url && <img src={candidate.image_url} alt={candidate.title ?? 'Produto encontrado'} className="aspect-square w-full object-cover" />}
                     <div className="space-y-1 p-3">
@@ -299,7 +302,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
                     </div>
                   </div>
                 ))}
-              </div>
+              </div> : <p className="text-sm text-muted-foreground">Nenhum anúncio com preço confirmado foi encontrado. O item ficará para revisão.</p>}
             </div>
           )}
         </CardContent>

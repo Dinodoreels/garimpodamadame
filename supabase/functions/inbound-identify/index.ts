@@ -18,6 +18,18 @@ type Candidate = {
 const normalizeCode = (value: string) => value.replace(/[^0-9A-Za-z]/g, '').toUpperCase();
 const text = (value: unknown, max = 5000) => typeof value === 'string' ? value.trim().slice(0, max) : '';
 
+function parsePrice(value: unknown): number | null {
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : null;
+  if (typeof value !== 'string') return null;
+  const cleaned = value.replace(/[^0-9,.-]/g, '').trim();
+  if (!cleaned) return null;
+  const normalized = cleaned.includes(',')
+    ? cleaned.replace(/\./g, '').replace(',', '.')
+    : cleaned;
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 async function record(db: ReturnType<typeof adminClient>, row: Record<string, unknown>) {
   const { data } = await db.from('inbound_identification_results').insert(row).select('id').single();
   return data?.id ?? null;
@@ -64,11 +76,72 @@ function mapSerpRows(body: Record<string, any>, source: string): Candidate[] {
     gtin: null,
     image_url: row.thumbnail ?? row.image ?? null,
     product_url: row.link ?? row.product_link ?? null,
-    price: Number(row.extracted_price ?? row.price?.value ?? 0) || null,
+    price: parsePrice(row.extracted_price ?? row.price?.value ?? row.price),
     condition: row.condition ?? null,
     confidence: Math.max(0.4, 0.86 - index * 0.035),
     source: text(row.source ?? row.merchant_name, 100) || source,
   }));
+}
+
+type VisionResult = {
+  title: string;
+  brand: string | null;
+  category: string | null;
+  description: string;
+  condition_guess: string | null;
+  search_query: string;
+  confidence: number;
+  reasoning_note: string;
+};
+
+async function gatewayJson(prompt: string, schemaName: string, schema: Record<string, unknown>, imageBase64?: string) {
+  const key = Deno.env.get('LOVABLE_API_KEY');
+  if (!key) return null;
+  const content: Record<string, unknown>[] = [{ type: 'input_text', text: prompt }];
+  if (imageBase64) content.push({ type: 'input_image', image_url: imageBase64 });
+
+  let lastError: Error | null = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 700 * (2 ** (attempt - 1)) + Math.floor(Math.random() * 250)));
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Lovable-API-Key': key, 'X-Lovable-AIG-SDK': 'fetch' },
+      body: JSON.stringify({
+        model: 'openai/gpt-6-astra', stream: true, store: false,
+        reasoning: { effort: 'low', summary: 'auto' }, include: ['reasoning.encrypted_content'],
+        input: [{ role: 'user', content }],
+        text: { format: { type: 'json_schema', name: schemaName, strict: true, schema } },
+      }),
+    });
+    if (response.ok) {
+      const output = await readResponseStream(response);
+      return output ? JSON.parse(output) : null;
+    }
+    const message = await response.text();
+    const error = new Error(message || 'Falha na análise por IA.');
+    (error as Error & { status?: number }).status = response.status;
+    lastError = error;
+    if (response.status !== 429 && response.status < 500) throw error;
+    if (response.status < 500 && response.status !== 429) throw error;
+  }
+  throw lastError ?? new Error('Falha na análise por IA.');
+}
+
+async function analyzeImage(imageBase64: string): Promise<VisionResult | null> {
+  return gatewayJson(
+    'Analise esta foto real de um produto usado para cadastro comercial. Responda em JSON. Identifique somente características visualmente sustentadas. Se marca ou modelo não forem legíveis, use null e não invente. Crie uma busca curta e objetiva em português para encontrar o mesmo produto em anúncios brasileiros. Não forneça dados fiscais.',
+    'inbound_visual_product',
+    {
+      type: 'object', additionalProperties: false,
+      properties: {
+        title: { type: 'string' }, brand: { type: ['string', 'null'] }, category: { type: ['string', 'null'] },
+        description: { type: 'string' }, condition_guess: { type: ['string', 'null'] }, search_query: { type: 'string' },
+        confidence: { type: 'number' }, reasoning_note: { type: 'string' },
+      },
+      required: ['title', 'brand', 'category', 'description', 'condition_guess', 'search_query', 'confidence', 'reasoning_note'],
+    },
+    imageBase64,
+  ) as Promise<VisionResult | null>;
 }
 
 async function serpLookup(params: URLSearchParams): Promise<Candidate[]> {
@@ -121,16 +194,11 @@ async function readResponseStream(response: Response) {
 }
 
 async function synthesize(barcode: string, hint: string, candidates: Candidate[]) {
-  const key = Deno.env.get('LOVABLE_API_KEY');
-  if (!key || !candidates.length) return null;
-  const response = await fetch('https://ai.gateway.lovable.dev/v1/responses', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Lovable-API-Key': key, 'X-Lovable-AIG-SDK': 'fetch' },
-    body: JSON.stringify({
-      model: 'openai/gpt-6-astra', stream: true,
-      reasoning: { effort: 'low', summary: 'auto' }, include: ['reasoning.encrypted_content'],
-      input: [{ role: 'user', content: [{ type: 'input_text', text: `Gere JSON de cadastro comercial em português brasileiro usando somente as referências reais abaixo. Compare marca, modelo, condição e preço. Não invente GTIN, marca, categoria fiscal, NCM, CEST, origem, peso ou dimensões. Sugira o preço mais adequado, não uma média automática. Código: ${barcode || 'não informado'}. Observação: ${hint || 'nenhuma'}. Referências: ${JSON.stringify(candidates)}` }] }],
-      text: { format: { type: 'json_schema', name: 'inbound_product', strict: true, schema: {
+  if (!candidates.length) return null;
+  return gatewayJson(
+    `Gere JSON de cadastro comercial em português brasileiro usando somente as referências reais abaixo. Compare marca, modelo, condição e preço. Não invente GTIN, marca, categoria fiscal, NCM, CEST, origem, peso ou dimensões. Sugira o preço mais adequado. Código: ${barcode || 'não informado'}. Observação visual: ${hint || 'nenhuma'}. Referências: ${JSON.stringify(candidates)}`,
+    'inbound_product',
+    {
         type: 'object', additionalProperties: false,
         properties: {
           title: { type: 'string' }, description: { type: 'string' }, brand: { type: ['string','null'] },
@@ -138,17 +206,8 @@ async function synthesize(barcode: string, hint: string, candidates: Candidate[]
           estimated_price_brl: { type: 'number' }, confidence: { type: 'number' }, reasoning_note: { type: 'string' },
         },
         required: ['title','description','brand','category','condition_guess','estimated_price_brl','confidence','reasoning_note'],
-      } } },
-    }),
-  });
-  if (!response.ok) {
-    const message = await response.text();
-    const error = new Error(message || 'Falha na análise por IA.');
-    (error as Error & { status?: number }).status = response.status;
-    throw error;
-  }
-  const output = await readResponseStream(response);
-  return output ? JSON.parse(output) : null;
+    },
+  );
 }
 
 Deno.serve(async (req) => {
@@ -182,6 +241,7 @@ Deno.serve(async (req) => {
 
     const warnings: string[] = [];
     const sourceCandidates: Candidate[] = [];
+      let visualResult: VisionResult | null = null;
     let tempPath: string | null = null;
     try {
       if (barcode) {
@@ -189,6 +249,12 @@ Deno.serve(async (req) => {
         try { sourceCandidates.push(...await serpLookup(new URLSearchParams({ engine: 'google_shopping', q: barcode }))); } catch (error) { warnings.push(error instanceof Error ? error.message : 'Falha ao buscar anúncios pelo código.'); }
       }
       if (imageBase64) {
+        try { visualResult = await analyzeImage(imageBase64); }
+        catch (error) {
+          const status = (error as Error & { status?: number }).status;
+          if (status === 402 || status === 403) throw error;
+          warnings.push(error instanceof Error ? error.message : 'Falha ao analisar a foto.');
+        }
         try {
           const uploaded = await uploadSearchImage(imageBase64, db);
           tempPath = uploaded.path;
@@ -196,10 +262,17 @@ Deno.serve(async (req) => {
         } catch (error) { warnings.push(error instanceof Error ? error.message : 'Falha na busca visual.'); }
       }
 
+      const searchQuery = text(visualResult?.search_query, 180)
+        || text(sourceCandidates.find(candidate => candidate.title)?.title, 180);
+      if (!barcode && searchQuery) {
+        try { sourceCandidates.push(...await serpLookup(new URLSearchParams({ engine: 'google_shopping', q: searchQuery }))); }
+        catch (error) { warnings.push(error instanceof Error ? error.message : 'Falha ao buscar preços pelo produto identificado.'); }
+      }
+
       const comparables = selectComparables(sourceCandidates);
       const catalogCandidate = sourceCandidates.find(candidate => candidate.source === 'cosmos') ?? null;
       let aiResult: Record<string, any> | null = null;
-      try { aiResult = await synthesize(barcode, hint, comparables.length ? comparables : sourceCandidates.slice(0, 3)); }
+      try { aiResult = await synthesize(barcode, visualResult?.description || hint, comparables.length ? comparables : sourceCandidates.slice(0, 3)); }
       catch (error) {
         const status = (error as Error & { status?: number }).status;
         if (status === 402 || status === 403) throw error;
@@ -215,15 +288,15 @@ Deno.serve(async (req) => {
       const fallbackPrice = prices.length ? prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)] : null;
       const imageUrls = [...new Set(comparables.map(row => row.image_url).filter((value): value is string => !!value))];
       const result = {
-        title: aiResult?.title ?? catalogCandidate?.title ?? comparables[0]?.title ?? '',
-        description: aiResult?.description ?? null,
-        brand: aiResult?.brand ?? catalogCandidate?.brand ?? null,
-        category: aiResult?.category ?? catalogCandidate?.category ?? null,
+        title: aiResult?.title ?? visualResult?.title ?? catalogCandidate?.title ?? comparables[0]?.title ?? '',
+        description: aiResult?.description ?? visualResult?.description ?? null,
+        brand: aiResult?.brand ?? visualResult?.brand ?? catalogCandidate?.brand ?? null,
+        category: aiResult?.category ?? visualResult?.category ?? catalogCandidate?.category ?? null,
         color: null, size: null,
-        condition_guess: aiResult?.condition_guess ?? comparables[0]?.condition ?? null,
+        condition_guess: aiResult?.condition_guess ?? visualResult?.condition_guess ?? comparables[0]?.condition ?? null,
         estimated_price_brl: Number(aiResult?.estimated_price_brl ?? fallbackPrice ?? 0) || null,
-        confidence: Math.max(0, Math.min(1, Number(aiResult?.confidence ?? (comparables.length === 3 ? 0.82 : 0.62)))),
-        reasoning_note: aiResult?.reasoning_note ?? 'Sugestão baseada nas referências disponíveis.',
+        confidence: Math.max(0, Math.min(1, Number(aiResult?.confidence ?? visualResult?.confidence ?? (comparables.length === 3 ? 0.82 : 0.62)))),
+        reasoning_note: aiResult?.reasoning_note ?? visualResult?.reasoning_note ?? 'Sugestão baseada nas referências disponíveis.',
         source: 'external', gtin: barcode || null, sku: barcode ? `GDM-${barcode}` : null,
         image_urls: imageUrls, comparable_count: comparables.length,
       };
