@@ -115,9 +115,9 @@
 - [x] Reconhecer a conta TikTok Shop já conectada ao Bling
 - [x] Permitir confirmar dados e escolher a categoria TikTok dentro do cadastro
 - [ ] Validar categoria e atributos reais do TikTok Shop
-- [ ] Publicar o produto e sincronizar o estoque no TikTok após escolher e confirmar a categoria real
+- [x] Publicar o produto e sincronizar o estoque no TikTok após escolher e confirmar a categoria real
 - [ ] Manter o custo real do produto sincronizado no Bling junto com preço e estoque
 - [x] Mostrar no cadastro a categoria, atributos, código do anúncio, situação e retorno exato recebido do TikTok via Bling
 - [x] Publicar automaticamente no TikTok todos os produtos completos após receber categoria e atributos reais do Bling
-- [ ] Repetir a publicação isolada do Body Splash após o Bling ativar a integração ADS do TikTok (nova tentativa em 19/09/2026 08:33 UTC recusada: `Integration not found`; categoria TikTok ainda não liberada)
-- [ ] Automatizar a publicação direta no TikTok de produtos completos de todas as categorias, reutilizando vínculos reais e sem duplicidade
+- [x] Publicar o Body Splash isoladamente no TikTok; anúncio `1737590202684507389` enviado e em análise
+- [x] Automatizar a publicação direta no TikTok de produtos completos de todas as categorias, reutilizando vínculos reais e sem duplicidade
