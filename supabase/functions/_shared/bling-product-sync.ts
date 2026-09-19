@@ -232,14 +232,17 @@ export async function syncProductToBling(productId: string) {
     const { data: existingLinks, error: linksError } = await linksQuery;
     if (linksError) throw linksError;
 
-    const linkedIds = (existingLinks ?? [])
-      .map((link: any) => String(link.bling_product_id ?? ''))
-      .filter(Boolean);
-    const matchedId = linkedIds.length ? null : await findBlingProductBySku(u.sku);
-    const targetIds: Array<string | null> = linkedIds.length ? [...new Set(linkedIds)] : [matchedId];
+    const linkedTargets = (existingLinks ?? [])
+      .filter((link: any) => Boolean(link.bling_product_id))
+      .map((link: any) => ({ id: String(link.bling_product_id), sku: String(link.bling_sku ?? u.sku) }));
+    const matchedId = linkedTargets.length ? null : await findBlingProductBySku(u.sku);
+    const targets: Array<{ id: string | null; sku: string }> = linkedTargets.length
+      ? [...new Map(linkedTargets.map((target) => [target.id, target])).values()]
+      : [{ id: matchedId, sku: u.sku }];
 
-    for (const targetId of targetIds) {
-      const payload = buildPayload(u);
+    for (const target of targets) {
+      const targetId = target.id;
+      const payload = buildPayload({ ...u, sku: target.sku });
       const isUpdate = Boolean(targetId);
       const { status, data } = await callBling({
         path: isUpdate ? `/produtos/${targetId}` : "/produtos",
@@ -267,7 +270,7 @@ export async function syncProductToBling(productId: string) {
         product_id: productId,
         variant_id: u.variantId,
         bling_product_id: newId,
-        bling_sku: u.sku,
+        bling_sku: target.sku,
         status: warnings.length ? "partial" : "synced",
         last_pushed_at: new Date().toISOString(),
         last_error: warnings.length ? warnings.join(" ") : null,
@@ -307,7 +310,7 @@ export async function syncProductToBling(productId: string) {
         response: { write: data, confirmation: confirmation.remote },
       });
       results.push({
-        sku: u.sku,
+        sku: target.sku,
         ok: true,
         bling_product_id: newId,
         confirmed_stock: confirmedStock,
