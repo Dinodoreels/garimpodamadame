@@ -6,6 +6,17 @@ import { pullLinkedBlingProducts } from "../_shared/bling-catalog-pull.ts";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
+    if (req.method !== "POST") return jsonResponse({ error: "Método não permitido" }, 405);
+    const contentLength = Number(req.headers.get("content-length") ?? 0);
+    if (contentLength > 1_000_000) return jsonResponse({ error: "Evento muito grande" }, 413);
+    const webhookSecret = Deno.env.get("BLING_WEBHOOK_SECRET");
+    const suppliedSecret = req.headers.get("x-bling-webhook-secret")
+      ?? req.headers.get("authorization")?.replace(/^Bearer\s+/i, "")
+      ?? new URL(req.url).searchParams.get("token");
+    if (webhookSecret && suppliedSecret !== webhookSecret) {
+      await logSync({ entity_type: "webhook", action: "authenticate", status: "rejected", error_message: "Credencial do aviso inválida" });
+      return jsonResponse({ error: "Não autorizado" }, 401);
+    }
     const raw = await req.text();
     let payload: any = {};
     try {
