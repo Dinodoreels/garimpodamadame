@@ -137,7 +137,6 @@ async function nvidiaVisionJson(prompt: string, imageBase64: string): Promise<Vi
         ],
       }],
       temperature: 0.1,
-      max_tokens: 900,
     }),
   });
   if (!response.ok) {
@@ -199,7 +198,7 @@ async function geminiJson(prompt: string, schema: Record<string, unknown>, image
     const error = new Error(geminiErrorMessage(response.status));
     (error as Error & { status?: number }).status = response.status;
     lastError = error;
-    if (response.status !== 429 && response.status < 500) throw error;
+    if (response.status === 429 || response.status < 500) throw error;
   }
   throw lastError ?? new Error('Falha na análise pelo Gemini.');
 }
@@ -237,7 +236,17 @@ async function serpLookup(params: URLSearchParams): Promise<Candidate[]> {
   params.set('hl', 'pt-br');
   const res = await fetch(`https://serpapi.com/search.json?${params}`);
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(`Pesquisa de anúncios indisponível (${res.status}).`);
+  if (!res.ok) {
+    const error = new Error(
+      res.status === 401 || res.status === 403
+        ? 'A credencial da pesquisa de anúncios precisa ser renovada.'
+        : res.status === 429
+          ? 'O limite da pesquisa de anúncios foi atingido. Aguarde a liberação e tente novamente.'
+          : `Pesquisa de anúncios indisponível (${res.status}).`,
+    );
+    (error as Error & { status?: number }).status = res.status;
+    throw error;
+  }
   return mapSerpRows(body, params.get('engine') === 'google_lens' ? 'Google Lens' : 'Google Shopping');
 }
 
@@ -262,7 +271,11 @@ async function geminiSearchLookup(query: string): Promise<Candidate[]> {
   if (!response.ok) {
     const providerMessage = await response.text();
     console.error('Gemini Search error', response.status, providerMessage.slice(0, 1200));
-    const error = new Error(geminiErrorMessage(response.status));
+    const error = new Error(
+      response.status === 429
+        ? 'O limite da pesquisa Google foi atingido. Libere a cota e toque em Identificar produto novamente.'
+        : geminiErrorMessage(response.status),
+    );
     (error as Error & { status?: number }).status = response.status;
     throw error;
   }

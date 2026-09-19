@@ -119,7 +119,10 @@ export function ScanScreen({ fullscreen = false }: Props) {
         }));
         if ((res.candidates?.length ?? 0) < 3) {
           const sourceDetail = res.warnings?.length ? ` ${res.warnings.join(' ')}` : '';
-          setAiWarning(`Foram encontrados ${res.candidates?.length ?? 0} de 3 anúncios válidos. Tire uma foto mais próxima e bem iluminada ou informe o código de barras.${sourceDetail}`);
+          const quotaBlocked = res.warnings?.some(warning => /limite da pesquisa|cota/i.test(warning));
+          setAiWarning(quotaBlocked
+            ? `A foto foi analisada, mas a pesquisa de anúncios atingiu o limite da conta Google. Libere a cota e toque em Identificar produto novamente.${sourceDetail}`
+            : `Foram encontrados ${res.candidates?.length ?? 0} de 3 anúncios válidos. Tire uma foto mais próxima e bem iluminada ou informe o código de barras.${sourceDetail}`);
         } else if ((res.confidence ?? 0) < 0.75) {
           setAiWarning('As fontes não deram certeza suficiente. Ao gravar, a peça vai para Pendências.');
         } else if (res.warnings?.length) {
