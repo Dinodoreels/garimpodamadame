@@ -66,6 +66,7 @@ export async function getTikTokCategories(channel: TikTokChannel, productType?: 
   for (const tipoProduto of typeCandidates) {
     const rootsResponse = await callBling({ path: '/anuncios/categorias', query: { tipoIntegracao: integrationType, idLoja: storeId, tipoProduto } });
     if (rootsResponse.status >= 400) {
+      console.error('TikTok category request rejected', { integrationType, storeId, tipoProduto, status: rootsResponse.status, response: rootsResponse.data });
       lastError = blingError(rootsResponse.status, rootsResponse.data);
       continue;
     }
