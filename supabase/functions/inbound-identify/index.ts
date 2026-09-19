@@ -127,6 +127,7 @@ async function nvidiaVisionJson(prompt: string, imageBase64: string): Promise<Vi
   const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    signal: AbortSignal.timeout(20_000),
     body: JSON.stringify({
       model: NVIDIA_VISION_MODEL,
       messages: [{

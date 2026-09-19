@@ -26,7 +26,7 @@
 - [x] Atualizar automaticamente catálogo, fotos e estoque vinculados do Bling em lotes seguros
 - [x] Permitir que somente administradores excluam recebimentos, com confirmação e proteção no banco
 - [x] Pesquisar 3 anúncios reais no Garimpo Scan, gerar identificação/preço/descrição/fotos e publicar o cadastro único na loja e no painel
-- [ ] Usar NVIDIA Vision como alternativa segura quando a análise visual do Gemini estiver temporariamente indisponível
+- [x] Usar NVIDIA Vision como alternativa segura quando a análise visual do Gemini estiver temporariamente indisponível
 - [ ] Validar três anúncios reais após a liberação da cota de pesquisa Google
 
 # Mercado Pago e Fiscal
