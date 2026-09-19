@@ -23,8 +23,15 @@ Deno.serve(async (req) => {
       .order('updated_at', { ascending: true })
       .limit(100);
     if (requestedIds?.length) query = query.in('id', requestedIds);
-    const { data: products, error } = await query;
+    const [{ data: products, error }, { count: withoutCategory, error: countError }] = await Promise.all([
+      query,
+      supa.from('products')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'active')
+        .is('product_type', null),
+    ]);
     if (error) throw error;
+    if (countError) throw countError;
 
     const categoryCache = new Map<string, { id: string; description: string; created: boolean }>();
     const results: Array<Record<string, unknown>> = [];
@@ -52,7 +59,7 @@ Deno.serve(async (req) => {
       categories: [...categoryCache.values()],
       succeeded: results.filter((result) => result.ok).length,
       failed: results.filter((result) => !result.ok).length,
-      without_category: Math.max(0, 53 - results.length),
+      without_category: withoutCategory ?? 0,
       results,
     });
   } catch (error) {
