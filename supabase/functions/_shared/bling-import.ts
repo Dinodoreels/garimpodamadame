@@ -154,11 +154,10 @@ export async function prepareImportRun(userId: string | null, options: { product
   if (runError) throw runError;
 
   try {
-    const allRemote = await fetchAllBlingProducts();
     const requestedIds = options.productIds?.length ? new Set(options.productIds.map(String)) : null;
     const remote = requestedIds
-      ? allRemote.filter((product: any) => requestedIds.has(String(product?.id ?? '')))
-      : allRemote;
+      ? await Promise.all([...requestedIds].map((id) => fetchBlingProductDetail(id)))
+      : await fetchAllBlingProducts();
     if (!cfg.deposito_id) throw new Error('Escolha o depósito do Bling antes de buscar produtos e estoque.');
     const stockByProduct = await fetchBlingStock(remote.map((product: any) => String(product?.id ?? '')).filter(Boolean), cfg.deposito_id);
     const { data: variants } = await supa.from('product_variants').select('id, product_id, sku, price, cost, inventory_quantity');
@@ -182,6 +181,10 @@ export async function prepareImportRun(userId: string | null, options: { product
 
     const preparedRemote: Array<{ raw: any; generated: boolean; generationError?: string }> = [];
     for (const raw of remote) {
+      if (normalizeSku(raw?.codigo) && requestedIds) {
+        preparedRemote.push({ raw, generated: false });
+        continue;
+      }
       if (normalizeSku(raw?.codigo)) {
         try {
           const detailed = await fetchBlingProductDetail(String(raw?.id ?? ''));
