@@ -209,6 +209,7 @@ export type Database = {
       bling_config: {
         Row: {
           access_token: string | null
+          catalog_sync_locked_until: string | null
           client_id: string | null
           client_secret: string | null
           company_name: string | null
@@ -217,6 +218,8 @@ export type Database = {
           deposito_name: string | null
           id: string
           is_active: boolean
+          last_catalog_sync_at: string | null
+          last_catalog_sync_summary: Json | null
           last_error: string | null
           last_order_pull_at: string | null
           last_sync_at: string | null
@@ -238,6 +241,7 @@ export type Database = {
         }
         Insert: {
           access_token?: string | null
+          catalog_sync_locked_until?: string | null
           client_id?: string | null
           client_secret?: string | null
           company_name?: string | null
@@ -246,6 +250,8 @@ export type Database = {
           deposito_name?: string | null
           id?: string
           is_active?: boolean
+          last_catalog_sync_at?: string | null
+          last_catalog_sync_summary?: Json | null
           last_error?: string | null
           last_order_pull_at?: string | null
           last_sync_at?: string | null
@@ -267,6 +273,7 @@ export type Database = {
         }
         Update: {
           access_token?: string | null
+          catalog_sync_locked_until?: string | null
           client_id?: string | null
           client_secret?: string | null
           company_name?: string | null
@@ -275,6 +282,8 @@ export type Database = {
           deposito_name?: string | null
           id?: string
           is_active?: boolean
+          last_catalog_sync_at?: string | null
+          last_catalog_sync_summary?: Json | null
           last_error?: string | null
           last_order_pull_at?: string | null
           last_sync_at?: string | null
@@ -5206,6 +5215,7 @@ export type Database = {
         Returns: boolean
       }
       can_view_inbound: { Args: { _user_id: string }; Returns: boolean }
+      claim_bling_catalog_sync: { Args: never; Returns: boolean }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
@@ -5268,6 +5278,7 @@ export type Database = {
           read_ct: number
         }[]
       }
+      release_bling_catalog_sync: { Args: never; Returns: undefined }
       release_inbound_item: {
         Args: {
           p_actor_id: string

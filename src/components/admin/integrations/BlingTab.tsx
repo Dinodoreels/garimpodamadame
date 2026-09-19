@@ -43,6 +43,8 @@ type Config = {
   loja_name: string | null;
   last_order_pull_at: string | null;
   last_sync_at: string | null;
+  last_catalog_sync_at: string | null;
+  last_catalog_sync_summary: { processed?: number; updated?: number; failed?: number; images_added?: number; new_products_pending?: number } | null;
   last_error: string | null;
 };
 
@@ -412,6 +414,19 @@ export function BlingTab() {
                     Última atividade: {new Date(config.last_sync_at).toLocaleString('pt-BR')}
                   </span>
                 )}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {connected && config?.last_catalog_sync_at && (
+            <Alert>
+              <RefreshCw className="h-4 w-4" />
+              <AlertDescription>
+                <strong>Catálogo automático ativo.</strong>{' '}
+                Última atualização: {new Date(config.last_catalog_sync_at).toLocaleString('pt-BR')}
+                {config.last_catalog_sync_summary
+                  ? ` · ${config.last_catalog_sync_summary.processed ?? 0} verificados · ${config.last_catalog_sync_summary.updated ?? 0} alterados · ${config.last_catalog_sync_summary.failed ?? 0} erros`
+                  : ''}
               </AlertDescription>
             </Alert>
           )}

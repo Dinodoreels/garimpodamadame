@@ -1,6 +1,7 @@
 // Public callback endpoint for Bling notifications (stock and order changes).
 import { corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, logSync } from "../_shared/bling.ts";
 import { pullMarketplaceOrders } from "../_shared/bling-orders.ts";
+import { pullLinkedBlingProducts } from "../_shared/bling-catalog-pull.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -47,6 +48,15 @@ Deno.serve(async (req) => {
     // Order changed in Bling -> import new marketplace orders
     if (cfg.pull_marketplace_orders && /pedido|order/i.test(event)) {
       pullMarketplaceOrders().catch(() => {});
+    }
+
+    // Product details changed in Bling -> refresh only the linked product.
+    if (cfg.sync_products && /produto|product/i.test(event)) {
+      const data = payload?.data ?? payload?.retorno ?? payload;
+      const blingProductId = String(data?.produto?.id ?? data?.produtoId ?? data?.id ?? "");
+      if (blingProductId) {
+        await pullLinkedBlingProducts({ blingProductIds: [blingProductId], batchSize: 1 });
+      }
     }
 
     return jsonResponse({ ok: true });

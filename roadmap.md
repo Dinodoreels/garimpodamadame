@@ -23,6 +23,7 @@
 - [x] Exigir aprovação por lote com motivo e histórico antes de aplicar produtos e estoque
 - [x] Sincronizar o estoque no Bling e no painel imediatamente após aplicar o lote
 - [x] Mostrar fotos importadas e acesso direto aos produtos vinculados no painel
+- [x] Atualizar automaticamente catálogo, fotos e estoque vinculados do Bling em lotes seguros
 
 # Mercado Pago e Fiscal
 
