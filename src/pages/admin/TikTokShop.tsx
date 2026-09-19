@@ -50,7 +50,7 @@ export default function TikTokShop() {
   const [showSecret, setShowSecret] = useState(false);
   const [copied, setCopied] = useState(false);
 
-  const callbackUrl = `https://tcwmjnyqwdeuknysciau.supabase.co/functions/v1/tiktok-oauth-callback`;
+  const callbackUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tiktok-oauth-callback`;
 
   const load = async () => {
     setLoading(true);
