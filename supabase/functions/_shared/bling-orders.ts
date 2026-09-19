@@ -382,7 +382,11 @@ export async function pullMarketplaceOrders(options: PullOrdersOptions | string 
         });
       }
       const { error: itemsError } = await supa.from("order_items").insert(itemRows);
-      if (itemsError) await logSync({ entity_type: 'order', entity_id: blingId, action: 'pull_items', status: 'error', error_message: itemsError.message });
+      if (itemsError) {
+        errors.push({ id: blingId, error: itemsError.message });
+        await logSync({ entity_type: 'order', entity_id: blingId, action: 'pull_items', status: 'error', error_message: itemsError.message });
+        continue;
+      }
     }
 
     const { error: linkError } = await supa.from("bling_order_links").upsert({

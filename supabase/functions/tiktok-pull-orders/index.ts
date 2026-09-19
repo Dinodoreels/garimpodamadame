@@ -67,14 +67,14 @@ async function importOrder(tkOrder: any) {
         updates.tracking_code = tkOrder.tracking_number;
       }
       await supa.from("orders").update(updates).eq("id", existing.order_id);
-      const stock = await applyOrderStock(supa, existing.order_id, "tiktok:direct");
-      await logSync({ entity_type: "order", entity_id: tiktokOrderId, action: "stock_transition", status: stock.blocked ? "blocked" : "success", response: stock, error_message: stock.blocked ? "Estoque do pedido requer revisão administrativa" : undefined });
       await supa.from("tiktok_order_links").update({
         tiktok_status: tkOrder.status,
         last_synced_at: new Date().toISOString(),
         raw_payload: tkOrder,
       }).eq("id", existing.id);
     }
+    const stock = await applyOrderStock(supa, existing.order_id, "tiktok:direct");
+    await logSync({ entity_type: "order", entity_id: tiktokOrderId, action: "stock_transition", status: stock.blocked ? "blocked" : "success", response: stock, error_message: stock.blocked ? "Estoque do pedido requer revisão administrativa" : undefined });
     return { skipped: true };
   }
 
@@ -152,6 +152,7 @@ async function importOrder(tkOrder: any) {
   const { error: itemsErr } = await supa.from("order_items").insert(itemsPayload);
   if (itemsErr) {
     await logSync({ entity_type: "order", entity_id: tiktokOrderId, action: "import", status: "error", error_message: itemsErr.message });
+    return { error: itemsErr.message };
   }
 
   const stock = await applyOrderStock(supa, order.id, "tiktok:direct");
