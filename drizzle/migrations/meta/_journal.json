@@ -57,6 +57,13 @@
       "when": 1789829760967,
       "tag": "0007_preserve_multiple_bling_links",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789840081197,
+      "tag": "0008_add_idempotent_order_stock_ledger",
+      "breakpoints": true
     }
   ]
 }
