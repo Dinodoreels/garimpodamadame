@@ -94,6 +94,16 @@ type VisionResult = {
   reasoning_note: string;
 };
 
+const GEMINI_MODEL = 'gemini-2.5-flash';
+
+function geminiErrorMessage(status: number) {
+  if (status === 400) return 'O Gemini não aceitou os dados enviados para análise.';
+  if (status === 401 || status === 403) return 'A credencial do Gemini precisa ser verificada.';
+  if (status === 429) return 'O Gemini atingiu o limite temporário de consultas.';
+  if (status >= 500) return 'O Gemini está temporariamente indisponível.';
+  return 'Falha na análise pelo Gemini.';
+}
+
 function parseGeminiJson(raw: string) {
   const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   return cleaned ? JSON.parse(cleaned) : null;
@@ -112,7 +122,7 @@ async function geminiJson(prompt: string, schema: Record<string, unknown>, image
   let lastError: Error | null = null;
   for (let attempt = 0; attempt < 3; attempt += 1) {
     if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 700 * (2 ** (attempt - 1)) + Math.floor(Math.random() * 250)));
-    const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent', {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
       body: JSON.stringify({
@@ -127,8 +137,8 @@ async function geminiJson(prompt: string, schema: Record<string, unknown>, image
         .join('') ?? '';
       return parseGeminiJson(output);
     }
-    const message = await response.text();
-    const error = new Error(message || 'Falha na análise pelo Gemini.');
+    await response.body?.cancel();
+    const error = new Error(geminiErrorMessage(response.status));
     (error as Error & { status?: number }).status = response.status;
     lastError = error;
     if (response.status !== 429 && response.status < 500) throw error;
