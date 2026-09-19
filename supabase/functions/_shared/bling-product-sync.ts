@@ -222,95 +222,103 @@ export async function syncProductToBling(productId: string) {
   const results: any[] = [];
 
   for (const u of units) {
-    let linkQuery = supa
+    let linksQuery = supa
       .from("bling_product_links")
       .select("*")
       .eq("product_id", productId);
-    linkQuery = u.variantId
-      ? linkQuery.eq("variant_id", u.variantId)
-      : linkQuery.is("variant_id", null);
-    const { data: link } = await linkQuery.maybeSingle();
+    linksQuery = u.variantId
+      ? linksQuery.eq("variant_id", u.variantId)
+      : linksQuery.is("variant_id", null);
+    const { data: existingLinks, error: linksError } = await linksQuery;
+    if (linksError) throw linksError;
 
-    let blingId = link?.bling_product_id ?? null;
-    if (!blingId) blingId = await findBlingProductBySku(u.sku);
+    const linkedTargets = (existingLinks ?? [])
+      .filter((link: any) => Boolean(link.bling_product_id))
+      .map((link: any) => ({ id: String(link.bling_product_id), sku: String(link.bling_sku ?? u.sku) }));
+    const matchedId = linkedTargets.length ? null : await findBlingProductBySku(u.sku);
+    const targets: Array<{ id: string | null; sku: string }> = linkedTargets.length
+      ? [...new Map(linkedTargets.map((target) => [target.id, target])).values()]
+      : [{ id: matchedId, sku: u.sku }];
 
-    const payload = buildPayload(u);
-    const isUpdate = !!blingId;
-    const { status, data } = await callBling({
-      path: isUpdate ? `/produtos/${blingId}` : "/produtos",
-      method: isUpdate ? "PUT" : "POST",
-      body: payload,
-      config: cfg,
-    });
+    for (const target of targets) {
+      const targetId = target.id;
+      const payload = buildPayload({ ...u, sku: target.sku });
+      const isUpdate = Boolean(targetId);
+      const { status, data } = await callBling({
+        path: isUpdate ? `/produtos/${targetId}` : "/produtos",
+        method: isUpdate ? "PUT" : "POST",
+        body: payload,
+        config: cfg,
+      });
 
-    if (status >= 400) {
-      const err = blingError(status, data);
-      await supa.from("bling_product_links").upsert({
+      if (status >= 400) {
+        const err = blingError(status, data);
+        if (targetId) {
+          await supa.from("bling_product_links")
+            .update({ status: "error", last_error: err })
+            .eq("bling_product_id", targetId);
+        }
+        await logSync({ entity_type: "product", entity_id: productId, action: isUpdate ? "update" : "create", status: "error", payload, response: data, error_message: err });
+        results.push({ sku: u.sku, bling_product_id: targetId, ok: false, error: err });
+        continue;
+      }
+
+      const newId = String(data?.data?.id ?? targetId);
+      const confirmation = await confirmBlingProduct(newId, u.cost, Math.min(u.images.length, 5));
+      const warnings = [confirmation.costWarning, confirmation.imageWarning].filter(Boolean);
+      const linkData = {
         product_id: productId,
         variant_id: u.variantId,
-        bling_sku: u.sku,
-        bling_product_id: blingId,
-        status: "error",
-        last_error: err,
-      }, { onConflict: "product_id,variant_id" });
-      await logSync({ entity_type: "product", entity_id: productId, action: isUpdate ? "update" : "create", status: "error", payload, response: data, error_message: err });
-      results.push({ sku: u.sku, ok: false, error: err });
-      continue;
-    }
+        bling_product_id: newId,
+        bling_sku: target.sku,
+        status: warnings.length ? "partial" : "synced",
+        last_pushed_at: new Date().toISOString(),
+        last_error: warnings.length ? warnings.join(" ") : null,
+      };
+      const existingLink = (existingLinks ?? []).find((link: any) => String(link.bling_product_id) === newId);
+      const { error: linkError } = existingLink
+        ? await supa.from("bling_product_links").update(linkData).eq("id", existingLink.id)
+        : await supa.from("bling_product_links").insert(linkData);
+      if (linkError) throw linkError;
 
-    const newId = String(data?.data?.id ?? blingId);
-    const confirmation = await confirmBlingProduct(newId, u.cost, Math.min(u.images.length, 5));
-    const warnings = [confirmation.costWarning, confirmation.imageWarning].filter(Boolean);
-
-    const { error: linkError } = await supa.from("bling_product_links").upsert({
-      product_id: productId,
-      variant_id: u.variantId,
-      bling_product_id: newId,
-      bling_sku: u.sku,
-      status: warnings.length ? "partial" : "synced",
-      last_pushed_at: new Date().toISOString(),
-      last_error: warnings.length ? warnings.join(" ") : null,
-    }, { onConflict: "product_id,variant_id" });
-    if (linkError) throw linkError;
-
-    // Push stock when the store is the authority
-    let confirmedStock: number | null = null;
-    if (cfg.sync_stock && cfg.stock_authority === "store" && cfg.deposito_id && u.variantId) {
-      try {
-        const stockResult = await pushStockToBling(newId, u.quantity, cfg.sync_prices && cfg.price_authority === "store" ? u.price : undefined);
-        confirmedStock = stockResult.confirmed_quantity;
-        await logSync({
-          entity_type: "stock",
-          entity_id: productId,
-          action: "push",
-          status: "success",
-          payload: { variant_id: u.variantId, bling_product_id: newId, deposito_id: cfg.deposito_id, quantity: u.quantity },
-        });
-      } catch (e) {
-        const stockError = e instanceof Error ? e.message : String(e);
-        await supa.from("bling_product_links").update({ status: "error", last_error: stockError }).eq("product_id", productId).eq("variant_id", u.variantId);
-        await logSync({ entity_type: "stock", entity_id: productId, action: "push", status: "error", payload: { variant_id: u.variantId, bling_product_id: newId, deposito_id: cfg.deposito_id, quantity: u.quantity }, error_message: stockError });
-        throw e;
+      let confirmedStock: number | null = null;
+      if (cfg.sync_stock && cfg.stock_authority === "store" && cfg.deposito_id && u.variantId) {
+        try {
+          const stockResult = await pushStockToBling(newId, u.quantity, cfg.sync_prices && cfg.price_authority === "store" ? u.price : undefined);
+          confirmedStock = stockResult.confirmed_quantity;
+          await logSync({
+            entity_type: "stock",
+            entity_id: productId,
+            action: "push",
+            status: "success",
+            payload: { variant_id: u.variantId, bling_product_id: newId, deposito_id: cfg.deposito_id, quantity: u.quantity },
+          });
+        } catch (e) {
+          const stockError = e instanceof Error ? e.message : String(e);
+          await supa.from("bling_product_links").update({ status: "error", last_error: stockError }).eq("bling_product_id", newId);
+          await logSync({ entity_type: "stock", entity_id: productId, action: "push", status: "error", payload: { variant_id: u.variantId, bling_product_id: newId, deposito_id: cfg.deposito_id, quantity: u.quantity }, error_message: stockError });
+          throw e;
+        }
       }
-    }
 
-    await logSync({
-      entity_type: "product",
-      entity_id: productId,
-      action: isUpdate ? "update" : "create",
-      status: "success",
-      payload,
-      response: { write: data, confirmation: confirmation.remote },
-    });
-    results.push({
-      sku: u.sku,
-      ok: true,
-      bling_product_id: newId,
-      confirmed_stock: confirmedStock,
-      confirmed_cost: confirmation.confirmedCost,
-      confirmed_images: confirmation.confirmedImages,
-      warning: warnings.length ? warnings.join(" ") : null,
-    });
+      await logSync({
+        entity_type: "product",
+        entity_id: productId,
+        action: isUpdate ? "update" : "create",
+        status: "success",
+        payload,
+        response: { write: data, confirmation: confirmation.remote },
+      });
+      results.push({
+        sku: target.sku,
+        ok: true,
+        bling_product_id: newId,
+        confirmed_stock: confirmedStock,
+        confirmed_cost: confirmation.confirmedCost,
+        confirmed_images: confirmation.confirmedImages,
+        warning: warnings.length ? warnings.join(" ") : null,
+      });
+    }
   }
 
   const failed = results.filter((r) => !r.ok);

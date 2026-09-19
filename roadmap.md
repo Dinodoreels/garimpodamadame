@@ -127,3 +127,5 @@
 - [x] Evitar envios pendentes duplicados ao Bling e sincronizar imediatamente após salvar
 - [x] Mostrar em português as pendências de peso, medidas e categoria do TikTok
 - [x] Tratar a recusa de atributos de categoria do Bling sem erro interno e sem publicar produto incompleto
+- [x] Consolidar produtos duplicados do Bling preservando vínculos e usando um único estoque oficial
+- [x] Impedir novas duplicações por código Bling, GTIN, SKU e correspondência exata segura

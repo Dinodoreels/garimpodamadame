@@ -39,22 +39,24 @@ Deno.serve(async (req) => {
         if (item.action === "product") {
           await syncProductToBling(item.product_id);
         } else if (item.action === "stock") {
-          const { data: link } = await supa
+          const { data: links } = await supa
             .from("bling_product_links")
             .select("bling_product_id")
             .eq("variant_id", item.variant_id)
-            .maybeSingle();
+            .not("bling_product_id", "is", null);
           const { data: variant } = await supa
             .from("product_variants")
             .select("inventory_quantity, price")
             .eq("id", item.variant_id)
             .maybeSingle();
-          if (!link?.bling_product_id) throw new Error("Produto ainda não vinculado no Bling");
-          await pushStockToBling(
-            link.bling_product_id,
-            variant?.inventory_quantity ?? 0,
-            cfg.sync_prices && cfg.price_authority === "store" ? Number(variant?.price ?? 0) : undefined,
-          );
+          if (!links?.length) throw new Error("Produto ainda não vinculado no Bling");
+          for (const link of links) {
+            await pushStockToBling(
+              link.bling_product_id,
+              variant?.inventory_quantity ?? 0,
+              cfg.sync_prices && cfg.price_authority === "store" ? Number(variant?.price ?? 0) : undefined,
+            );
+          }
         } else if (item.action === "order") {
           await pushOrderToBling(item.order_id);
         } else {

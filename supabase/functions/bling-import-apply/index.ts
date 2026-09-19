@@ -203,6 +203,7 @@ Deno.serve(async (req) => {
 
         let hasProductImage = false;
         if (remote.images.length) {
+          if (!productId) throw new Error('O produto local não foi identificado para salvar as imagens do Bling.');
           const stableImages = await persistBlingImages(supa, productId, remote.id, remote.images);
           const imagesToSave = stableImages.length ? stableImages : remote.images;
           const { data: existingImages, error: existingImagesError } = await supa
@@ -264,8 +265,7 @@ Deno.serve(async (req) => {
         const { data: existingLink, error: existingLinkError } = await supa
           .from('bling_product_links')
           .select('id')
-          .eq('product_id', productId)
-          .eq('variant_id', variantId)
+          .eq('bling_product_id', remote.id)
           .maybeSingle();
         if (existingLinkError) throw existingLinkError;
         const { error: linkError } = existingLink

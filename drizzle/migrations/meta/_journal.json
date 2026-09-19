@@ -50,6 +50,13 @@
       "when": 1789810414002,
       "tag": "0006_deduplicate_bling_product_queue",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789829760967,
+      "tag": "0007_preserve_multiple_bling_links",
+      "breakpoints": true
     }
   ]
 }
