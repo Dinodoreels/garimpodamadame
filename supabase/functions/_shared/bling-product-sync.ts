@@ -49,7 +49,7 @@ function buildPayload(u: SyncUnit) {
     situacao: "A",
     formato: "S",
     unidade: "UN",
-    ...(u.cost != null ? { estrutura: undefined, precoCusto: Number(u.cost.toFixed(2)) } : {}),
+    ...(u.cost != null ? { precoCusto: Number(u.cost.toFixed(2)) } : {}),
     descricaoCurta: (u.description ?? u.name).slice(0, 500),
     marca: u.brand ? { descricao: u.brand.slice(0, 80) } : undefined,
     gtin: u.gtin || undefined,
@@ -77,6 +77,20 @@ function buildPayload(u: SyncUnit) {
       ? { imagens: { externas: u.images.slice(0, 5).map((url) => ({ link: url })) } }
       : undefined,
   };
+}
+
+async function confirmBlingProduct(blingProductId: string, expectedCost: number | null) {
+  const { status, data } = await callBling({ path: `/produtos/${blingProductId}` });
+  if (status >= 400) throw new Error(blingError(status, data));
+  const remote = data?.data ?? data;
+  const confirmedCost = remote?.precoCusto == null ? null : Number(remote.precoCusto);
+  if (
+    expectedCost != null &&
+    (!Number.isFinite(confirmedCost) || Math.abs(confirmedCost - expectedCost) > 0.009)
+  ) {
+    throw new Error(`O Bling recebeu o produto, mas retornou custo ${confirmedCost ?? "não informado"}.`);
+  }
+  return { confirmedCost, remote };
 }
 
 export async function pushStockToBling(blingProductId: string, quantity: number, price?: number) {
@@ -211,6 +225,7 @@ export async function syncProductToBling(productId: string) {
     }
 
     const newId = String(data?.data?.id ?? blingId);
+    const confirmation = await confirmBlingProduct(newId, u.cost);
 
     const { error: linkError } = await supa.from("bling_product_links").upsert({
       product_id: productId,
@@ -244,8 +259,21 @@ export async function syncProductToBling(productId: string) {
       }
     }
 
-    await logSync({ entity_type: "product", entity_id: productId, action: isUpdate ? "update" : "create", status: "success", payload, response: data });
-    results.push({ sku: u.sku, ok: true, bling_product_id: newId, confirmed_stock: confirmedStock });
+    await logSync({
+      entity_type: "product",
+      entity_id: productId,
+      action: isUpdate ? "update" : "create",
+      status: "success",
+      payload,
+      response: { write: data, confirmation: confirmation.remote },
+    });
+    results.push({
+      sku: u.sku,
+      ok: true,
+      bling_product_id: newId,
+      confirmed_stock: confirmedStock,
+      confirmed_cost: confirmation.confirmedCost,
+    });
   }
 
   const failed = results.filter((r) => !r.ok);
