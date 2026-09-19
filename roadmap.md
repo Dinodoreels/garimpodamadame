@@ -115,5 +115,5 @@
 - [x] Reconhecer a conta TikTok Shop já conectada ao Bling
 - [x] Permitir confirmar dados e escolher a categoria TikTok dentro do cadastro
 - [ ] Validar categoria e atributos reais do TikTok Shop
-- [ ] Publicar o produto e sincronizar o estoque no TikTok após a conexão
+- [ ] Publicar o produto e sincronizar o estoque no TikTok após escolher e confirmar a categoria real
 - [ ] Manter o custo real do produto sincronizado no Bling junto com preço e estoque
