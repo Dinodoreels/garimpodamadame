@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
     const actorId = await resolveActor(req);
     const body = await req.json().catch(() => ({}));
     const productId = typeof body.product_id === "string" ? body.product_id : "";
+    const letBlingChooseCategory = body.let_bling_choose_category === true;
     if (!/^[0-9a-f-]{36}$/i.test(productId)) return errorResponse("Produto inválido.", 400);
 
     const supa = getSupabaseAdmin();
@@ -149,7 +150,7 @@ Deno.serve(async (req) => {
     if (!validVariants.length) missing.add("sku");
     if (!validVariants.some((variant: { inventory_quantity?: number }) => Number(variant.inventory_quantity) > 0)) missing.add("stock");
     if (!product.suggestions_confirmed_at) missing.add("confirmation");
-    if (!mapping?.confirmed_at || !mapping.marketplace_category_id) missing.add("tiktok_category");
+    if (!letBlingChooseCategory && (!mapping?.confirmed_at || !mapping.marketplace_category_id)) missing.add("tiktok_category");
     const requiredIds = (mapping?.required_attributes ?? [])
       .filter((attribute: Record<string, unknown>) => attribute.required === true || attribute.obrigatorio === true)
       .map((attribute: Record<string, unknown>) => String(attribute.id ?? attribute.codigo ?? ""))
@@ -170,7 +171,7 @@ Deno.serve(async (req) => {
       return errorResponse(message, 409, { pending_fields: pendingFields, channel: { id: storeId, name: channel.descricao, type } });
     }
     const marketplaceCategoryId = mapping?.marketplace_category_id;
-    if (!marketplaceCategoryId) return errorResponse("Selecione a categoria real do TikTok antes de publicar.", 409);
+    if (!letBlingChooseCategory && !marketplaceCategoryId) return errorResponse("Selecione a categoria real do TikTok antes de publicar.", 409);
 
     const attributes = product.marketplace_attributes && typeof product.marketplace_attributes === "object"
       ? Object.entries(product.marketplace_attributes).map(([id, valor]) => ({ id, valor: String(valor) }))
@@ -186,7 +187,7 @@ Deno.serve(async (req) => {
       descricao: product.description ?? product.title,
       preco: { valor: Number(product.price) },
       estoques: { itens: [14889184090] },
-      categoria: { id: marketplaceCategoryId },
+      ...(marketplaceCategoryId ? { categoria: { id: marketplaceCategoryId } } : {}),
       atributos: attributes,
       imagens: images,
     };
