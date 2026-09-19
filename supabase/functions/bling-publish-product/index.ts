@@ -72,13 +72,18 @@ Deno.serve(async (req) => {
     if (channelError || !savedChannel) throw channelError ?? new Error("Não foi possível registrar o canal TikTok.");
 
     const upsertPublication = async (values: Record<string, unknown>) => {
-      const { error } = await supa.from("marketplace_product_publications").upsert({
-        product_id: productId,
-        channel_id: savedChannel.id,
-        variant_id: null,
-        ...values,
-        updated_at: new Date().toISOString(),
-      }, { onConflict: "product_id,channel_id" });
+      const { data: current } = await supa
+        .from("marketplace_product_publications")
+        .select("id")
+        .eq("product_id", productId)
+        .eq("channel_id", savedChannel.id)
+        .is("variant_id", null)
+        .maybeSingle();
+      const record = { ...values, updated_at: new Date().toISOString() };
+      const result = current?.id
+        ? await supa.from("marketplace_product_publications").update(record).eq("id", current.id)
+        : await supa.from("marketplace_product_publications").insert({ product_id: productId, channel_id: savedChannel.id, variant_id: null, ...record });
+      const { error } = result;
       if (error) throw error;
     };
 
@@ -177,6 +182,11 @@ Deno.serve(async (req) => {
     return jsonResponse({ ok: true, status: "published", listing_id: listingId });
   } catch (error) {
     if (error instanceof Response) return error;
-    return errorResponse(error instanceof Error ? error.message : String(error), 500);
+    const message = error instanceof Error
+      ? error.message
+      : typeof error === "object" && error && "message" in error
+        ? String(error.message)
+        : JSON.stringify(error);
+    return errorResponse(message, 500, error);
   }
 });
