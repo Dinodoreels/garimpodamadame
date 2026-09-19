@@ -5270,6 +5270,15 @@ export type Database = {
       }
       next_lot_code: { Args: never; Returns: string }
       next_receipt_code: { Args: never; Returns: string }
+      publish_complete_inbound_scan_item: {
+        Args: {
+          p_actor_id: string
+          p_description: string
+          p_item_id: string
+          p_sku: string
+        }
+        Returns: Json
+      }
       read_email_batch: {
         Args: { batch_size: number; queue_name: string; vt: number }
         Returns: {
