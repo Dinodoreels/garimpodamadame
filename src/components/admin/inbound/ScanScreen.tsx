@@ -141,6 +141,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
     setSaving(true);
     try {
       const match = identified?.source === 'catalog' ? identified.match : null;
+      const identificationNeedsReview = Boolean(identified?.needs_review);
       const res = await scanService.save({
         lot_id: lotId,
         barcode: barcode.trim() || null,
@@ -162,8 +163,8 @@ export function ScanScreen({ fullscreen = false }: Props) {
           : identified?.match ?? null,
         photo_base64: photo,
         identification_result_ids: identified?.result_ids,
-        force_review: forceReview,
-        auto_publish: !forceReview,
+        force_review: forceReview || identificationNeedsReview,
+        auto_publish: !forceReview && !identificationNeedsReview,
       });
       setTimes(t => [...t.slice(-19), Math.round((Date.now() - startedAt.current) / 1000)]);
       if (res.pending) {
