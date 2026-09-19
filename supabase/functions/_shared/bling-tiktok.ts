@@ -55,7 +55,3 @@ export async function getTikTokCategories(channel: TikTokChannel) {
   if (linkedCategories.status >= 400) throw new Error(blingError(announcementCategories.status, announcementCategories.data));
   return normalizeTikTokCategories(linkedCategories.data?.data ?? []);
 }
-
-export function normalizedCategoryName(value: string) {
-  return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
-}

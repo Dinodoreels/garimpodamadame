@@ -2,6 +2,7 @@
 import { assertAdmin, corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, logSync } from "../_shared/bling.ts";
 import { pushStockToBling, syncProductToBling } from "../_shared/bling-product-sync.ts";
 import { pushOrderToBling } from "../_shared/bling-orders.ts";
+import { runAutomaticTikTokPublication } from "../_shared/bling-auto-publish.ts";
 
 const BATCH = 10;
 
@@ -63,6 +64,9 @@ Deno.serve(async (req) => {
         await supa.from("bling_sync_queue")
           .update({ status: "done", processed_at: new Date().toISOString(), last_error: null })
           .eq("id", item.id);
+        if ((item.action === "product" || item.action === "stock") && item.product_id) {
+          await runAutomaticTikTokPublication([item.product_id]);
+        }
         results.push({ id: item.id, ok: true });
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);

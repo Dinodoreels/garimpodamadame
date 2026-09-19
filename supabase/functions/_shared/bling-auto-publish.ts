@@ -1,5 +1,5 @@
 import { getSupabaseAdmin, logSync } from './bling.ts';
-import { getTikTokCategories, getTikTokChannel, normalizedCategoryName } from './bling-tiktok.ts';
+import { getTikTokCategories, getTikTokChannel } from './bling-tiktok.ts';
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
@@ -17,26 +17,9 @@ export async function runAutomaticTikTokPublication(productIds?: string[]) {
   }, { onConflict: 'provider,external_store_id' }).select('id').single();
   if (channelError || !savedChannel) throw channelError ?? new Error('Não foi possível registrar o canal TikTok.');
 
-  const categories = (await getTikTokCategories(channel)).filter((category) => category.is_leaf);
-  const { data: localCategories } = await supa.from('products').select('product_type').eq('status', 'active').not('product_type', 'is', null);
-  const uniqueLocalCategories = [...new Set((localCategories ?? []).map((row) => String(row.product_type).trim()).filter(Boolean))];
-  for (const localCategory of uniqueLocalCategories) {
-    const normalizedLocal = normalizedCategoryName(localCategory);
-    const exactMatches = categories.filter((category) => normalizedCategoryName(category.name) === normalizedLocal);
-    if (exactMatches.length !== 1) continue;
-    const category = exactMatches[0];
-    await supa.from('marketplace_category_mappings').upsert({
-      channel_id: savedChannel.id,
-      local_category_id: null,
-      local_category_value: localCategory,
-      marketplace_category_id: category.id,
-      marketplace_category_name: category.name,
-      required_attributes: category.required_attributes,
-      attribute_mappings: {},
-      confirmed_at: new Date().toISOString(),
-      confirmed_by: null,
-    }, { onConflict: 'channel_id,local_category_value', ignoreDuplicates: true });
-  }
+  // Refresh availability from the real channel. Existing confirmed mappings are reused;
+  // category names are never guessed or auto-confirmed.
+  await getTikTokCategories(channel);
 
   let query = supa.from('products')
     .select('id')
