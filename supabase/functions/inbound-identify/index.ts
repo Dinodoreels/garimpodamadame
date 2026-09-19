@@ -95,6 +95,7 @@ type VisionResult = {
 };
 
 const GEMINI_MODEL = 'gemini-3.6-flash';
+const NVIDIA_VISION_MODEL = 'meta/llama-3.2-90b-vision-instruct';
 
 function geminiErrorMessage(status: number) {
   if (status === 400) return 'O Gemini não aceitou os dados enviados para análise.';
@@ -107,6 +108,62 @@ function geminiErrorMessage(status: number) {
 function parseGeminiJson(raw: string) {
   const cleaned = raw.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/, '');
   return cleaned ? JSON.parse(cleaned) : null;
+}
+
+function nvidiaErrorMessage(status: number) {
+  if (status === 400) return 'A NVIDIA não aceitou a foto enviada para análise.';
+  if (status === 401 || status === 403) return 'A credencial da NVIDIA precisa ser verificada.';
+  if (status === 429) return 'A NVIDIA atingiu o limite temporário de consultas.';
+  if (status >= 500) return 'A análise visual da NVIDIA está temporariamente indisponível.';
+  return 'Falha na análise visual pela NVIDIA.';
+}
+
+async function nvidiaVisionJson(prompt: string, imageBase64: string): Promise<VisionResult | null> {
+  const key = Deno.env.get('NVIDIA_API_KEY');
+  if (!key) return null;
+  const match = imageBase64.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+  if (!match) throw new Error('Formato de imagem não aceito pela NVIDIA.');
+
+  const response = await fetch('https://integrate.api.nvidia.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: NVIDIA_VISION_MODEL,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: `${prompt}\nRetorne somente JSON válido com: title, brand, category, description, condition_guess, search_query, confidence e reasoning_note.` },
+          { type: 'image_url', image_url: { url: `data:${match[1]};base64,${match[2]}` } },
+        ],
+      }],
+      temperature: 0.1,
+      max_tokens: 900,
+    }),
+  });
+  if (!response.ok) {
+    const providerMessage = await response.text();
+    console.error('NVIDIA Scan error', response.status, providerMessage.slice(0, 1200));
+    const error = new Error(nvidiaErrorMessage(response.status));
+    (error as Error & { status?: number }).status = response.status;
+    throw error;
+  }
+  const body = await response.json();
+  const raw = body?.choices?.[0]?.message?.content;
+  if (typeof raw !== 'string' || !raw.trim()) throw new Error('A NVIDIA não retornou uma identificação utilizável.');
+  const parsed = parseGeminiJson(raw) as Record<string, unknown> | null;
+  if (!parsed || typeof parsed.title !== 'string' || typeof parsed.search_query !== 'string') {
+    throw new Error('A NVIDIA retornou uma identificação incompleta.');
+  }
+  return {
+    title: text(parsed.title, 300),
+    brand: typeof parsed.brand === 'string' ? text(parsed.brand, 120) || null : null,
+    category: typeof parsed.category === 'string' ? text(parsed.category, 120) || null : null,
+    description: text(parsed.description, 2000),
+    condition_guess: typeof parsed.condition_guess === 'string' ? text(parsed.condition_guess, 120) || null : null,
+    search_query: text(parsed.search_query, 180),
+    confidence: Math.max(0, Math.min(1, Number(parsed.confidence ?? 0))),
+    reasoning_note: text(parsed.reasoning_note, 1000),
+  };
 }
 
 async function geminiJson(prompt: string, schema: Record<string, unknown>, imageBase64?: string) {
@@ -148,8 +205,10 @@ async function geminiJson(prompt: string, schema: Record<string, unknown>, image
 }
 
 async function analyzeImage(imageBase64: string): Promise<VisionResult | null> {
-  return geminiJson(
-    'Analise esta foto real de um produto usado para cadastro comercial. Responda em JSON. Identifique somente características visualmente sustentadas. Se marca ou modelo não forem legíveis, use null e não invente. Crie uma busca curta e objetiva em português para encontrar o mesmo produto em anúncios brasileiros. Não forneça dados fiscais.',
+  const prompt = 'Analise esta foto real de um produto usado para cadastro comercial. Responda em JSON. Identifique somente características visualmente sustentadas. Se marca ou modelo não forem legíveis, use null e não invente. Crie uma busca curta e objetiva em português para encontrar o mesmo produto em anúncios brasileiros. Não forneça dados fiscais.';
+  try {
+    return await geminiJson(
+    prompt,
     {
       type: 'object', additionalProperties: false,
       properties: {
@@ -160,7 +219,14 @@ async function analyzeImage(imageBase64: string): Promise<VisionResult | null> {
       required: ['title', 'brand', 'category', 'description', 'condition_guess', 'search_query', 'confidence', 'reasoning_note'],
     },
     imageBase64,
-  ) as Promise<VisionResult | null>;
+    ) as VisionResult | null;
+  } catch (error) {
+    const status = (error as Error & { status?: number }).status;
+    if (status !== 429 && (!status || status < 500)) throw error;
+    const nvidiaResult = await nvidiaVisionJson(prompt, imageBase64);
+    if (nvidiaResult) return nvidiaResult;
+    throw error;
+  }
 }
 
 async function serpLookup(params: URLSearchParams): Promise<Candidate[]> {
