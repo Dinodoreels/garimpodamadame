@@ -51,7 +51,7 @@ function buildPayload(u: SyncUnit) {
     unidade: "UN",
     ...(u.cost != null ? { precoCusto: Number(u.cost.toFixed(2)) } : {}),
     descricaoCurta: (u.description ?? u.name).slice(0, 500),
-    marca: u.brand ? { descricao: u.brand.slice(0, 80) } : undefined,
+    marca: u.brand ? u.brand.slice(0, 80) : undefined,
     gtin: u.gtin || undefined,
     tributacao: (u.ncm || u.cest || u.fiscalOrigin != null)
       ? {
