@@ -84,9 +84,10 @@ async function confirmBlingProduct(blingProductId: string, expectedCost: number 
   if (status >= 400) throw new Error(blingError(status, data));
   const remote = data?.data ?? data;
   const confirmedCost = remote?.precoCusto == null ? null : Number(remote.precoCusto);
-  const costWarning = (
-    expectedCost != null &&
-    (!Number.isFinite(confirmedCost) || Math.abs(confirmedCost - expectedCost) > 0.009)
+  const costWarning = expectedCost != null && (
+    confirmedCost == null ||
+    !Number.isFinite(confirmedCost) ||
+    Math.abs(confirmedCost - expectedCost) > 0.009
   )
     ? `O Bling recebeu o produto, mas retornou custo ${confirmedCost ?? "não informado"}.`
     : null;
