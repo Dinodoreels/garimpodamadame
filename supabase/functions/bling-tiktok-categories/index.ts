@@ -111,6 +111,10 @@ Deno.serve(async (req) => {
     if (req.method !== "POST") return jsonResponse({ error: "Método não permitido." }, 405);
 
     const body = await req.json().catch(() => ({}));
+    if (body.action === "list") {
+      const categories = await getCategories(channel);
+      return jsonResponse({ categories, channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" } });
+    }
     const productId = typeof body.product_id === "string" ? body.product_id : "";
     const categoryId = typeof body.category_id === "string" ? body.category_id.trim() : "";
     const categoryName = typeof body.category_name === "string" ? body.category_name.trim() : "";

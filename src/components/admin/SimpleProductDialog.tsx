@@ -368,7 +368,7 @@ export function SimpleProductDialog({
     setLoadingTikTokCategories(true);
     setTikTokMessage('');
     try {
-      const { data, error } = await supabase.functions.invoke('bling-tiktok-categories', { method: 'GET' });
+      const { data, error } = await supabase.functions.invoke('bling-tiktok-categories', { body: { action: 'list' } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       const categories = (data?.categories ?? []) as TikTokCategory[];
