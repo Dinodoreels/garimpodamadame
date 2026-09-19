@@ -126,3 +126,4 @@
 - [x] Cadastrar as categorias amplas aprovadas e exibi-las no cadastro de produtos
 - [x] Evitar envios pendentes duplicados ao Bling e sincronizar imediatamente após salvar
 - [x] Mostrar em português as pendências de peso, medidas e categoria do TikTok
+- [x] Tratar a recusa de atributos de categoria do Bling sem erro interno e sem publicar produto incompleto

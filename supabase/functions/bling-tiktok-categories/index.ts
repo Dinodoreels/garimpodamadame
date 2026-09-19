@@ -3,6 +3,7 @@ import {
   corsHeaders,
   getSupabaseAdmin,
   jsonResponse,
+  logSync,
 } from "../_shared/bling.ts";
 import { getTikTokCategories, getTikTokCategoryAttributes, getTikTokChannel } from "../_shared/bling-tiktok.ts";
 
@@ -129,13 +130,41 @@ Deno.serve(async (req) => {
     const selected = categories.find((category) => category.id === categoryId);
     if (!selected) return jsonResponse({ error: "Escolha uma categoria real retornada pelo canal TikTok." }, 400);
 
-    const requiredAttributes = await getTikTokCategoryAttributes(channel, selected.id);
+    let requiredAttributes = selected.required_attributes;
+    if (!requiredAttributes.length) {
+      try {
+        requiredAttributes = await getTikTokCategoryAttributes(channel, selected.id);
+      } catch (attributeError) {
+        const detail = attributeError instanceof Error ? attributeError.message : String(attributeError);
+        await logSync({
+          entity_type: "category",
+          entity_id: selected.id,
+          action: "tiktok_attributes",
+          status: "blocked",
+          payload: { product_id: productId, category_id: selected.id, store_id: String(channel.id) },
+          error_message: detail,
+        });
+        return jsonResponse({
+          ok: false,
+          blocked: true,
+          error: "O Bling não liberou os atributos desta categoria. A categoria foi mantida, mas o produto não será publicado até o Bling devolver os campos obrigatórios.",
+          detail,
+        });
+      }
+    }
     const requiredIds = requiredAttributes
       .filter((attribute) => attribute && typeof attribute === "object" && ((attribute as Record<string, unknown>).required === true || (attribute as Record<string, unknown>).obrigatorio === true))
       .map((attribute) => String((attribute as Record<string, unknown>).id ?? (attribute as Record<string, unknown>).codigo ?? ""))
       .filter(Boolean);
     const missingAttributes = requiredIds.filter((id) => !String(attributes[id] ?? "").trim());
-    if (missingAttributes.length) return jsonResponse({ error: "Preencha os atributos obrigatórios da categoria.", missing_attributes: missingAttributes }, 409);
+    if (missingAttributes.length) {
+      return jsonResponse({
+        ok: false,
+        blocked: true,
+        error: "Preencha os atributos obrigatórios da categoria.",
+        missing_attributes: missingAttributes,
+      });
+    }
 
     const { error: mappingError } = await supa.from("marketplace_category_mappings").upsert({
       channel_id: savedChannel.id,
