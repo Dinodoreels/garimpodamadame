@@ -84,3 +84,10 @@
 - [ ] Buscar lojas/categorias conectadas no Bling e publicar anúncios completos por canal
 - [ ] Validar a automação em cada canal conectado com um produto real completo
 - [x] Preencher o cadastro por foto, código de barras, catálogo e Bling/plataformas sem salvar antes da revisão
+
+# Estoque em tempo real — outra página de vendas
+
+- [ ] Identificar a outra página/plataforma e seu método de autenticação
+- [ ] Definir a fonte principal do saldo e regras contra ciclos
+- [ ] Criar webhook seguro e sincronização bidirecional com Bling e loja
+- [ ] Validar atualização, idempotência, falhas e histórico
