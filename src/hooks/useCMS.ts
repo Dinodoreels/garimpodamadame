@@ -357,7 +357,7 @@
    const { toast } = useToast();
  
    return useMutation({
-     mutationFn: async ({ id, ...updates }: Partial<CMSPage> & { id: string }) => {
+      mutationFn: async ({ id, sections: _sections, ...updates }: Partial<CMSPage> & { id: string }) => {
        const { data, error } = await supabase
          .from('cms_pages')
          .update(updates)
