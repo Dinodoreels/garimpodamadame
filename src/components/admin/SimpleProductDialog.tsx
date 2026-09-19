@@ -79,6 +79,27 @@ type TikTokCategory = {
   required_attributes: Array<Record<string, unknown>>;
 };
 
+type TikTokPublicationStatus = {
+  channel?: { id: string; name: string; raw?: unknown };
+  category?: {
+    marketplace_category_id?: string;
+    marketplace_category_name?: string;
+    required_attributes?: Array<Record<string, unknown>>;
+    attribute_mappings?: Record<string, string>;
+    confirmed_at?: string;
+  } | null;
+  publication?: {
+    status?: string;
+    external_listing_id?: string;
+    pending_fields?: string[];
+    last_error?: string;
+    last_response?: unknown;
+    last_attempt_at?: string;
+    published_at?: string;
+  } | null;
+  events?: Array<{ event_type: string; status: string; details?: unknown; created_at: string }>;
+};
+
 interface SimpleProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -168,6 +189,7 @@ export function SimpleProductDialog({
   const [tiktokStatus, setTikTokStatus] = useState<'idle' | 'pending' | 'published' | 'error'>('idle');
   const [tiktokMessage, setTikTokMessage] = useState('');
   const [marketplaceAttributes, setMarketplaceAttributes] = useState<Record<string, string>>({});
+  const [tiktokPublication, setTikTokPublication] = useState<TikTokPublicationStatus | null>(null);
   
   const imageInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -242,6 +264,7 @@ export function SimpleProductDialog({
     setTikTokStatus('idle');
     setTikTokMessage('');
     setMarketplaceAttributes({});
+    setTikTokPublication(null);
   }, []);
 
   const handleCreateSupplier = async () => {
@@ -382,6 +405,25 @@ export function SimpleProductDialog({
     }
   };
 
+  const loadTikTokPublication = useCallback(async () => {
+    if (!initialData?.id) return;
+    const { data, error } = await supabase.functions.invoke('bling-tiktok-categories', {
+      body: { action: 'product_status', product_id: initialData.id },
+    });
+    if (error || data?.error) return;
+    const status = data as TikTokPublicationStatus;
+    setTikTokPublication(status);
+    const savedAttributes = status.category?.attribute_mappings;
+    if (savedAttributes) setMarketplaceAttributes((current) => ({ ...current, ...savedAttributes }));
+    if (status.publication?.status === 'published') setTikTokStatus('published');
+    else if (status.publication?.status === 'error') setTikTokStatus('error');
+    else if (status.publication) setTikTokStatus('pending');
+  }, [initialData?.id]);
+
+  useEffect(() => {
+    if (open && mode === 'edit' && initialData?.id) void loadTikTokPublication();
+  }, [open, mode, initialData?.id, loadTikTokPublication]);
+
   const selectedTikTokCategory = tiktokCategories.find((category) => category.id === tiktokCategoryId);
   const filteredTikTokCategories = tiktokCategories.filter((category) =>
     !tiktokCategorySearch.trim() || category.name.toLocaleLowerCase('pt-BR').includes(tiktokCategorySearch.toLocaleLowerCase('pt-BR'))
@@ -418,7 +460,8 @@ export function SimpleProductDialog({
       if (publicationError) throw publicationError;
       if (publication?.error) throw new Error(publication.error);
       setTikTokStatus(publication?.status === 'published' || publication?.ok ? 'published' : 'pending');
-      setTikTokMessage(publication?.status === 'published' || publication?.ok ? 'Produto publicado no TikTok Shop.' : 'Produto enviado e aguardando retorno do TikTok Shop.');
+      setTikTokMessage(publication?.status === 'published' || publication?.ok ? `Produto publicado no TikTok Shop. Anúncio ${publication?.listing_id ?? ''}`.trim() : 'Produto enviado e aguardando retorno do TikTok Shop.');
+      await loadTikTokPublication();
       toast.success('Produto enviado ao TikTok Shop');
     } catch (error) {
       setTikTokStatus('error');
@@ -1532,12 +1575,23 @@ export function SimpleProductDialog({
                           </Popover>
                         </div>
 
-                        {requiredTikTokAttributes.map((attribute) => {
+                        {(selectedTikTokCategory?.required_attributes ?? []).map((attribute) => {
                           const id = attributeId(attribute);
+                          const required = attribute.required === true || attribute.obrigatorio === true;
+                          const options = [attribute.options, attribute.opcoes, attribute.values, attribute.valores].find(Array.isArray) as Array<Record<string, unknown> | string> | undefined;
                           return (
                             <div key={id} className="space-y-1">
-                              <Label className="text-xs">{attributeName(attribute)}</Label>
-                              <Input value={marketplaceAttributes[id] ?? ''} onChange={(event) => setMarketplaceAttributes((current) => ({ ...current, [id]: event.target.value }))} />
+                              <Label className="text-xs">{attributeName(attribute)}{required ? ' *' : ''}</Label>
+                              {options?.length ? (
+                                <Select value={marketplaceAttributes[id] ?? ''} onValueChange={(value) => setMarketplaceAttributes((current) => ({ ...current, [id]: value }))}>
+                                  <SelectTrigger><SelectValue placeholder="Selecione" /></SelectTrigger>
+                                  <SelectContent>{options.map((option) => {
+                                    const value = typeof option === 'string' ? option : String(option.id ?? option.value ?? option.valor ?? option.name ?? option.nome ?? '');
+                                    const label = typeof option === 'string' ? option : String(option.name ?? option.nome ?? option.label ?? option.valor ?? value);
+                                    return <SelectItem key={value} value={value}>{label}</SelectItem>;
+                                  })}</SelectContent>
+                                </Select>
+                              ) : <Input value={marketplaceAttributes[id] ?? ''} onChange={(event) => setMarketplaceAttributes((current) => ({ ...current, [id]: event.target.value }))} />}
                             </div>
                           );
                         })}
@@ -1547,6 +1601,23 @@ export function SimpleProductDialog({
                           {publishingTikTok ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                           Confirmar e publicar no TikTok
                         </Button>
+                        {tiktokPublication?.publication && (
+                          <div className="space-y-2 border-t pt-3 text-xs">
+                            <div className="grid grid-cols-2 gap-2">
+                              <div><span className="text-muted-foreground">Situação</span><p className="font-medium">{tiktokPublication.publication.status ?? 'Não enviado'}</p></div>
+                              <div><span className="text-muted-foreground">Código do anúncio</span><p className="break-all font-medium">{tiktokPublication.publication.external_listing_id ?? 'Ainda não informado'}</p></div>
+                              <div><span className="text-muted-foreground">Categoria</span><p className="font-medium">{tiktokPublication.category?.marketplace_category_name ?? 'Pendente'}</p></div>
+                              <div><span className="text-muted-foreground">Última tentativa</span><p className="font-medium">{tiktokPublication.publication.last_attempt_at ? new Date(tiktokPublication.publication.last_attempt_at).toLocaleString('pt-BR') : 'Ainda não enviado'}</p></div>
+                            </div>
+                            {tiktokPublication.publication.last_error && <p className="text-destructive">{tiktokPublication.publication.last_error}</p>}
+                            {tiktokPublication.publication.last_response != null && (
+                              <Collapsible>
+                                <CollapsibleTrigger asChild><Button type="button" variant="outline" size="sm" className="w-full">Ver retorno exato do TikTok</Button></CollapsibleTrigger>
+                                <CollapsibleContent><pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap break-all rounded-md bg-muted p-3 text-[11px]">{JSON.stringify(tiktokPublication.publication.last_response, null, 2)}</pre></CollapsibleContent>
+                              </Collapsible>
+                            )}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

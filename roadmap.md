@@ -117,3 +117,4 @@
 - [ ] Validar categoria e atributos reais do TikTok Shop
 - [ ] Publicar o produto e sincronizar o estoque no TikTok após escolher e confirmar a categoria real
 - [ ] Manter o custo real do produto sincronizado no Bling junto com preço e estoque
+- [x] Mostrar no cadastro a categoria, atributos, código do anúncio, situação e retorno exato recebido do TikTok via Bling
