@@ -1,5 +1,5 @@
 type AdminClient = {
-  rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: any; error: any }>;
+  rpc: (name: string, args: Record<string, unknown>) => PromiseLike<{ data: any; error: any }>;
 };
 
 export type StockTransitionResult = {
