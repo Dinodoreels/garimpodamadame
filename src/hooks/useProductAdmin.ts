@@ -117,13 +117,21 @@ export function useAdminProducts(limit: number = 2000) {
       }
 
       const productIds = all.map((product) => product.id);
-      const { data: tiktokLinks, error: tiktokError } = productIds.length
-        ? await supabase
-            .from('tiktok_product_links')
-            .select('id, product_id, tiktok_product_id, tiktok_status, status, last_error')
-            .in('product_id', productIds)
-        : { data: [], error: null };
+      const [{ data: tiktokLinks, error: tiktokError }, { data: publications, error: publicationsError }] = productIds.length
+        ? await Promise.all([
+            supabase
+              .from('tiktok_product_links')
+              .select('id, product_id, tiktok_product_id, tiktok_status, status, last_error')
+              .in('product_id', productIds),
+            supabase
+              .from('marketplace_product_publications')
+              .select('id, product_id, status, pending_fields, last_error, external_listing_id, marketplace_channels!inner(provider)')
+              .eq('marketplace_channels.provider', 'tiktok')
+              .in('product_id', productIds),
+          ])
+        : [{ data: [], error: null }, { data: [], error: null }];
       if (tiktokError) throw tiktokError;
+      if (publicationsError) throw publicationsError;
 
       const tiktokByProduct = new Map<string, typeof tiktokLinks>();
       for (const link of tiktokLinks ?? []) {
@@ -131,12 +139,19 @@ export function useAdminProducts(limit: number = 2000) {
         current.push(link);
         tiktokByProduct.set(link.product_id, current);
       }
+      const publicationsByProduct = new Map<string, typeof publications>();
+      for (const publication of publications ?? []) {
+        const current = publicationsByProduct.get(publication.product_id) ?? [];
+        current.push(publication);
+        publicationsByProduct.set(publication.product_id, current);
+      }
 
       return all.map(product => ({
         ...product,
         images: (product.images || []).sort((a: ProductImage, b: ProductImage) => a.position - b.position),
         options: (product.options || []).sort((a: ProductOption, b: ProductOption) => a.position - b.position),
         tiktok_links: tiktokByProduct.get(product.id) ?? [],
+        marketplace_publications: publicationsByProduct.get(product.id) ?? [],
       })) as Product[];
     },
   });

@@ -63,6 +63,7 @@ export interface Product {
   options: ProductOption[];
   bling_links?: { id: string; bling_product_id: string | null; bling_sku: string | null; status: string }[];
   tiktok_links?: { id: string; tiktok_product_id: string | null; tiktok_status: string | null; status: string; last_error: string | null }[];
+  marketplace_publications?: { id: string; status: string; pending_fields: string[]; last_error: string | null; external_listing_id: string | null }[];
 }
 
 export function useProducts(limit: number = 500, searchQuery?: string) {
