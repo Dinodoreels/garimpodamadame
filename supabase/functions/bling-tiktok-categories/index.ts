@@ -4,7 +4,7 @@ import {
   getSupabaseAdmin,
   jsonResponse,
 } from "../_shared/bling.ts";
-import { getTikTokCategories, getTikTokChannel } from "../_shared/bling-tiktok.ts";
+import { getTikTokCategories, getTikTokCategoryAttributes, getTikTokChannel } from "../_shared/bling-tiktok.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -29,7 +29,8 @@ Deno.serve(async (req) => {
     if (channelError || !savedChannel) throw channelError ?? new Error("Não foi possível registrar o canal TikTok.");
 
     if (req.method === "GET") {
-      const categories = await getTikTokCategories(channel);
+      const productType = new URL(req.url).searchParams.get("product_type") ?? undefined;
+      const categories = await getTikTokCategories(channel, productType);
       return jsonResponse({ categories, channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" } });
     }
     if (req.method !== "POST") return jsonResponse({ error: "Método não permitido." }, 405);
@@ -57,7 +58,8 @@ Deno.serve(async (req) => {
       });
     }
     if (body.action === "list") {
-      const categories = await getTikTokCategories(channel);
+      const productType = typeof body.product_type === "string" ? body.product_type : undefined;
+      const categories = await getTikTokCategories(channel, productType);
       return jsonResponse({ categories, channel: { id: String(channel.id), name: channel.descricao ?? channel.nome ?? "TikTok Shop" } });
     }
     if (body.action === "confirm_product") {
@@ -99,13 +101,13 @@ Deno.serve(async (req) => {
 
     const [{ data: product }, categories] = await Promise.all([
       supa.from("products").select("id,product_type").eq("id", productId).maybeSingle(),
-      getTikTokCategories(channel),
+      getTikTokCategories(channel, typeof body.product_type === "string" ? body.product_type : undefined),
     ]);
     if (!product?.product_type) return jsonResponse({ error: "Defina o tipo do produto antes da categoria TikTok." }, 409);
     const selected = categories.find((category) => category.id === categoryId);
     if (!selected) return jsonResponse({ error: "Escolha uma categoria real retornada pelo canal TikTok." }, 400);
 
-    const requiredAttributes = selected.required_attributes;
+    const requiredAttributes = await getTikTokCategoryAttributes(channel, selected.id);
     const requiredIds = requiredAttributes
       .filter((attribute) => attribute && typeof attribute === "object" && ((attribute as Record<string, unknown>).required === true || (attribute as Record<string, unknown>).obrigatorio === true))
       .map((attribute) => String((attribute as Record<string, unknown>).id ?? (attribute as Record<string, unknown>).codigo ?? ""))

@@ -75,6 +75,7 @@ type AutoFillSuggestions = {
 type TikTokCategory = {
   id: string;
   name: string;
+  path_name?: string;
   is_leaf: boolean;
   required_attributes: Array<Record<string, unknown>>;
 };
@@ -391,12 +392,12 @@ export function SimpleProductDialog({
     setLoadingTikTokCategories(true);
     setTikTokMessage('');
     try {
-      const { data, error } = await supabase.functions.invoke('bling-tiktok-categories', { body: { action: 'list' } });
+      const { data, error } = await supabase.functions.invoke('bling-tiktok-categories', { body: { action: 'list', product_type: productType } });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
       const categories = (data?.categories ?? []) as TikTokCategory[];
-      setTikTokCategories(categories.filter((category) => category.is_leaf));
-      if (!categories.length) setTikTokMessage('Nenhuma categoria vinculada foi encontrada no canal TikTok do Bling. Vincule a categoria no Bling e tente novamente.');
+      setTikTokCategories(categories);
+      if (!categories.length) setTikTokMessage('O TikTok não retornou categorias para esta loja. Verifique no Bling se a loja permite gerenciar anúncios e tente novamente.');
     } catch (error) {
       setTikTokMessage(error instanceof Error ? error.message : 'Não foi possível buscar as categorias do TikTok.');
       setTikTokStatus('error');
@@ -426,7 +427,7 @@ export function SimpleProductDialog({
 
   const selectedTikTokCategory = tiktokCategories.find((category) => category.id === tiktokCategoryId);
   const filteredTikTokCategories = tiktokCategories.filter((category) =>
-    !tiktokCategorySearch.trim() || category.name.toLocaleLowerCase('pt-BR').includes(tiktokCategorySearch.toLocaleLowerCase('pt-BR'))
+    !tiktokCategorySearch.trim() || (category.path_name ?? category.name).toLocaleLowerCase('pt-BR').includes(tiktokCategorySearch.toLocaleLowerCase('pt-BR'))
   ).slice(0, 100);
   const requiredTikTokAttributes = (selectedTikTokCategory?.required_attributes ?? []).filter((attribute) =>
     attribute.required === true || attribute.obrigatorio === true
@@ -449,6 +450,7 @@ export function SimpleProductDialog({
           product_id: initialData.id,
           category_id: selectedTikTokCategory.id,
           category_name: selectedTikTokCategory.name,
+          product_type: productType,
           attributes: marketplaceAttributes,
         },
       });
@@ -1557,7 +1559,7 @@ export function SimpleProductDialog({
                           <Popover open={tiktokCategoryOpen} onOpenChange={setTikTokCategoryOpen}>
                             <PopoverTrigger asChild>
                               <Button type="button" variant="outline" className="w-full justify-between font-normal" onClick={() => !tiktokCategories.length && loadTikTokCategories()}>
-                                <span className="truncate">{selectedTikTokCategory?.name || 'Buscar categoria do TikTok'}</span>
+                                <span className="truncate">{selectedTikTokCategory?.path_name || selectedTikTokCategory?.name || 'Buscar categoria do TikTok'}</span>
                                 {loadingTikTokCategories ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 text-muted-foreground" />}
                               </Button>
                             </PopoverTrigger>
@@ -1566,7 +1568,7 @@ export function SimpleProductDialog({
                               <div className="max-h-64 overflow-auto">
                                 {filteredTikTokCategories.map((category) => (
                                   <Button key={category.id} type="button" variant="ghost" className="h-auto w-full justify-start whitespace-normal py-2 text-left" onClick={() => { setTikTokCategoryId(category.id); setTikTokCategoryOpen(false); }}>
-                                    {category.name}
+                                    {category.path_name ?? category.name}
                                   </Button>
                                 ))}
                                 {!loadingTikTokCategories && !filteredTikTokCategories.length && <p className="p-3 text-xs text-muted-foreground">Nenhuma categoria disponível.</p>}
