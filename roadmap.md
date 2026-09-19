@@ -118,3 +118,4 @@
 - [ ] Publicar o produto e sincronizar o estoque no TikTok após escolher e confirmar a categoria real
 - [ ] Manter o custo real do produto sincronizado no Bling junto com preço e estoque
 - [x] Mostrar no cadastro a categoria, atributos, código do anúncio, situação e retorno exato recebido do TikTok via Bling
+- [x] Publicar automaticamente no TikTok todos os produtos completos após receber categoria e atributos reais do Bling

@@ -1,5 +1,6 @@
 import { getConfig, getSupabaseAdmin, logSync } from './bling.ts';
 import { fetchAllBlingProducts, fetchBlingProductDetail, fetchBlingStock, normalizeSku, productSnapshot } from './bling-import.ts';
+import { runAutomaticTikTokPublication } from './bling-auto-publish.ts';
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
@@ -151,8 +152,10 @@ export async function pullLinkedBlingProducts(options: { blingProductIds?: strin
           supa.from('products').select('title, description, vendor, product_type, price, weight_grams, width_cm, height_cm, length_cm').eq('id', link.product_id).maybeSingle(),
           supa.from('product_variants').select('price, cost, inventory_quantity').eq('id', link.variant_id).maybeSingle(),
         ]);
-        const productChanged = Object.entries(productUpdates).some(([key, value]) => String(localProduct?.[key] ?? '') !== String(value ?? ''));
-        const variantChanged = Object.entries(variantUpdates).some(([key, value]) => Number(localVariant?.[key] ?? 0) !== Number(value ?? 0));
+        const localProductRecord = (localProduct ?? {}) as Record<string, unknown>;
+        const localVariantRecord = (localVariant ?? {}) as Record<string, unknown>;
+        const productChanged = Object.entries(productUpdates).some(([key, value]) => String(localProductRecord[key] ?? '') !== String(value ?? ''));
+        const variantChanged = Object.entries(variantUpdates).some(([key, value]) => Number(localVariantRecord[key] ?? 0) !== Number(value ?? 0));
 
         if (productChanged) await supa.from('products').update(productUpdates).eq('id', link.product_id);
         if (variantChanged) await supa.from('product_variants').update(variantUpdates).eq('id', link.variant_id);
@@ -200,6 +203,10 @@ export async function pullLinkedBlingProducts(options: { blingProductIds?: strin
     }
 
     const summary = { processed, updated, failed, images_added: imagesAdded, new_products_found: newProducts, auto_applied: autoApplied, new_products_pending: reviewPending };
+    const publication = await runAutomaticTikTokPublication((links ?? []).map((link: any) => link.product_id)).catch(async (error) => {
+      await logSync({ entity_type: 'catalog', action: 'auto_publish_tiktok', status: 'error', error_message: errorMessage(error) });
+      return { processed: 0, published: 0, pending: 0, errors: 1 };
+    });
     await supa.from('bling_config').update({
       last_catalog_sync_at: new Date().toISOString(),
       last_catalog_sync_summary: summary,
@@ -207,7 +214,7 @@ export async function pullLinkedBlingProducts(options: { blingProductIds?: strin
       last_error: failed ? `${failed} produto(s) com erro na atualização automática.` : null,
     }).eq('id', cfg.id);
     await logSync({ entity_type: 'catalog', action: 'auto_pull', status: failed ? 'error' : 'success', payload: { started_at: startedAt }, response: summary, error_message: failed ? `${failed} produto(s) com erro` : null });
-    return summary;
+    return { ...summary, tiktok_publication: publication };
   } finally {
     await supa.rpc('release_bling_catalog_sync');
   }

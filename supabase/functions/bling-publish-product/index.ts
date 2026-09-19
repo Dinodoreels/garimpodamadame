@@ -32,10 +32,19 @@ function errorResponse(message: string, status: number, details?: unknown) {
   });
 }
 
+async function resolveActor(req: Request) {
+  const internalToken = Deno.env.get("BLING_CRON_TOKEN");
+  if (internalToken && req.headers.get("authorization") === `Bearer ${internalToken}`) {
+    const { data } = await getSupabaseAdmin().from("user_roles").select("user_id").eq("role", "admin").limit(1).maybeSingle();
+    return data?.user_id ?? null;
+  }
+  return await assertAdmin(req);
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
-    const actorId = await assertAdmin(req);
+    const actorId = await resolveActor(req);
     const body = await req.json().catch(() => ({}));
     const productId = typeof body.product_id === "string" ? body.product_id : "";
     if (!/^[0-9a-f-]{36}$/i.test(productId)) return errorResponse("Produto inválido.", 400);
@@ -44,7 +53,7 @@ Deno.serve(async (req) => {
     const [{ data: product, error: productError }, channelsResult] = await Promise.all([
       supa
         .from("products")
-        .select("id,title,description,product_type,vendor,price,suggestions_confirmed_at,catalog_pending_fields,marketplace_attributes,product_images(url,position),product_variants(id,sku,price,inventory_quantity),bling_product_links(bling_product_id)")
+        .select("id,title,description,product_type,vendor,price,weight_grams,width_cm,height_cm,length_cm,ncm,fiscal_origin,suggestions_confirmed_at,catalog_pending_fields,marketplace_attributes,product_images(url,position),product_variants(id,sku,price,inventory_quantity),bling_product_links(bling_product_id)")
         .eq("id", productId)
         .single(),
       callBling({ path: "/canais-venda", query: { limite: 100 } }),
@@ -126,14 +135,36 @@ Deno.serve(async (req) => {
       .eq("local_category_value", product.product_type ?? "")
       .maybeSingle();
     const missing = new Set<string>(product.catalog_pending_fields ?? []);
+    if (!String(product.title ?? "").trim()) missing.add("title");
+    if (!String(product.description ?? "").trim()) missing.add("description");
+    if (!String(product.product_type ?? "").trim()) missing.add("category");
+    if (!String(product.vendor ?? "").trim()) missing.add("brand");
+    if (!(Number(product.price) > 0)) missing.add("price");
+    if (!(product.product_images ?? []).length) missing.add("images");
+    if (!(Number(product.weight_grams) > 0)) missing.add("weight");
+    if (!(Number(product.width_cm) > 0 && Number(product.height_cm) > 0 && Number(product.length_cm) > 0)) missing.add("dimensions");
+    if (!String(product.ncm ?? "").trim()) missing.add("ncm");
+    if (product.fiscal_origin == null) missing.add("fiscal_origin");
+    const validVariants = (product.product_variants ?? []).filter((variant: { sku?: string; price?: number; inventory_quantity?: number }) => String(variant.sku ?? "").trim() && Number(variant.price) > 0);
+    if (!validVariants.length) missing.add("sku");
+    if (!validVariants.some((variant: { inventory_quantity?: number }) => Number(variant.inventory_quantity) > 0)) missing.add("stock");
     if (!product.suggestions_confirmed_at) missing.add("confirmation");
     if (!mapping?.confirmed_at || !mapping.marketplace_category_id) missing.add("tiktok_category");
+    const requiredIds = (mapping?.required_attributes ?? [])
+      .filter((attribute: Record<string, unknown>) => attribute.required === true || attribute.obrigatorio === true)
+      .map((attribute: Record<string, unknown>) => String(attribute.id ?? attribute.codigo ?? ""))
+      .filter(Boolean);
+    for (const requiredId of requiredIds) {
+      if (!String((product.marketplace_attributes as Record<string, unknown> | null)?.[requiredId] ?? "").trim()) missing.add(`attribute:${requiredId}`);
+    }
 
     if (missing.size) {
       const pendingFields = [...missing];
       const message = pendingFields.includes("confirmation")
         ? "Confirme os dados sugeridos do produto antes de publicar."
-        : "Selecione e confirme a categoria real do TikTok antes de publicar.";
+        : pendingFields.includes("tiktok_category")
+          ? "Selecione e confirme a categoria real do TikTok antes de publicar."
+          : "Complete os dados obrigatórios antes de publicar no TikTok.";
       await upsertPublication({ status: "pending", pending_fields: pendingFields, last_error: message, last_attempt_at: new Date().toISOString() });
       await supa.from("marketplace_product_events").insert({ product_id: productId, channel_id: savedChannel.id, actor_id: actorId, event_type: "publish_blocked", status: "pending", details: { pending_fields: pendingFields, message } });
       return errorResponse(message, 409, { pending_fields: pendingFields, channel: { id: storeId, name: channel.descricao, type } });

@@ -2,6 +2,7 @@
 import { corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, logSync } from "../_shared/bling.ts";
 import { pullMarketplaceOrders } from "../_shared/bling-orders.ts";
 import { pullLinkedBlingProducts } from "../_shared/bling-catalog-pull.ts";
+import { runAutomaticTikTokPublication } from "../_shared/bling-auto-publish.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -68,6 +69,17 @@ Deno.serve(async (req) => {
       if (blingProductId) {
         await pullLinkedBlingProducts({ blingProductIds: [blingProductId], batchSize: 1 });
       }
+    }
+
+    if (/categoria|anuncio|produto|product/i.test(event)) {
+      const data = payload?.data ?? payload?.retorno ?? payload;
+      const blingProductId = String(data?.produto?.id ?? data?.produtoId ?? data?.idProduto ?? "");
+      let productIds: string[] | undefined;
+      if (blingProductId) {
+        const { data: links } = await supa.from("bling_product_links").select("product_id").eq("bling_product_id", blingProductId);
+        productIds = (links ?? []).map((link) => link.product_id);
+      }
+      await runAutomaticTikTokPublication(productIds);
     }
 
     return jsonResponse({ ok: true });
