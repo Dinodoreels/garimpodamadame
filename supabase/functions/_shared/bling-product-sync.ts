@@ -74,7 +74,7 @@ function buildPayload(u: SyncUnit) {
       }
       : undefined,
     midia: u.images.length
-      ? { imagens: { externas: u.images.slice(0, 5).map((url) => ({ link: url })) } }
+      ? { imagens: { imagensURL: u.images.slice(0, 5).map((url) => ({ link: url })) } }
       : undefined,
   };
 }
