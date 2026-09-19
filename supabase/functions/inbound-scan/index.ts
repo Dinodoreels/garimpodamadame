@@ -7,6 +7,46 @@ import {
 
 const CONFIDENCE_THRESHOLD = 0.75;
 
+const imageExtension = (contentType: string | null, url: string) => {
+  if (contentType?.includes('png')) return 'png';
+  if (contentType?.includes('webp')) return 'webp';
+  return url.match(/\.(png|webp|jpe?g)(?:[?#]|$)/i)?.[1]?.replace('jpeg', 'jpg').toLowerCase() ?? 'jpg';
+};
+
+async function persistProductImages(db: ReturnType<typeof adminClient>, productId: string, title: string, urls: string[]) {
+  const persisted: string[] = [];
+  for (let index = 0; index < Math.min(urls.length, 5); index++) {
+    const sourceUrl = urls[index];
+    try {
+      const dataMatch = sourceUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+      let contentType: string | null;
+      let imageBody: ArrayBuffer | Uint8Array;
+      if (dataMatch) {
+        contentType = dataMatch[1];
+        imageBody = Uint8Array.from(atob(dataMatch[2]), character => character.charCodeAt(0));
+      } else {
+        if (!/^https?:\/\//i.test(sourceUrl)) continue;
+        const response = await fetch(sourceUrl);
+        contentType = response.headers.get('content-type');
+        if (!response.ok || (contentType && !contentType.startsWith('image/'))) continue;
+        imageBody = await response.arrayBuffer();
+      }
+      const path = `inbound/${productId}/${crypto.randomUUID()}.${imageExtension(contentType, sourceUrl)}`;
+      const uploaded = await db.storage.from('product-images').upload(path, imageBody, { contentType: contentType ?? 'image/jpeg' });
+      if (uploaded.error) continue;
+      const { data } = db.storage.from('product-images').getPublicUrl(path);
+      if (data.publicUrl) persisted.push(data.publicUrl);
+    } catch { /* fonte de imagem indisponível */ }
+  }
+  if (persisted.length) {
+    const { data: existing } = await db.from('product_images').select('url').eq('product_id', productId);
+    const known = new Set((existing ?? []).map(row => row.url));
+    const rows = persisted.filter(url => !known.has(url)).map((url, index) => ({ product_id: productId, url, alt_text: title, position: known.size + index }));
+    if (rows.length) await db.from('product_images').insert(rows);
+  }
+  return persisted;
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: OPERATOR_CORS });
 
@@ -187,7 +227,32 @@ Deno.serve(async (req) => {
         source: operator ? `operador:${operator.code}` : 'painel',
       });
 
-      return jsonResponse({ ok: true, item_id: item.id, state, pending: needsReview });
+      let publication: Record<string, unknown> | null = null;
+      if (!needsReview && body.auto_publish === true) {
+        const description = String(body.description ?? '').trim();
+        const candidates = Array.isArray(body.ai_data?.image_urls) ? body.ai_data.image_urls.filter((value: unknown) => typeof value === 'string') : [];
+        const hasRequiredData = Boolean(String(body.title ?? '').trim() && description && Number(body.suggested_price) > 0 && quantity > 0 && (photoPath || candidates.length));
+        if (hasRequiredData) {
+          const actorId = user?.id ?? operator?.created_by ?? null;
+          if (actorId) {
+            const { data: published, error: publishError } = await db.rpc('publish_complete_inbound_scan_item', {
+              p_item_id: item.id,
+              p_actor_id: actorId,
+              p_description: description,
+              p_sku: body.sku ?? null,
+            });
+            if (publishError) throw publishError;
+            publication = published as Record<string, unknown>;
+            const productId = String(publication?.product_id ?? '');
+            if (productId) {
+              await persistProductImages(db, productId, String(body.title), candidates);
+              await db.rpc('calculate_product_catalog_readiness', { target_product_id: productId });
+            }
+          }
+        }
+      }
+
+      return jsonResponse({ ok: true, item_id: item.id, state: publication ? 'AVAILABLE' : state, pending: needsReview, publication });
     }
 
     return jsonResponse({ ok: false, error: 'Ação desconhecida.' }, 400);

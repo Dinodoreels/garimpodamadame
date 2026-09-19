@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Camera, ScanLine, Sparkles, Check, RotateCcw, Loader2, AlertTriangle } from 'lucide-react';
+import { Camera, ScanLine, Sparkles, Check, RotateCcw, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { scanService, type IdentifyResult, type ScanLot } from '@/services/inbound/scanService';
 import { fileToCompressedDataUrl } from '@/lib/imageCapture';
 import { CONDITIONS } from '@/services/inbound/types';
@@ -16,7 +16,7 @@ import { BarcodeCamera } from './BarcodeCamera';
 
 const EMPTY_FORM = {
   title: '', brand: '', category: '', sku: '',
-  condition_code: 'T1', quantity: 1, suggested_price: '', notes: '',
+  condition_code: 'T1', quantity: 1, suggested_price: '', description: '', notes: '',
 };
 
 type Form = typeof EMPTY_FORM;
@@ -111,11 +111,17 @@ export function ScanScreen({ fullscreen = false }: Props) {
           title: res.result!.title ?? '',
           brand: res.result!.brand ?? '',
           category: res.result!.category ?? '',
+          description: res.result!.description ?? '',
+          sku: res.result!.sku ?? f.sku,
           condition_code: (res.result!.condition_guess as string) || f.condition_code,
-          suggested_price: res.result!.estimated_price_brl != null ? String(res.result!.estimated_price_brl) : '',
+          suggested_price: res.result!.estimated_price_brl != null ? String(res.result!.estimated_price_brl) : res.result!.price != null ? String(res.result!.price) : '',
         }));
         if ((res.confidence ?? 0) < 0.75) {
           setAiWarning('As fontes não deram certeza suficiente. Ao gravar, a peça vai para Pendências.');
+        } else if ((res.candidates?.length ?? 0) < 3) {
+          setAiWarning(`Foram encontrados ${res.candidates?.length ?? 0} de 3 anúncios válidos. Revise antes de gravar.`);
+        } else if (res.warnings?.length) {
+          setAiWarning(res.warnings.join(' '));
         }
       }
     } catch (e) {
@@ -146,18 +152,24 @@ export function ScanScreen({ fullscreen = false }: Props) {
         variant_id: match?.variant_id ?? null,
         suggested_price: form.suggested_price ? Number(form.suggested_price) : null,
         notes: form.notes.trim() || null,
+        description: form.description.trim() || null,
         ai_source: identified?.source ?? 'manual',
         ai_confidence: identified?.confidence ?? null,
-        ai_data: identified?.result ?? identified?.match ?? null,
+        ai_data: identified?.result
+          ? { ...identified.result, market_references: identified.candidates ?? [] }
+          : identified?.match ?? null,
         photo_base64: photo,
         identification_result_ids: identified?.result_ids,
         force_review: forceReview,
+        auto_publish: !forceReview,
       });
       setTimes(t => [...t.slice(-19), Math.round((Date.now() - startedAt.current) / 1000)]);
       if (res.pending) {
         toast.warning('Peça gravada em Pendências para conferência.');
+      } else if (res.publication) {
+        toast.success('Produto publicado na loja, no painel e enviado para sincronização.');
       } else {
-        toast.success('Peça gravada.');
+        toast.warning('Peça gravada, mas ainda falta informação para publicar.');
       }
       qc.invalidateQueries({ queryKey: ['inbound'] });
       resetPiece();
@@ -272,6 +284,24 @@ export function ScanScreen({ fullscreen = false }: Props) {
               <AlertTriangle className="h-4 w-4 mt-0.5 shrink-0" /> {aiWarning}
             </p>
           )}
+          {identified?.candidates && identified.candidates.length > 0 && (
+            <div className="space-y-2">
+              <p className="text-sm font-medium">Anúncios encontrados ({identified.candidates.length}/3)</p>
+              <div className="grid gap-3 md:grid-cols-3">
+                {identified.candidates.slice(0, 3).map((candidate, index) => (
+                  <div key={candidate.id ?? `${candidate.product_url}-${index}`} className="overflow-hidden rounded-md border bg-card">
+                    {candidate.image_url && <img src={candidate.image_url} alt={candidate.title ?? 'Produto encontrado'} className="aspect-square w-full object-cover" />}
+                    <div className="space-y-1 p-3">
+                      <p className="line-clamp-2 text-sm font-medium">{candidate.title ?? 'Anúncio sem título'}</p>
+                      <p className="text-xs text-muted-foreground">{candidate.source ?? 'Fonte externa'}</p>
+                      <p className="text-sm font-semibold">{candidate.price != null ? Number(candidate.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'Preço não informado'}</p>
+                      {candidate.product_url && <a className="inline-flex items-center gap-1 text-xs text-primary underline" href={candidate.product_url} target="_blank" rel="noreferrer">Abrir anúncio <ExternalLink className="h-3 w-3" /></a>}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -317,12 +347,15 @@ export function ScanScreen({ fullscreen = false }: Props) {
             <Field label="Observação" className="sm:col-span-2">
               <Textarea rows={2} value={form.notes} onChange={e => set('notes', e.target.value)} />
             </Field>
+            <Field label="Descrição automática" className="sm:col-span-2">
+              <Textarea rows={4} value={form.description} onChange={e => set('description', e.target.value)} placeholder="Descrição criada com base nos anúncios reais" />
+            </Field>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
             <Button size="lg" className="h-16 text-base" onClick={()=>handleSave(false)} disabled={saving || !lotId}>
               {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
-              Gravar e ir para a próxima peça
+              Gravar, publicar e ir para a próxima
             </Button>
             <Button size="lg" variant="outline" className="h-16" onClick={resetPiece}>
               <RotateCcw className="mr-2 h-5 w-5" /> Limpar

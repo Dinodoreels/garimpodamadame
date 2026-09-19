@@ -55,6 +55,7 @@ export interface OperatorSession {
   code: string;
   name: string;
   role: string;
+  created_by: string | null;
 }
 
 /** Valida o token do tablet e devolve o operador, ou null. */
@@ -63,15 +64,15 @@ export async function resolveOperator(req: Request, db: SupabaseClient): Promise
   if (!token) return null;
   const { data } = await db
     .from('operator_sessions')
-    .select('operator_id, expires_at, revoked_at, operators(id, code, name, role, is_active)')
+    .select('operator_id, expires_at, revoked_at, operators(id, code, name, role, is_active, created_by)')
     .eq('token_hash', await hashToken(token))
     .maybeSingle();
   if (!data) return null;
   if (data.revoked_at) return null;
   if (new Date(data.expires_at).getTime() < Date.now()) return null;
-  const op = data.operators as unknown as { id: string; code: string; name: string; role: string; is_active: boolean } | null;
+  const op = data.operators as unknown as { id: string; code: string; name: string; role: string; is_active: boolean; created_by: string | null } | null;
   if (!op || !op.is_active) return null;
-  return { operator_id: op.id, code: op.code, name: op.name, role: op.role };
+  return { operator_id: op.id, code: op.code, name: op.name, role: op.role, created_by: op.created_by };
 }
 
 /** Valida o JWT do painel e devolve o usuário com perfis de CD, ou null. */

@@ -41,11 +41,25 @@ export interface IdentifyResult {
     reasoning_note: string | null;
     price?: number | null;
     source?: string;
+    sku?: string | null;
+    image_urls?: string[];
+    comparable_count?: number;
   };
-  candidates?: Array<Record<string, unknown>>;
+  candidates?: MarketComparable[];
   result_ids?: string[];
   needs_review?: boolean;
   warnings?: string[];
+}
+
+export interface MarketComparable {
+  id?: string;
+  title?: string | null;
+  source?: string | null;
+  product_url?: string | null;
+  image_url?: string | null;
+  price?: number | null;
+  condition?: string | null;
+  confidence?: number | null;
 }
 
 export interface SaveItemInput {
@@ -61,12 +75,14 @@ export interface SaveItemInput {
   variant_id?: string | null;
   suggested_price?: number | null;
   notes?: string | null;
+  description?: string | null;
   ai_source: 'catalog' | 'cosmos' | 'google_lens' | 'external' | 'manual';
   ai_confidence?: number | null;
   ai_data?: unknown;
   photo_base64?: string | null;
   identification_result_ids?: string[];
   force_review?: boolean;
+  auto_publish?: boolean;
 }
 
 function operatorHeaders() {
@@ -103,7 +119,7 @@ export const scanService = {
     call<IdentifyResult>('inbound-identify', input),
 
   save: (input: SaveItemInput) =>
-    call<{ ok: boolean; item_id: string; state: string; pending: boolean }>('inbound-scan', {
+    call<{ ok: boolean; item_id: string; state: string; pending: boolean; publication?: { product_id?: string; new_product?: boolean } | null }>('inbound-scan', {
       action: 'save',
       ...input,
     }),

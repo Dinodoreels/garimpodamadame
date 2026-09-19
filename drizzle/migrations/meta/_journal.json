@@ -15,6 +15,20 @@
       "when": 1789786821687,
       "tag": "0001_restrict_truck_receipt_delete_to_admin",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789787759561,
+      "tag": "0002_publish_complete_inbound_scan_items",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789787905997,
+      "tag": "0003_correct_inbound_auto_publication_values",
+      "breakpoints": true
     }
   ]
 }
