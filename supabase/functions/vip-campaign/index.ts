@@ -93,6 +93,19 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Configure e ative o grupo VIP antes de enviar." }, 409);
     }
 
+    const { data: duplicate } = await db.from("vip_product_campaigns")
+      .select("id, sent_at")
+      .eq("variant_id", variant.id)
+      .eq("discount_percent", discountPercent)
+      .eq("last_known_stock", stock)
+      .eq("status", "sent")
+      .order("sent_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (duplicate) {
+      return jsonResponse({ error: "Esta mesma oferta já foi enviada com o estoque atual." }, 409);
+    }
+
     const { data: coupon, error: couponError } = await db.from("discount_codes").insert({
       code: couponCode,
       type: "percentage",

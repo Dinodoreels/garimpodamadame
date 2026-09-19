@@ -61,6 +61,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY')!,
       { global: { headers: { Authorization: authHeader } } }
     )
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
 
     // Verify user
     const token = authHeader.replace('Bearer ', '')
@@ -98,7 +102,27 @@ Deno.serve(async (req) => {
     })
     // Calculate totals from prices stored by the shop, never from browser values
     const subtotal = verifiedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    const discountValue = Math.max(0, Number(discount_amount || 0))
+    let discountValue = 0
+    let verifiedDiscountCode: string | null = null
+    if (discount_code) {
+      const { data: discountRows, error: discountError } = await supabase.rpc('validate_discount_code', { p_code: discount_code.toUpperCase() })
+      const discount = Array.isArray(discountRows) ? discountRows[0] : discountRows
+      if (discountError || !discount) throw new Error('Cupom inválido ou expirado')
+      const { count: priorUses } = await admin.from('discount_usage').select('*', { count: 'exact', head: true }).eq('discount_id', discount.id).eq('user_id', userId)
+      if (discount.uses_per_user && (priorUses || 0) >= discount.uses_per_user) throw new Error('Você já usou este cupom')
+      const { data: vipCampaign } = await admin.from('vip_product_campaigns').select('variant_id').eq('discount_code_id', discount.id).maybeSingle()
+      const eligibleSubtotal = vipCampaign
+        ? verifiedItems.filter((item) => item.variant_id === vipCampaign.variant_id).reduce((sum, item) => sum + item.price * item.quantity, 0)
+        : subtotal
+      if (vipCampaign && eligibleSubtotal <= 0) throw new Error('Este cupom é válido somente para o produto da oferta VIP')
+      discountValue = discount.type === 'percentage'
+        ? eligibleSubtotal * (Number(discount.value) / 100)
+        : Math.min(Number(discount.value), eligibleSubtotal)
+      if (discount.max_discount) discountValue = Math.min(discountValue, Number(discount.max_discount))
+      verifiedDiscountCode = discount.code
+    } else if (Number(discount_amount || 0) > 0) {
+      throw new Error('Cupom inválido')
+    }
     const shippingValue = Math.max(0, Number(shipping_cost || 0))
     if (discountValue > subtotal || !Number.isFinite(shippingValue)) throw new Error('Valores de desconto ou frete inválidos')
     const total = subtotal - discountValue + shippingValue
@@ -125,7 +149,7 @@ Deno.serve(async (req) => {
         shipping_cost: shippingValue,
         total,
         shipping_address,
-        discount_code: discount_code || null,
+        discount_code: verifiedDiscountCode,
         discount_amount: discountValue,
         loyalty_points_used: loyalty_points_used || 0,
         source: 'website',
