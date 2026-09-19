@@ -22,23 +22,35 @@ export async function runAutomaticTikTokPublication(productIds?: string[]) {
   await getTikTokCategories(channel);
 
   let query = supa.from('products')
-    .select('id')
+    .select('id,marketplace_product_publications!left(status,external_listing_id,channel_id)')
     .eq('status', 'active')
     .not('suggestions_confirmed_at', 'is', null)
-    .limit(25);
+    .order('updated_at', { ascending: true })
+    .limit(50);
   if (productIds?.length) query = query.in('id', productIds.slice(0, 50));
 
   // Category eligibility is authoritatively checked by bling-publish-product.
   const { data: products, error } = await query;
   if (error) throw error;
 
+  const eligibleProducts = (products ?? []).filter((product: any) => {
+    const publications = Array.isArray(product.marketplace_product_publications)
+      ? product.marketplace_product_publications
+      : [];
+    return !publications.some((publication: any) =>
+      publication.channel_id === savedChannel.id &&
+      Boolean(publication.external_listing_id) &&
+      ['published', 'pending'].includes(String(publication.status))
+    );
+  });
+
   const results: Array<{ product_id: string; status: string; error?: string }> = [];
-  for (const product of products ?? []) {
+  for (const product of eligibleProducts) {
     try {
       const response = await fetch(`${baseUrl}/functions/v1/bling-publish-product`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ product_id: product.id, automatic: true }),
+        body: JSON.stringify({ product_id: product.id, automatic: true, let_bling_choose_category: true }),
       });
       const result = await response.json().catch(() => ({}));
       const status = String(result?.status ?? (response.status === 409 ? 'pending' : response.ok ? 'published' : 'error'));
@@ -51,6 +63,7 @@ export async function runAutomaticTikTokPublication(productIds?: string[]) {
   }
   return {
     processed: results.length,
+    skipped_existing: (products ?? []).length - eligibleProducts.length,
     published: results.filter((item) => item.status === 'published').length,
     pending: results.filter((item) => item.status === 'pending').length,
     errors: results.filter((item) => item.status === 'error').length,
