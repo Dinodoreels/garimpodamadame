@@ -2,6 +2,15 @@ import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from './b
 
 export const normalizeSku = (value: unknown) => String(value ?? '').replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
 
+const normalizeIdentityText = (value: unknown) => String(value ?? '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .replace(/[^a-zA-Z0-9]+/g, ' ')
+  .trim()
+  .toUpperCase();
+
+const normalizeGtin = (value: unknown) => String(value ?? '').replace(/\D/g, '');
+
 const autoSku = (remoteId: string) => `GDM-BLG-${remoteId.replace(/[^a-zA-Z0-9]/g, '').toUpperCase()}`;
 
 async function assignMissingSku(raw: any, usedSkus: Set<string>) {
@@ -160,7 +169,8 @@ export async function prepareImportRun(userId: string | null, options: { product
       : await fetchAllBlingProducts();
     if (!cfg.deposito_id) throw new Error('Escolha o depósito do Bling antes de buscar produtos e estoque.');
     const stockByProduct = await fetchBlingStock(remote.map((product: any) => String(product?.id ?? '')).filter(Boolean), cfg.deposito_id);
-    const { data: variants } = await supa.from('product_variants').select('id, product_id, sku, price, cost, inventory_quantity');
+    const { data: variants } = await supa.from('product_variants').select('id, product_id, sku, gtin, price, cost, inventory_quantity');
+    const { data: products } = await supa.from('products').select('id, title, vendor');
     const { data: links } = await supa.from('bling_product_links').select('product_id, variant_id, bling_product_id, bling_sku');
     const variantsBySku = new Map<string, any[]>();
     for (const variant of variants ?? []) {
@@ -169,6 +179,24 @@ export async function prepareImportRun(userId: string | null, options: { product
       variantsBySku.set(normalized, [...(variantsBySku.get(normalized) ?? []), variant]);
     }
     const linksByRemoteId = new Map((links ?? []).map((link: any) => [String(link.bling_product_id), link]));
+    const variantsByGtin = new Map<string, any[]>();
+    for (const variant of variants ?? []) {
+      const normalized = normalizeGtin(variant.gtin);
+      if (!normalized) continue;
+      variantsByGtin.set(normalized, [...(variantsByGtin.get(normalized) ?? []), variant]);
+    }
+    const variantsByProductId = new Map<string, any[]>();
+    for (const variant of variants ?? []) {
+      variantsByProductId.set(variant.product_id, [...(variantsByProductId.get(variant.product_id) ?? []), variant]);
+    }
+    const productsByIdentity = new Map<string, any[]>();
+    for (const product of products ?? []) {
+      const title = normalizeIdentityText(product.title);
+      const brand = normalizeIdentityText(product.vendor);
+      if (!title || !brand) continue;
+      const key = `${title}|${brand}`;
+      productsByIdentity.set(key, [...(productsByIdentity.get(key) ?? []), product]);
+    }
     const usedSkus = new Set<string>();
     for (const raw of remote) {
       const normalized = normalizeSku(raw?.codigo);
@@ -211,13 +239,28 @@ export async function prepareImportRun(userId: string | null, options: { product
       if (selectedStock != null) snap.stock = selectedStock;
       const normalized = normalizeSku(snap.sku);
       const linked = linksByRemoteId.get(snap.id);
-      const matches = normalized ? variantsBySku.get(normalized) ?? [] : [];
-      const local = linked ? (variants ?? []).find((v: any) => v.id === linked.variant_id) : matches[0];
-      const conflict = !!generationError || !normalized || (!linked && matches.length > 1);
+      const skuMatches = normalized ? variantsBySku.get(normalized) ?? [] : [];
+      const gtin = normalizeGtin(raw?.gtin ?? raw?.gtinEmbalagem);
+      const gtinMatches = gtin ? variantsByGtin.get(gtin) ?? [] : [];
+      const identityKey = `${normalizeIdentityText(snap.name)}|${normalizeIdentityText(snap.brand)}`;
+      const identityProducts = snap.name && snap.brand ? productsByIdentity.get(identityKey) ?? [] : [];
+      const identityVariants = identityProducts.length === 1
+        ? variantsByProductId.get(identityProducts[0].id) ?? []
+        : [];
+      const candidates = linked
+        ? [(variants ?? []).find((v: any) => v.id === linked.variant_id)].filter(Boolean)
+        : gtinMatches.length ? gtinMatches
+        : skuMatches.length ? skuMatches
+        : identityVariants;
+      const local = candidates.length === 1 ? candidates[0] : null;
+      const ambiguousIdentity = !linked && !gtinMatches.length && !skuMatches.length
+        && (identityProducts.length > 1 || identityVariants.length > 1);
+      const conflict = !!generationError || !normalized || (!linked && candidates.length > 1) || ambiguousIdentity;
       const differences: Record<string, any> = {};
       if (local && Number(local.price) !== snap.price) differences.price = { store: Number(local.price), bling: snap.price };
       if (local && snap.stock != null && Number(local.inventory_quantity) !== Number(snap.stock)) differences.stock = { store: Number(local.inventory_quantity), bling: Number(snap.stock) };
-      const classification = conflict ? 'conflict' : linked ? (Object.keys(differences).length ? 'different' : 'linked') : matches.length === 1 ? 'different' : 'new';
+      const matchedExisting = Boolean(local);
+      const classification = conflict ? 'conflict' : linked ? (Object.keys(differences).length ? 'different' : 'linked') : matchedExisting ? 'different' : 'new';
       return {
         run_id: run.id,
         account_key: key,

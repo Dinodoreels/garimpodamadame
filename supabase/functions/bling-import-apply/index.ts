@@ -264,8 +264,7 @@ Deno.serve(async (req) => {
         const { data: existingLink, error: existingLinkError } = await supa
           .from('bling_product_links')
           .select('id')
-          .eq('product_id', productId)
-          .eq('variant_id', variantId)
+          .eq('bling_product_id', remote.id)
           .maybeSingle();
         if (existingLinkError) throw existingLinkError;
         const { error: linkError } = existingLink

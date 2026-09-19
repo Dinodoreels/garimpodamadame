@@ -37,7 +37,11 @@ Deno.serve(async (req) => {
         unmatched.push(v.sku as string);
         continue;
       }
-      const { error: linkError } = await supa.from("bling_product_links").upsert({
+      const { data: existingLink } = await supa.from("bling_product_links")
+        .select("id")
+        .eq("bling_product_id", match.id)
+        .maybeSingle();
+      const linkData = {
         product_id: v.product_id,
         variant_id: v.id,
         bling_product_id: match.id,
@@ -45,7 +49,10 @@ Deno.serve(async (req) => {
         status: "synced",
         last_pulled_at: new Date().toISOString(),
         last_error: null,
-      }, { onConflict: "product_id,variant_id" });
+      };
+      const { error: linkError } = existingLink
+        ? await supa.from("bling_product_links").update(linkData).eq("id", existingLink.id)
+        : await supa.from("bling_product_links").insert(linkData);
       if (linkError) throw linkError;
       if (cfg?.sync_stock && cfg.stock_authority === "store" && cfg.deposito_id) {
         await pushStockToBling(
