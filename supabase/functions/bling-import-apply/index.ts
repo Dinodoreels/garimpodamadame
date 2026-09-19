@@ -4,6 +4,11 @@ import { pushStockToBling } from '../_shared/bling-product-sync.ts';
 
 const slug = (name: string, remoteId: string) => `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'produto'}-bling-${remoteId}`;
 
+function isCronCaller(req: Request) {
+  const token = Deno.env.get('BLING_CRON_TOKEN');
+  return Boolean(token) && req.headers.get('authorization') === `Bearer ${token}`;
+}
+
 const errorMessage = (error: unknown) => {
   if (error instanceof Error) return error.message;
   if (typeof error === 'string') return error;
@@ -64,7 +69,8 @@ async function persistBlingImages(supa: any, productId: string, remoteId: string
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
   try {
-    const userId = await assertAdmin(req);
+    const cron = isCronCaller(req);
+    const userId = cron ? null : await assertAdmin(req);
     const body = await req.json().catch(() => ({}));
     const runId = typeof body?.run_id === 'string' ? body.run_id : '';
     const itemIds = Array.isArray(body?.item_ids) ? body.item_ids.filter((id: unknown) => typeof id === 'string').slice(0, 50) : [];
@@ -77,7 +83,16 @@ Deno.serve(async (req) => {
     const key = await accountKey(cfg.client_id, cfg.company_name);
     const { data: run } = await supa.from('bling_import_runs').select('*').eq('id', runId).maybeSingle();
     if (!run || run.account_key !== key) return jsonResponse({ error: 'Esta prévia pertence a outra conta do Bling. Faça uma nova busca.' }, 409);
-    if (run.decision !== 'approved') return jsonResponse({ error: 'Aprove este lote e informe o motivo antes de aplicar os produtos e o estoque.' }, 409);
+    if (run.decision !== 'approved' && !cron) return jsonResponse({ error: 'Aprove este lote e informe o motivo antes de aplicar os produtos e o estoque.' }, 409);
+    if (run.decision !== 'approved' && cron) {
+      await supa.from('bling_import_runs').update({
+        decision: 'approved',
+        decision_reason: 'Aplicação automática de produto completo recebido do Bling',
+        decided_by: null,
+        decided_at: new Date().toISOString(),
+      }).eq('id', runId);
+      await logSync({ entity_type: 'import', entity_id: runId, action: 'auto_approved', status: 'success', payload: { reason: 'Produto completo recebido do Bling' } });
+    }
 
     await supa.from('bling_import_runs').update({ status: 'applying', error_message: null }).eq('id', runId);
     const { data: items } = await supa.from('bling_import_items').select('*').eq('run_id', runId).in('id', itemIds).neq('classification', 'conflict');
@@ -285,7 +300,7 @@ Deno.serve(async (req) => {
     const done = !remaining;
     await supa.from('bling_import_runs').update({ status: done ? 'completed' : 'review', completed_at: done ? new Date().toISOString() : null, error_message: failed ? `${failed} item(ns) com erro` : null }).eq('id', runId);
     await logSync({ entity_type: 'import', entity_id: runId, action: 'apply', status: failed ? 'error' : 'success', response: { processed: results.length, failed }, error_message: failed ? `${failed} item(ns) com erro` : null });
-    return jsonResponse({ processed: results.length, failed, results, completed: done, actor: userId });
+    return jsonResponse({ processed: results.length, failed, results, completed: done, actor: userId ?? 'system' });
   } catch (error) {
     if (error instanceof Response) return error;
     return jsonResponse({ error: errorMessage(error) }, 500);

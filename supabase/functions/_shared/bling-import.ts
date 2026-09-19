@@ -140,7 +140,7 @@ export function productSnapshot(raw: any) {
   };
 }
 
-export async function prepareImportRun(userId: string) {
+export async function prepareImportRun(userId: string | null, options: { productIds?: string[] } = {}) {
   const supa = getSupabaseAdmin();
   const cfg = await getConfig();
   if (!cfg?.is_active || !cfg.client_id || !cfg.refresh_token) throw new Error('Conecte e teste a conta do Bling antes de buscar os dados.');
@@ -154,7 +154,10 @@ export async function prepareImportRun(userId: string) {
   if (runError) throw runError;
 
   try {
-    const remote = await fetchAllBlingProducts();
+    const requestedIds = options.productIds?.length ? new Set(options.productIds.map(String)) : null;
+    const remote = requestedIds
+      ? await Promise.all([...requestedIds].map((id) => fetchBlingProductDetail(id)))
+      : await fetchAllBlingProducts();
     if (!cfg.deposito_id) throw new Error('Escolha o depósito do Bling antes de buscar produtos e estoque.');
     const stockByProduct = await fetchBlingStock(remote.map((product: any) => String(product?.id ?? '')).filter(Boolean), cfg.deposito_id);
     const { data: variants } = await supa.from('product_variants').select('id, product_id, sku, price, cost, inventory_quantity');
@@ -178,6 +181,10 @@ export async function prepareImportRun(userId: string) {
 
     const preparedRemote: Array<{ raw: any; generated: boolean; generationError?: string }> = [];
     for (const raw of remote) {
+      if (normalizeSku(raw?.codigo) && requestedIds) {
+        preparedRemote.push({ raw, generated: false });
+        continue;
+      }
       if (normalizeSku(raw?.codigo)) {
         try {
           const detailed = await fetchBlingProductDetail(String(raw?.id ?? ''));

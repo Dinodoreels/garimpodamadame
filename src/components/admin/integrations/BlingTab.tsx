@@ -44,7 +44,7 @@ type Config = {
   last_order_pull_at: string | null;
   last_sync_at: string | null;
   last_catalog_sync_at: string | null;
-  last_catalog_sync_summary: { processed?: number; updated?: number; failed?: number; images_added?: number; new_products_pending?: number } | null;
+  last_catalog_sync_summary: { processed?: number; updated?: number; failed?: number; images_added?: number; new_products_found?: number; auto_applied?: number; new_products_pending?: number } | null;
   last_error: string | null;
 };
 
@@ -336,6 +336,15 @@ export function BlingTab() {
     toast.success('Dados do Bling sincronizados', { description: `${preview.totals?.total ?? 0} produtos encontrados${automaticItems?.length ? ` · ${automaticItems.length} processados automaticamente` : ''}${preview.totals?.auto_sku_generated ? ` · ${preview.totals.auto_sku_generated} SKUs criados` : ''}${orders ? ` · ${orders.imported ?? 0} pedidos novos · ${orders.updated ?? 0} atualizados${orders.errors ? ` · ${orders.errors} com erro` : ''}` : ''}.` });
   };
 
+  const refreshCatalogNow = async () => {
+    const result = await call('bling-pull-catalog', { batch_size: 50 });
+    if (!result) return;
+    await load(true);
+    toast.success('Produtos atualizados pelo Bling', {
+      description: `${result.updated ?? 0} alterados · ${result.auto_applied ?? 0} novos aplicados · ${result.new_products_pending ?? 0} para revisão${result.failed ? ` · ${result.failed} erros` : ''}.`,
+    });
+  };
+
   const toggleImportItem = async (item: ImportItem, selected: boolean) => {
     const { error } = await supabase.from('bling_import_items').update({ selected }).eq('id', item.id);
     if (error) return toast.error('Não foi possível alterar a seleção', { description: error.message });
@@ -425,7 +434,7 @@ export function BlingTab() {
                 <strong>Catálogo automático ativo.</strong>{' '}
                 Última atualização: {new Date(config.last_catalog_sync_at).toLocaleString('pt-BR')}
                 {config.last_catalog_sync_summary
-                  ? ` · ${config.last_catalog_sync_summary.processed ?? 0} verificados · ${config.last_catalog_sync_summary.updated ?? 0} alterados · ${config.last_catalog_sync_summary.failed ?? 0} erros`
+                  ? ` · ${config.last_catalog_sync_summary.processed ?? 0} verificados · ${config.last_catalog_sync_summary.updated ?? 0} alterados · ${config.last_catalog_sync_summary.auto_applied ?? 0} novos aplicados · ${config.last_catalog_sync_summary.new_products_pending ?? 0} para revisão · ${config.last_catalog_sync_summary.failed ?? 0} erros`
                   : ''}
               </AlertDescription>
             </Alert>
@@ -518,7 +527,10 @@ export function BlingTab() {
                 Trocar credenciais e conta
               </Button>
             )}
-            <Button variant="outline" onClick={() => load()}><RefreshCw className="h-4 w-4 mr-2" />Atualizar</Button>
+            <Button variant="outline" onClick={refreshCatalogNow} disabled={!connected || busy === 'bling-pull-catalog'}>
+              {busy === 'bling-pull-catalog' ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
+              Atualizar do Bling agora
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -526,7 +538,7 @@ export function BlingTab() {
       <Card>
         <CardHeader>
           <CardTitle>Importar dados do Bling</CardTitle>
-          <CardDescription>Busque catálogo, estoque e pedidos. Revise os produtos antes de trazê-los para a loja.</CardDescription>
+          <CardDescription>Produtos completos entram automaticamente pelo Bling. Itens incompletos ou conflitantes ficam aqui para revisão.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2">

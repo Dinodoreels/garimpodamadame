@@ -96,3 +96,12 @@
 - [x] Criar a área Grupo VIP no painel com prévia e configuração do envio
 - [ ] Ativar envio real após configurar Evolution API, WPPConnect ou UAZAPI e o código do grupo
 - [ ] Validar envio real após o Bling registrar saldo positivo em pelo menos um produto completo
+
+# Entrada automática de produtos pelo Bling
+
+- [x] Confirmar o Bling como entrada única de produtos vindos das plataformas
+- [x] Aplicar automaticamente produtos novos com SKU, título, preço e foto reais
+- [x] Manter produtos incompletos ou com conflito separados para revisão administrativa
+- [x] Atualizar produtos vinculados e estoque sem criar ciclos de sincronização
+- [x] Adicionar a ação “Atualizar do Bling agora” com resumo de aplicados, pendentes e erros
+- [x] Validar com o produto real mais recente encontrado no Bling, mantido em revisão por falta de foto

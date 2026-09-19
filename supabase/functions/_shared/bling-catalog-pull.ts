@@ -3,6 +3,48 @@ import { fetchAllBlingProducts, fetchBlingProductDetail, fetchBlingStock, normal
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
 
+async function autoImportNewProducts(productIds: string[]) {
+  if (!productIds.length) return { applied: 0, review: 0, failed: 0 };
+  const token = Deno.env.get('BLING_CRON_TOKEN');
+  const baseUrl = Deno.env.get('SUPABASE_URL');
+  if (!token || !baseUrl) throw new Error('Automação interna do Bling não está configurada.');
+  const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
+  const previewResponse = await fetch(`${baseUrl}/functions/v1/bling-import-preview`, {
+    method: 'POST', headers, body: JSON.stringify({ product_ids: productIds.slice(0, 50) }),
+  });
+  const preview = await previewResponse.json().catch(() => ({}));
+  if (!previewResponse.ok || !preview?.run_id) throw new Error(preview?.error ?? `Prévia automática falhou (${previewResponse.status}).`);
+
+  const supa = getSupabaseAdmin();
+  const { data: rows, error } = await supa.from('bling_import_items')
+    .select('id, classification, bling_data')
+    .eq('run_id', preview.run_id)
+    .eq('selected', true);
+  if (error) throw error;
+  const safeIds = (rows ?? []).filter((row: any) => {
+    const data = row.bling_data ?? {};
+    return row.classification !== 'conflict'
+      && Boolean(normalizeSku(data.sku))
+      && Boolean(String(data.name ?? '').trim())
+      && Number(data.price) > 0
+      && Array.isArray(data.images)
+      && data.images.length > 0;
+  }).map((row: any) => row.id);
+  let applied = 0;
+  let failed = 0;
+  for (let index = 0; index < safeIds.length; index += 50) {
+    const applyResponse = await fetch(`${baseUrl}/functions/v1/bling-import-apply`, {
+      method: 'POST', headers, body: JSON.stringify({ run_id: preview.run_id, item_ids: safeIds.slice(index, index + 50) }),
+    });
+    const result = await applyResponse.json().catch(() => ({}));
+    if (!applyResponse.ok) throw new Error(result?.error ?? `Aplicação automática falhou (${applyResponse.status}).`);
+    applied += Number(result.processed ?? 0) - Number(result.failed ?? 0);
+    failed += Number(result.failed ?? 0);
+  }
+  const review = Math.max(0, (rows ?? []).length - safeIds.length + failed);
+  return { applied, review, failed, run_id: preview.run_id };
+}
+
 async function persistImages(supa: any, productId: string, remoteId: string, urls: string[]) {
   const { data: existing } = await supa.from('product_images').select('url').eq('product_id', productId);
   const known = new Set((existing ?? []).map((row: { url: string }) => row.url));
@@ -62,6 +104,8 @@ export async function pullLinkedBlingProducts(options: { blingProductIds?: strin
   let failed = 0;
   let imagesAdded = 0;
   let newProducts = 0;
+  let autoApplied = 0;
+  let reviewPending = 0;
 
   try {
     let query = supa
@@ -135,17 +179,27 @@ export async function pullLinkedBlingProducts(options: { blingProductIds?: strin
       }
     }
 
-    if (!options.blingProductIds?.length) {
-      const remoteProducts = await fetchAllBlingProducts();
-      const { data: allLinks } = await supa.from('bling_product_links').select('bling_product_id');
-      const linkedIds = new Set((allLinks ?? []).map((row: any) => String(row.bling_product_id)));
-      newProducts = remoteProducts.filter((row: any) => row?.id && !linkedIds.has(String(row.id))).length;
-      if (newProducts > 0) {
-        await logSync({ entity_type: 'import', action: 'new_products_pending', status: 'pending', response: { count: newProducts } });
+    const remoteProducts = options.blingProductIds?.length
+      ? options.blingProductIds.map((id) => ({ id }))
+      : await fetchAllBlingProducts();
+    const { data: allLinks } = await supa.from('bling_product_links').select('bling_product_id');
+    const linkedIds = new Set((allLinks ?? []).map((row: any) => String(row.bling_product_id)));
+    const newProductIds = remoteProducts.map((row: any) => String(row?.id ?? '')).filter((id) => id && !linkedIds.has(id));
+    newProducts = newProductIds.length;
+    if (newProducts > 0) {
+      try {
+        const imported = await autoImportNewProducts(newProductIds);
+        autoApplied = imported.applied;
+        reviewPending = imported.review;
+        await logSync({ entity_type: 'import', action: 'auto_apply_new', status: imported.failed ? 'error' : 'success', response: imported });
+      } catch (error) {
+        reviewPending = newProducts;
+        failed++;
+        await logSync({ entity_type: 'import', action: 'auto_apply_new', status: 'error', response: { count: newProducts }, error_message: errorMessage(error) });
       }
     }
 
-    const summary = { processed, updated, failed, images_added: imagesAdded, new_products_pending: newProducts };
+    const summary = { processed, updated, failed, images_added: imagesAdded, new_products_found: newProducts, auto_applied: autoApplied, new_products_pending: reviewPending };
     await supa.from('bling_config').update({
       last_catalog_sync_at: new Date().toISOString(),
       last_catalog_sync_summary: summary,
