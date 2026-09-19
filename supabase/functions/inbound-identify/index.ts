@@ -137,7 +137,8 @@ async function geminiJson(prompt: string, schema: Record<string, unknown>, image
         .join('') ?? '';
       return parseGeminiJson(output);
     }
-    await response.body?.cancel();
+    const providerMessage = await response.text();
+    console.error('Gemini Scan error', response.status, providerMessage.slice(0, 1200));
     const error = new Error(geminiErrorMessage(response.status));
     (error as Error & { status?: number }).status = response.status;
     lastError = error;
