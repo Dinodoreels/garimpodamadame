@@ -104,6 +104,15 @@ Deno.serve(async (req) => {
       return errorResponse("Produto ainda não está vinculado ao Bling.", 409);
     }
 
+    const storeLinkResult = await callBling({
+      path: "/produtos/lojas",
+      query: { idLoja: storeId, idProduto: blingProductId, limite: 100 },
+    });
+    const existingStoreLink = storeLinkResult.status < 400
+      ? (storeLinkResult.data?.data ?? []).find((item: { produto?: { id?: number }; loja?: { id?: number } }) =>
+        String(item.produto?.id ?? "") === String(blingProductId) && String(item.loja?.id ?? "") === storeId)
+      : null;
+
     const listingResult = await callBling({
       path: "/anuncios",
       query: { tipoIntegracao: type, idLoja: storeId, idProduto: blingProductId, limite: 100 },
@@ -173,6 +182,43 @@ Deno.serve(async (req) => {
     }
     const marketplaceCategoryId = mapping?.marketplace_category_id;
     if (!letBlingChooseCategory && !marketplaceCategoryId) return errorResponse("Selecione a categoria real do TikTok antes de publicar.", 409);
+
+    const blingCategoryId = String((product.marketplace_attributes as Record<string, unknown> | null)?.bling_category_id ?? "").trim();
+    if (automatic && !blingCategoryId) {
+      const message = "Vincule uma categoria do Bling ao produto antes da publicação automática.";
+      await upsertPublication({ status: "pending", pending_fields: ["bling_category"], last_error: message, last_attempt_at: new Date().toISOString() });
+      return errorResponse(message, 409);
+    }
+
+    if (automatic && !existingStoreLink) {
+      const primaryVariant = validVariants[0];
+      const storeLinkPayload = {
+        codigo: "0",
+        preco: Number(product.price),
+        precoPromocional: 0,
+        produto: { id: Number(blingProductId) },
+        loja: { id: Number(storeId) },
+        ...(blingCategoryId ? { categoriasProdutos: [{ id: Number(blingCategoryId) }] } : {}),
+      };
+      const linkResult = await callBling({ path: "/produtos/lojas", method: "POST", body: storeLinkPayload });
+      if (linkResult.status >= 400) {
+        const message = blingError(linkResult.status, linkResult.data);
+        await upsertPublication({ status: "error", last_error: message, last_payload: storeLinkPayload, last_response: linkResult.data, last_attempt_at: new Date().toISOString() });
+        await logSync({ entity_type: "product", entity_id: productId, action: "link_tiktok_via_bling", status: "error", payload: storeLinkPayload, response: linkResult.data, error_message: message });
+        return errorResponse(message, linkResult.status, linkResult.data);
+      }
+      await upsertPublication({
+        status: "pending",
+        pending_fields: [],
+        last_error: null,
+        last_payload: storeLinkPayload,
+        last_response: linkResult.data,
+        last_attempt_at: new Date().toISOString(),
+      });
+      await supa.from("marketplace_product_events").insert({ product_id: productId, channel_id: savedChannel.id, actor_id: actorId, event_type: "submitted", status: "pending", details: { via: "bling_store_link", sku: primaryVariant?.sku } });
+      await logSync({ entity_type: "product", entity_id: productId, action: "link_tiktok_via_bling", status: "success", payload: storeLinkPayload, response: linkResult.data });
+      return jsonResponse({ ok: true, status: "pending", channel: { id: storeId, name: channel.descricao ?? channel.nome ?? "TikTok Shop", type }, bling_response: linkResult.data });
+    }
 
     const attributes = product.marketplace_attributes && typeof product.marketplace_attributes === "object"
       ? Object.entries(product.marketplace_attributes).map(([id, valor]) => ({ id, valor: String(valor) }))
