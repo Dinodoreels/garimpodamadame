@@ -2,6 +2,7 @@ import {
   assertAdmin,
   blingError,
   callBling,
+  corsHeaders,
   getSupabaseAdmin,
   jsonResponse,
   logSync,
@@ -132,6 +133,8 @@ Deno.serve(async (req) => {
       await supa.from("marketplace_product_events").insert({ product_id: productId, channel_id: savedChannel.id, actor_id: actorId, event_type: "publish_blocked", status: "pending", details: { pending_fields: pendingFields, message } });
       return errorResponse(message, 409, { pending_fields: pendingFields, channel: { id: storeId, name: channel.descricao, type } });
     }
+    const marketplaceCategoryId = mapping?.marketplace_category_id;
+    if (!marketplaceCategoryId) return errorResponse("Selecione a categoria real do TikTok antes de publicar.", 409);
 
     const attributes = product.marketplace_attributes && typeof product.marketplace_attributes === "object"
       ? Object.entries(product.marketplace_attributes).map(([id, valor]) => ({ id, valor: String(valor) }))
@@ -147,7 +150,7 @@ Deno.serve(async (req) => {
       descricao: product.description ?? product.title,
       preco: { valor: Number(product.price) },
       estoques: { itens: [14889184090] },
-      categoria: { id: mapping.marketplace_category_id },
+      categoria: { id: marketplaceCategoryId },
       atributos: attributes,
       imagens: images,
     };
