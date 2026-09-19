@@ -5141,6 +5141,153 @@ export type Database = {
         }
         Relationships: []
       }
+      vip_campaign_events: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json
+          stock_quantity: number | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          stock_quantity?: number | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          stock_quantity?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_campaign_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "vip_product_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_product_campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          discount_code_id: string | null
+          discount_percent: number
+          id: string
+          last_error: string | null
+          last_known_stock: number
+          message_preview: string | null
+          product_id: string
+          sent_at: string | null
+          status: string
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          discount_code_id?: string | null
+          discount_percent: number
+          id?: string
+          last_error?: string | null
+          last_known_stock?: number
+          message_preview?: string | null
+          product_id: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          discount_code_id?: string | null
+          discount_percent?: number
+          id?: string
+          last_error?: string | null
+          last_known_stock?: number
+          message_preview?: string | null
+          product_id?: string
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vip_product_campaigns_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vip_product_campaigns_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "vip_product_campaigns_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vip_sales_config: {
+        Row: {
+          coupon_expires_days: number
+          coupon_prefix: string
+          created_at: string
+          default_discount_percent: number
+          group_id: string | null
+          id: string
+          is_active: boolean
+          message_template: string
+          provider: string | null
+          updated_at: string
+        }
+        Insert: {
+          coupon_expires_days?: number
+          coupon_prefix?: string
+          created_at?: string
+          default_discount_percent?: number
+          group_id?: string | null
+          id?: string
+          is_active?: boolean
+          message_template?: string
+          provider?: string | null
+          updated_at?: string
+        }
+        Update: {
+          coupon_expires_days?: number
+          coupon_prefix?: string
+          created_at?: string
+          default_discount_percent?: number
+          group_id?: string | null
+          id?: string
+          is_active?: boolean
+          message_template?: string
+          provider?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       warehouse_locations: {
         Row: {
           aisle: string | null

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Truck, Gift, Search, Edit2, Save, X, Loader2, Package, Settings as SettingsIcon, Plug, Bell, CheckCircle2, Settings2, Power, Sparkles, BarChart3, CreditCard, MessageSquare, FileCheck2 } from 'lucide-react';
+import { UserPlus, Truck, Gift, Search, Edit2, Save, X, Loader2, Package, Settings as SettingsIcon, Plug, Bell, CheckCircle2, Settings2, Power, Sparkles, BarChart3, CreditCard, MessageSquare, FileCheck2, Megaphone } from 'lucide-react';
 import { useIntegrations, useSaveIntegrations, type IntegrationsConfig } from '@/hooks/useIntegrations';
 import { PaymentTab } from '@/components/admin/integrations/PaymentTab';
 import { WhatsAppTab } from '@/components/admin/integrations/WhatsAppTab';
@@ -13,6 +13,7 @@ import { ShopifyTab } from '@/components/admin/integrations/ShopifyTab';
 import { BlingTab } from '@/components/admin/integrations/BlingTab';
 import { FiscalTab } from '@/components/admin/integrations/FiscalTab';
 import { MelhorEnvioConnection } from '@/components/admin/MelhorEnvioConnection';
+import { VipSalesTab } from '@/components/admin/integrations/VipSalesTab';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -722,6 +723,10 @@ export default function Settings() {
             <Plug className="h-4 w-4" />
             Bling
           </TabsTrigger>
+          <TabsTrigger value="vip-sales" className="gap-2">
+            <Megaphone className="h-4 w-4" />
+            Grupo VIP
+          </TabsTrigger>
         </TabsList>
 
 
@@ -767,6 +772,10 @@ export default function Settings() {
 
         <TabsContent value="bling" className="mt-6">
           <BlingTab />
+        </TabsContent>
+
+        <TabsContent value="vip-sales" className="mt-6">
+          <VipSalesTab />
         </TabsContent>
       </Tabs>
 

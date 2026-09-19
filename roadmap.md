@@ -87,7 +87,12 @@
 
 # Estoque em tempo real — outra página de vendas
 
-- [ ] Identificar a outra página/plataforma e seu método de autenticação
-- [ ] Definir a fonte principal do saldo e regras contra ciclos
-- [ ] Criar webhook seguro e sincronização bidirecional com Bling e loja
-- [ ] Validar atualização, idempotência, falhas e histórico
+- [x] Identificar a página VIP como entrada de ofertas, sem estoque próprio
+- [x] Manter o Bling como fonte principal do saldo e impedir ciclos pela fila existente
+- [x] Atualizar a loja em avisos do Bling e refletir o saldo nas campanhas VIP
+- [x] Criar campanhas por SKU com desconto, cupom, foto, link e bloqueio sem estoque
+- [x] Restringir o cupom VIP ao produto divulgado e recalcular o desconto no pagamento
+- [x] Registrar envios, falhas, esgotamento e reposição sem duplicar a mesma oferta
+- [x] Criar a área Grupo VIP no painel com prévia e configuração do envio
+- [ ] Ativar envio real após configurar Evolution API, WPPConnect ou UAZAPI e o código do grupo
+- [ ] Validar envio real após o Bling registrar saldo positivo em pelo menos um produto completo

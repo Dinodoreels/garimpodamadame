@@ -29,6 +29,13 @@
       "when": 1789787905997,
       "tag": "0003_correct_inbound_auto_publication_values",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789795073970,
+      "tag": "0004_create_vip_stock_campaigns",
+      "breakpoints": true
     }
   ]
 }
