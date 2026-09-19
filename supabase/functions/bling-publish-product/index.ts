@@ -183,7 +183,14 @@ Deno.serve(async (req) => {
     const marketplaceCategoryId = mapping?.marketplace_category_id;
     if (!letBlingChooseCategory && !marketplaceCategoryId) return errorResponse("Selecione a categoria real do TikTok antes de publicar.", 409);
 
-    const blingCategoryId = String((product.marketplace_attributes as Record<string, unknown> | null)?.bling_category_id ?? "").trim();
+    const productDetailResult = automatic
+      ? await callBling({ path: `/produtos/${blingProductId}` })
+      : null;
+    const blingCategoryId = String(
+      (product.marketplace_attributes as Record<string, unknown> | null)?.bling_category_id ??
+      productDetailResult?.data?.data?.categoria?.id ??
+      "",
+    ).trim();
     if (automatic && !blingCategoryId) {
       const message = "Vincule uma categoria do Bling ao produto antes da publicação automática.";
       await upsertPublication({ status: "pending", pending_fields: ["bling_category"], last_error: message, last_attempt_at: new Date().toISOString() });
@@ -218,6 +225,23 @@ Deno.serve(async (req) => {
       await supa.from("marketplace_product_events").insert({ product_id: productId, channel_id: savedChannel.id, actor_id: actorId, event_type: "submitted", status: "pending", details: { via: "bling_store_link", sku: primaryVariant?.sku } });
       await logSync({ entity_type: "product", entity_id: productId, action: "link_tiktok_via_bling", status: "success", payload: storeLinkPayload, response: linkResult.data });
       return jsonResponse({ ok: true, status: "pending", channel: { id: storeId, name: channel.descricao ?? channel.nome ?? "TikTok Shop", type }, bling_response: linkResult.data });
+    }
+
+    if (automatic && existingStoreLink) {
+      await upsertPublication({
+        external_listing_id: String(existingStoreLink.codigo ?? existingStoreLink.id ?? "") || null,
+        status: "pending",
+        pending_fields: [],
+        last_error: null,
+        last_response: existingStoreLink,
+        last_attempt_at: new Date().toISOString(),
+      });
+      return jsonResponse({
+        ok: true,
+        status: "pending",
+        channel: { id: storeId, name: channel.descricao ?? channel.nome ?? "TikTok Shop", type },
+        bling_response: existingStoreLink,
+      });
     }
 
     const attributes = product.marketplace_attributes && typeof product.marketplace_attributes === "object"
