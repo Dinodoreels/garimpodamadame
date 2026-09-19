@@ -12,12 +12,17 @@ async function persistImages(supa: any, productId: string, remoteId: string, url
     const sourceUrl = urls[index];
     if (known.has(sourceUrl)) continue;
     try {
+      const publicPath = `bling/${productId}/${remoteId}-auto-${index + 1}.jpg`;
+      const { data: existingPublic } = supa.storage.from('product-images').getPublicUrl(publicPath);
+      if (existingPublic?.publicUrl && known.has(existingPublic.publicUrl)) continue;
       const response = await fetch(sourceUrl);
       if (!response.ok) throw new Error(`download ${response.status}`);
       const contentType = response.headers.get('content-type');
       if (contentType && !contentType.startsWith('image/')) throw new Error('arquivo não é uma imagem');
       const extension = contentType?.includes('png') ? 'png' : contentType?.includes('webp') ? 'webp' : 'jpg';
       const path = `bling/${productId}/${remoteId}-auto-${index + 1}.${extension}`;
+      const { data: expectedPublic } = supa.storage.from('product-images').getPublicUrl(path);
+      if (expectedPublic?.publicUrl && known.has(expectedPublic.publicUrl)) continue;
       const { error } = await supa.storage.from('product-images').upload(path, await response.arrayBuffer(), {
         contentType: contentType ?? 'image/jpeg',
         upsert: true,
@@ -79,17 +84,16 @@ export async function pullLinkedBlingProducts(options: { blingProductIds?: strin
       try {
         const detail = await fetchBlingProductDetail(String(link.bling_product_id));
         const remote = productSnapshot(detail);
-        const productUpdates: Record<string, unknown> = {
-          title: remote.name,
-          description: remote.description,
-          vendor: remote.brand,
-          product_type: remote.product_type,
-          weight_grams: remote.weight_grams == null ? null : Math.max(0, Math.round(remote.weight_grams)),
-          width_cm: remote.width_cm == null ? null : Math.max(0, Math.round(remote.width_cm)),
-          height_cm: remote.height_cm == null ? null : Math.max(0, Math.round(remote.height_cm)),
-          length_cm: remote.length_cm == null ? null : Math.max(0, Math.round(remote.length_cm)),
-        };
-        const variantUpdates: Record<string, unknown> = { cost: remote.cost };
+        const productUpdates: Record<string, unknown> = { title: remote.name };
+        if (remote.description) productUpdates.description = remote.description;
+        if (remote.brand) productUpdates.vendor = remote.brand;
+        if (remote.product_type) productUpdates.product_type = remote.product_type;
+        if (remote.weight_grams != null) productUpdates.weight_grams = Math.max(0, Math.round(remote.weight_grams));
+        if (remote.width_cm != null) productUpdates.width_cm = Math.max(0, Math.round(remote.width_cm));
+        if (remote.height_cm != null) productUpdates.height_cm = Math.max(0, Math.round(remote.height_cm));
+        if (remote.length_cm != null) productUpdates.length_cm = Math.max(0, Math.round(remote.length_cm));
+        const variantUpdates: Record<string, unknown> = {};
+        if (remote.cost != null) variantUpdates.cost = remote.cost;
         if (cfg.sync_stock && cfg.stock_authority === 'bling') {
           const stock = balances.get(remote.id);
           if (stock != null) variantUpdates.inventory_quantity = Math.max(0, Math.trunc(stock));
