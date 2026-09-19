@@ -24,6 +24,7 @@
 - [x] Sincronizar o estoque no Bling e no painel imediatamente após aplicar o lote
 - [x] Mostrar fotos importadas e acesso direto aos produtos vinculados no painel
 - [x] Atualizar automaticamente catálogo, fotos e estoque vinculados do Bling em lotes seguros
+- [x] Permitir que somente administradores excluam recebimentos, com confirmação e proteção no banco
 
 # Mercado Pago e Fiscal
 

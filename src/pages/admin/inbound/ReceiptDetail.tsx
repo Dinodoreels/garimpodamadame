@@ -17,6 +17,7 @@ import {
 import { receiptService } from '@/services/inbound/receiptService';
 import { ReceiptDialog } from '@/components/admin/inbound/ReceiptDialog';
 import { InboundStatusBadge } from '@/components/admin/inbound/InboundStatusBadge';
+import { useAdmin } from '@/hooks/useAdmin';
 
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -39,6 +40,7 @@ export default function InboundReceiptDetail() {
   const removeAttachment = useDeleteAttachment(id || '');
   const createLot = useCreateLot();
   const removeReceipt = useDeleteReceipt();
+  const { isAdmin } = useAdmin();
 
   const photoRef = useRef<HTMLInputElement>(null);
   const docRef = useRef<HTMLInputElement>(null);
@@ -69,7 +71,7 @@ export default function InboundReceiptDetail() {
           <div className="flex flex-wrap gap-2">
             <Button variant="ghost" onClick={() => navigate('/admin/inbound/receipts')}><ArrowLeft className="h-4 w-4 mr-2" />Voltar</Button>
             <Button variant="outline" onClick={() => setEditOpen(true)}><Pencil className="h-4 w-4 mr-2" />Editar</Button>
-            <Button variant="outline" className="text-destructive" onClick={() => setConfirmDelete(true)}><Trash2 className="h-4 w-4 mr-2" />Excluir</Button>
+            {isAdmin && <Button variant="outline" className="text-destructive" onClick={() => setConfirmDelete(true)}><Trash2 className="h-4 w-4 mr-2" />Excluir</Button>}
           </div>
         }
       />
@@ -181,7 +183,7 @@ export default function InboundReceiptDetail() {
 
       <ReceiptDialog open={editOpen} onOpenChange={setEditOpen} receipt={receipt} />
 
-      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+      <AlertDialog open={isAdmin && confirmDelete} onOpenChange={setConfirmDelete}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Excluir {receipt.code}?</AlertDialogTitle>
@@ -191,8 +193,15 @@ export default function InboundReceiptDetail() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={() => removeReceipt.mutate(receipt.id, { onSuccess: () => navigate('/admin/inbound/receipts') })}>
-              Excluir
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={removeReceipt.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                removeReceipt.mutate(receipt.id, { onSuccess: () => navigate('/admin/inbound/receipts') });
+              }}
+            >
+              {removeReceipt.isPending ? 'Excluindo...' : 'Excluir'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
