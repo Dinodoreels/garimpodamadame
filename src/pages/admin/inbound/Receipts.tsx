@@ -7,11 +7,17 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Plus, Search, Truck } from 'lucide-react';
-import { useReceipts } from '@/hooks/inbound/useInbound';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Plus, Search, Trash2, Truck } from 'lucide-react';
+import { useDeleteReceipt, useReceipts } from '@/hooks/inbound/useInbound';
 import { ReceiptDialog } from '@/components/admin/inbound/ReceiptDialog';
 import { InboundStatusBadge } from '@/components/admin/inbound/InboundStatusBadge';
 import { RECEIPT_STATUS_LABELS } from '@/services/inbound/types';
+import { useAdmin } from '@/hooks/useAdmin';
+import type { TruckReceipt } from '@/services/inbound/types';
 
 const brl = (v: number) => v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
@@ -22,8 +28,11 @@ export default function InboundReceipts() {
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [receiptToDelete, setReceiptToDelete] = useState<TruckReceipt | null>(null);
 
   const { data: receipts = [], isLoading } = useReceipts({ search, status, from, to });
+  const { isAdmin } = useAdmin();
+  const removeReceipt = useDeleteReceipt();
 
   return (
     <div className="space-y-6">
@@ -72,7 +81,19 @@ export default function InboundReceipts() {
                 <CardContent className="pt-5 space-y-2">
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium">{r.code}</span>
-                    <InboundStatusBadge status={r.status} />
+                    <div className="flex items-center gap-1">
+                      <InboundStatusBadge status={r.status} />
+                      {isAdmin && (
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          aria-label={`Excluir ${r.code}`}
+                          onClick={(event) => { event.stopPropagation(); setReceiptToDelete(r); }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
                   <p className="text-sm text-muted-foreground">{r.origin_name || 'Origem não informada'}</p>
                   <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
@@ -100,6 +121,7 @@ export default function InboundReceipts() {
                     <TableHead className="text-right">Valor</TableHead>
                     <TableHead>Lotes</TableHead>
                     <TableHead>Situação</TableHead>
+                    {isAdmin && <TableHead className="w-12"><span className="sr-only">Ações</span></TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -113,6 +135,18 @@ export default function InboundReceipts() {
                       <TableCell className="text-right">{brl(Number(r.lot_value || 0))}</TableCell>
                       <TableCell>{r.lots?.map(l => l.code).join(', ') || '—'}</TableCell>
                       <TableCell><InboundStatusBadge status={r.status} /></TableCell>
+                      {isAdmin && (
+                        <TableCell>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            aria-label={`Excluir ${r.code}`}
+                            onClick={(event) => { event.stopPropagation(); setReceiptToDelete(r); }}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
@@ -123,6 +157,31 @@ export default function InboundReceipts() {
       )}
 
       <ReceiptDialog open={dialogOpen} onOpenChange={setDialogOpen} />
+
+      <AlertDialog open={Boolean(receiptToDelete)} onOpenChange={(open) => { if (!open) setReceiptToDelete(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir {receiptToDelete?.code}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Os lotes e anexos vinculados também serão removidos. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removeReceipt.isPending}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={removeReceipt.isPending}
+              onClick={(event) => {
+                event.preventDefault();
+                if (!receiptToDelete) return;
+                removeReceipt.mutate(receiptToDelete.id, { onSuccess: () => setReceiptToDelete(null) });
+              }}
+            >
+              {removeReceipt.isPending ? 'Excluindo...' : 'Excluir'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
