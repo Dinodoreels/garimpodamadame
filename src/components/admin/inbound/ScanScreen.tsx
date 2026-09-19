@@ -106,9 +106,10 @@ export function ScanScreen({ fullscreen = false }: Props) {
         }));
         toast.success('Produto encontrado no catálogo — mesmo SKU reaproveitado.');
       } else if (res.result) {
+        const suggestedTitle = res.result.title?.toLowerCase().includes('não identific') ? '' : (res.result.title ?? '');
         setForm(f => ({
           ...f,
-          title: res.result!.title ?? '',
+          title: suggestedTitle,
           brand: res.result!.brand ?? '',
           category: res.result!.category ?? '',
           description: res.result!.description ?? '',
@@ -117,7 +118,8 @@ export function ScanScreen({ fullscreen = false }: Props) {
           suggested_price: res.result!.estimated_price_brl != null ? String(res.result!.estimated_price_brl) : res.result!.price != null ? String(res.result!.price) : '',
         }));
         if ((res.candidates?.length ?? 0) < 3) {
-          setAiWarning(`Foram encontrados ${res.candidates?.length ?? 0} de 3 anúncios válidos. Revise antes de gravar.`);
+          const sourceDetail = res.warnings?.length ? ` ${res.warnings.join(' ')}` : '';
+          setAiWarning(`Foram encontrados ${res.candidates?.length ?? 0} de 3 anúncios válidos. Tire uma foto mais próxima e bem iluminada ou informe o código de barras.${sourceDetail}`);
         } else if ((res.confidence ?? 0) < 0.75) {
           setAiWarning('As fontes não deram certeza suficiente. Ao gravar, a peça vai para Pendências.');
         } else if (res.warnings?.length) {
@@ -276,7 +278,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
           )}
           {identified && identified.source !== 'catalog' && (
             <Badge variant="secondary" className="text-sm">
-              {identified.source === 'cosmos' ? 'Base GTIN' : identified.source === 'google_lens' ? 'Busca visual' : 'Fontes externas'} · confiança {Math.round((identified.confidence ?? 0) * 100)}%
+              {identified.source === 'cosmos' ? 'Base GTIN' : identified.source === 'google_lens' ? 'Busca visual' : 'Fontes externas'} · {identified.confidence != null && identified.confidence > 0 ? `confiança ${Math.round(identified.confidence * 100)}%` : 'sem confirmação'}
             </Badge>
           )}
           {aiWarning && (
