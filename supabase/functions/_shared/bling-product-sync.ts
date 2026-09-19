@@ -1,5 +1,6 @@
 // Push a store product (and its variants) to Bling as one product per SKU.
 import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from "./bling.ts";
+import { fetchBlingStock } from "./bling-import.ts";
 
 interface SyncUnit {
   variantId: string | null;
@@ -96,7 +97,12 @@ export async function pushStockToBling(blingProductId: string, quantity: number,
     config: cfg,
   });
   if (status >= 400) throw new Error(blingError(status, data));
-  return data;
+  const confirmed = await fetchBlingStock([blingProductId], cfg.deposito_id);
+  const confirmedQuantity = confirmed.get(String(blingProductId));
+  if (confirmedQuantity != null && Math.max(0, Math.trunc(confirmedQuantity)) !== Math.max(0, Math.trunc(quantity))) {
+    throw new Error(`O Bling recebeu a atualização, mas retornou saldo ${confirmedQuantity} no depósito selecionado.`);
+  }
+  return { data, confirmed_quantity: confirmedQuantity ?? null };
 }
 
 export async function syncProductToBling(productId: string) {

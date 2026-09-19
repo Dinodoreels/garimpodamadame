@@ -1,11 +1,14 @@
 // Matches store variants with products already registered in Bling, using the SKU.
 import { assertAdmin, blingError, callBling, corsHeaders, getSupabaseAdmin, jsonResponse, logSync } from "../_shared/bling.ts";
+import { pushStockToBling } from "../_shared/bling-product-sync.ts";
+import { getConfig } from "../_shared/bling.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     await assertAdmin(req);
     const supa = getSupabaseAdmin();
+    const cfg = await getConfig();
 
     // Load every Bling product (paginated)
     const blingBySku = new Map<string, { id: string; nome: string; preco: number }>();
@@ -21,7 +24,7 @@ Deno.serve(async (req) => {
 
     const { data: variants } = await supa
       .from("product_variants")
-      .select("id, product_id, sku")
+      .select("id, product_id, sku, inventory_quantity, price")
       .not("sku", "is", null);
 
     let linked = 0;
@@ -34,7 +37,7 @@ Deno.serve(async (req) => {
         unmatched.push(v.sku as string);
         continue;
       }
-      await supa.from("bling_product_links").upsert({
+      const { error: linkError } = await supa.from("bling_product_links").upsert({
         product_id: v.product_id,
         variant_id: v.id,
         bling_product_id: match.id,
@@ -43,6 +46,14 @@ Deno.serve(async (req) => {
         last_pulled_at: new Date().toISOString(),
         last_error: null,
       }, { onConflict: "product_id,variant_id" });
+      if (linkError) throw linkError;
+      if (cfg?.sync_stock && cfg.stock_authority === "store" && cfg.deposito_id) {
+        await pushStockToBling(
+          match.id,
+          Number(v.inventory_quantity ?? 0),
+          cfg.sync_prices && cfg.price_authority === "store" ? Number(v.price ?? 0) : undefined,
+        );
+      }
       linked++;
     }
 
