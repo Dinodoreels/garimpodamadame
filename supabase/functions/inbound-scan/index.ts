@@ -17,13 +17,22 @@ async function persistProductImages(db: ReturnType<typeof adminClient>, productI
   const persisted: string[] = [];
   for (let index = 0; index < Math.min(urls.length, 5); index++) {
     const sourceUrl = urls[index];
-    if (!/^https?:\/\//i.test(sourceUrl)) continue;
     try {
-      const response = await fetch(sourceUrl);
-      const contentType = response.headers.get('content-type');
-      if (!response.ok || (contentType && !contentType.startsWith('image/'))) continue;
+      const dataMatch = sourceUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+      let contentType: string | null;
+      let imageBody: ArrayBuffer | Uint8Array;
+      if (dataMatch) {
+        contentType = dataMatch[1];
+        imageBody = Uint8Array.from(atob(dataMatch[2]), character => character.charCodeAt(0));
+      } else {
+        if (!/^https?:\/\//i.test(sourceUrl)) continue;
+        const response = await fetch(sourceUrl);
+        contentType = response.headers.get('content-type');
+        if (!response.ok || (contentType && !contentType.startsWith('image/'))) continue;
+        imageBody = await response.arrayBuffer();
+      }
       const path = `inbound/${productId}/${crypto.randomUUID()}.${imageExtension(contentType, sourceUrl)}`;
-      const uploaded = await db.storage.from('product-images').upload(path, await response.arrayBuffer(), { contentType: contentType ?? 'image/jpeg' });
+      const uploaded = await db.storage.from('product-images').upload(path, imageBody, { contentType: contentType ?? 'image/jpeg' });
       if (uploaded.error) continue;
       const { data } = db.storage.from('product-images').getPublicUrl(path);
       if (data.publicUrl) persisted.push(data.publicUrl);
@@ -224,7 +233,7 @@ Deno.serve(async (req) => {
         const candidates = Array.isArray(body.ai_data?.image_urls) ? body.ai_data.image_urls.filter((value: unknown) => typeof value === 'string') : [];
         const hasRequiredData = Boolean(String(body.title ?? '').trim() && description && Number(body.suggested_price) > 0 && quantity > 0 && (photoPath || candidates.length));
         if (hasRequiredData) {
-          const actorId = user?.id ?? operator?.user_id ?? null;
+          const actorId = user?.id ?? operator?.created_by ?? null;
           if (actorId) {
             const { data: published, error: publishError } = await db.rpc('publish_complete_inbound_scan_item', {
               p_item_id: item.id,

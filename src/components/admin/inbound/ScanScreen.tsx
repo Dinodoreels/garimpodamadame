@@ -118,6 +118,10 @@ export function ScanScreen({ fullscreen = false }: Props) {
         }));
         if ((res.confidence ?? 0) < 0.75) {
           setAiWarning('As fontes não deram certeza suficiente. Ao gravar, a peça vai para Pendências.');
+        } else if ((res.candidates?.length ?? 0) < 3) {
+          setAiWarning(`Foram encontrados ${res.candidates?.length ?? 0} de 3 anúncios válidos. Revise antes de gravar.`);
+        } else if (res.warnings?.length) {
+          setAiWarning(res.warnings.join(' '));
         }
       }
     } catch (e) {
@@ -160,8 +164,10 @@ export function ScanScreen({ fullscreen = false }: Props) {
       setTimes(t => [...t.slice(-19), Math.round((Date.now() - startedAt.current) / 1000)]);
       if (res.pending) {
         toast.warning('Peça gravada em Pendências para conferência.');
+      } else if (res.publication) {
+        toast.success('Produto publicado na loja, no painel e enviado para sincronização.');
       } else {
-        toast.success('Peça gravada.');
+        toast.warning('Peça gravada, mas ainda falta informação para publicar.');
       }
       qc.invalidateQueries({ queryKey: ['inbound'] });
       resetPiece();
