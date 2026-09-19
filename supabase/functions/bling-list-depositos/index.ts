@@ -11,7 +11,12 @@ Deno.serve(async (req) => {
     if (dep.status >= 400) return jsonResponse({ error: blingError(dep.status, dep.data) }, dep.status);
     return jsonResponse({
       depositos: (dep.data?.data ?? []).map((d: any) => ({ id: String(d.id), name: d.descricao ?? d.nome ?? `Depósito ${d.id}` })),
-      canais: (lojas.data?.data ?? []).map((l: any) => ({ id: String(l.id), name: l.descricao ?? l.nome ?? `Canal ${l.id}` })),
+      canais: (lojas.data?.data ?? []).map((l: any) => ({
+        id: String(l.id),
+        name: l.descricao ?? l.nome ?? `Canal ${l.id}`,
+        type: l.tipoIntegracao ?? l.tipo ?? null,
+        situation: l.situacao ?? null,
+      })),
     });
   } catch (e) {
     if (e instanceof Response) return e;

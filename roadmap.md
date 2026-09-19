@@ -114,3 +114,4 @@
 - [x] Manter a busca do Bling sem sobrescrever o estoque principal do painel
 - [ ] Conectar a conta TikTok Shop e validar categoria e atributos reais
 - [ ] Publicar o produto e sincronizar o estoque no TikTok após a conexão
+- [ ] Manter o custo real do produto sincronizado no Bling junto com preço e estoque
