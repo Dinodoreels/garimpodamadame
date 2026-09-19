@@ -94,7 +94,7 @@ type VisionResult = {
   reasoning_note: string;
 };
 
-const GEMINI_MODEL = 'gemini-2.5-flash';
+const GEMINI_MODEL = 'gemini-3.6-flash';
 
 function geminiErrorMessage(status: number) {
   if (status === 400) return 'O Gemini não aceitou os dados enviados para análise.';
