@@ -1,6 +1,7 @@
 // Pulls orders from TikTok Shop and imports them as internal orders.
 // Cron-triggered every 5 minutes.
 import { corsHeaders, getSupabaseAdmin, getConfig, callTikTok, logSync } from "../_shared/tiktok.ts";
+import { applyOrderStock } from "../_shared/order-stock.ts";
 
 function mapStatus(s: string): { status: string; paid?: boolean; shipped?: boolean; delivered?: boolean; cancelled?: boolean } {
   switch (s) {
@@ -72,7 +73,29 @@ async function importOrder(tkOrder: any) {
         raw_payload: tkOrder,
       }).eq("id", existing.id);
     }
+    const stock = await applyOrderStock(supa, existing.order_id, "tiktok:direct");
+    await logSync({ entity_type: "order", entity_id: tiktokOrderId, action: "stock_transition", status: stock.blocked ? "blocked" : "success", response: stock, error_message: stock.blocked ? "Estoque do pedido requer revisão administrativa" : undefined });
     return { skipped: true };
+  }
+
+  const directExternalKey = `marketplace:tiktok-shop:${tiktokOrderId}`;
+  const { data: sharedOrder } = await supa
+    .from("orders")
+    .select("id")
+    .eq("external_order_key", directExternalKey)
+    .maybeSingle();
+  if (sharedOrder?.id) {
+    await supa.from("orders").update({ status: mapped.status }).eq("id", sharedOrder.id);
+    await supa.from("tiktok_order_links").upsert({
+      order_id: sharedOrder.id,
+      tiktok_order_id: tiktokOrderId,
+      tiktok_status: tkOrder.status,
+      last_synced_at: new Date().toISOString(),
+      raw_payload: tkOrder,
+    }, { onConflict: "tiktok_order_id" });
+    const stock = await applyOrderStock(supa, sharedOrder.id, "tiktok:direct");
+    await logSync({ entity_type: "order", entity_id: tiktokOrderId, action: "deduplicate", status: "success", response: { order_id: sharedOrder.id, stock } });
+    return { skipped: true, order_id: sharedOrder.id };
   }
 
   // New order — build items
@@ -130,6 +153,8 @@ async function importOrder(tkOrder: any) {
     source: "tiktok",
     payment_method: "tiktok_shop",
     guest_info: { name: recipient.name ?? "", phone: recipient.phone ?? "", email: tkOrder.buyer_email ?? null },
+    external_order_key: directExternalKey,
+    stock_accounting_started_at: new Date().toISOString(),
   };
   if (mapped.paid) insertPayload.paid_at = new Date((tkOrder.paid_time ?? Math.floor(Date.now() / 1000)) * 1000).toISOString();
   if (mapped.shipped) insertPayload.shipped_at = new Date().toISOString();
@@ -147,17 +172,10 @@ async function importOrder(tkOrder: any) {
   const { error: itemsErr } = await supa.from("order_items").insert(itemsPayload);
   if (itemsErr) {
     await logSync({ entity_type: "order", entity_id: tiktokOrderId, action: "import", status: "error", error_message: itemsErr.message });
+    return { error: itemsErr.message };
   }
 
-  // Deduct stock for matched variants
-  for (const it of itemsToInsert) {
-    if (it.variant_id) {
-      const { data: v } = await supa.from("product_variants").select("inventory_quantity").eq("id", it.variant_id).maybeSingle();
-      if (v) {
-        await supa.from("product_variants").update({ inventory_quantity: Math.max(0, (v.inventory_quantity ?? 0) - it.quantity) }).eq("id", it.variant_id);
-      }
-    }
-  }
+  const stock = await applyOrderStock(supa, order.id, "tiktok:direct");
 
   await supa.from("tiktok_order_links").insert({
     order_id: order.id,
@@ -167,6 +185,7 @@ async function importOrder(tkOrder: any) {
     raw_payload: tkOrder,
   });
 
+  await logSync({ entity_type: "order", entity_id: tiktokOrderId, action: "stock_transition", status: stock.blocked ? "blocked" : "success", response: stock, error_message: stock.blocked ? "Estoque do pedido requer revisão administrativa" : undefined });
   await logSync({ entity_type: "order", entity_id: tiktokOrderId, action: "import", status: "success", payload: { order_id: order.id, total } });
   return { imported: true, order_id: order.id };
 }

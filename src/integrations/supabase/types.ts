@@ -3216,6 +3216,70 @@ export type Database = {
           },
         ]
       }
+      order_stock_movements: {
+        Row: {
+          created_at: string
+          cycle_number: number
+          id: string
+          movement_type: string
+          order_id: string
+          order_item_id: string
+          previous_quantity: number
+          quantity: number
+          resulting_quantity: number
+          source: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          cycle_number: number
+          id?: string
+          movement_type: string
+          order_id: string
+          order_item_id: string
+          previous_quantity: number
+          quantity: number
+          resulting_quantity: number
+          source: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          cycle_number?: number
+          id?: string
+          movement_type?: string
+          order_id?: string
+          order_item_id?: string
+          previous_quantity?: number
+          quantity?: number
+          resulting_quantity?: number
+          source?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_stock_movements_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_stock_movements_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: false
+            referencedRelation: "order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_stock_movements_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           admin_notes: string | null
@@ -3224,6 +3288,7 @@ export type Database = {
           delivered_at: string | null
           discount_amount: number | null
           discount_code: string | null
+          external_order_key: string | null
           guest_info: Json | null
           id: string
           last_payment_error: string | null
@@ -3251,6 +3316,7 @@ export type Database = {
           shopify_checkout_id: string | null
           source: string | null
           status: string
+          stock_accounting_started_at: string | null
           store_id: string | null
           subtotal: number
           total: number
@@ -3266,6 +3332,7 @@ export type Database = {
           delivered_at?: string | null
           discount_amount?: number | null
           discount_code?: string | null
+          external_order_key?: string | null
           guest_info?: Json | null
           id?: string
           last_payment_error?: string | null
@@ -3293,6 +3360,7 @@ export type Database = {
           shopify_checkout_id?: string | null
           source?: string | null
           status?: string
+          stock_accounting_started_at?: string | null
           store_id?: string | null
           subtotal: number
           total: number
@@ -3308,6 +3376,7 @@ export type Database = {
           delivered_at?: string | null
           discount_amount?: number | null
           discount_code?: string | null
+          external_order_key?: string | null
           guest_info?: Json | null
           id?: string
           last_payment_error?: string | null
@@ -3335,6 +3404,7 @@ export type Database = {
           shopify_checkout_id?: string | null
           source?: string | null
           status?: string
+          stock_accounting_started_at?: string | null
           store_id?: string | null
           subtotal?: number
           total?: number
@@ -5341,6 +5411,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      apply_order_stock_transition: {
+        Args: { p_order_id: string; p_source?: string }
+        Returns: Json
+      }
       calculate_product_catalog_readiness: {
         Args: { target_product_id: string }
         Returns: Json
