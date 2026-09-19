@@ -155,7 +155,9 @@ export function ScanScreen({ fullscreen = false }: Props) {
         description: form.description.trim() || null,
         ai_source: identified?.source ?? 'manual',
         ai_confidence: identified?.confidence ?? null,
-        ai_data: identified?.result ?? identified?.match ?? null,
+        ai_data: identified?.result
+          ? { ...identified.result, market_references: identified.candidates ?? [] }
+          : identified?.match ?? null,
         photo_base64: photo,
         identification_result_ids: identified?.result_ids,
         force_review: forceReview,

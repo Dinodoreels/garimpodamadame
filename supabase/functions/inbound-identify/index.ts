@@ -213,7 +213,7 @@ Deno.serve(async (req) => {
       }
       const prices = comparables.map(row => row.price).filter((price): price is number => price != null && price > 0);
       const fallbackPrice = prices.length ? prices.sort((a, b) => a - b)[Math.floor(prices.length / 2)] : null;
-      const imageUrls = [...new Set([imageBase64 || null, ...comparables.map(row => row.image_url)].filter((value): value is string => !!value))];
+      const imageUrls = [...new Set(comparables.map(row => row.image_url).filter((value): value is string => !!value))];
       const result = {
         title: aiResult?.title ?? catalogCandidate?.title ?? comparables[0]?.title ?? '',
         description: aiResult?.description ?? null,

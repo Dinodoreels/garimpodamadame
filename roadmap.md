@@ -25,7 +25,7 @@
 - [x] Mostrar fotos importadas e acesso direto aos produtos vinculados no painel
 - [x] Atualizar automaticamente catálogo, fotos e estoque vinculados do Bling em lotes seguros
 - [x] Permitir que somente administradores excluam recebimentos, com confirmação e proteção no banco
-- [ ] Pesquisar 3 anúncios reais no Garimpo Scan, gerar identificação/preço/descrição/fotos e publicar o cadastro único na loja e no painel
+- [x] Pesquisar 3 anúncios reais no Garimpo Scan, gerar identificação/preço/descrição/fotos e publicar o cadastro único na loja e no painel
 
 # Mercado Pago e Fiscal
 
