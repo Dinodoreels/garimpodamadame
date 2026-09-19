@@ -112,8 +112,11 @@ Deno.serve(async (req) => {
       const source = String(body.ai_source ?? 'manual');
       const hasProduct = !!body.product_id || !!body.variant_id;
       const forceReview = body.force_review === true;
+      const referenceCount = Array.isArray(body.ai_data?.market_references)
+        ? body.ai_data.market_references.length
+        : Number(body.ai_data?.comparable_count ?? 0);
       const needsReview = forceReview || (!hasProduct && source !== 'manual'
-        && (confidence === null || confidence < CONFIDENCE_THRESHOLD));
+        && (confidence === null || confidence < CONFIDENCE_THRESHOLD || referenceCount < 3));
 
       const quantity = Math.max(1, Number(body.quantity ?? 1));
       const state = needsReview ? 'SCAN_PENDING' : 'IDENTIFIED';
