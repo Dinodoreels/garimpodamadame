@@ -33,6 +33,22 @@ interface TikTokConfig {
   last_order_pull_at: string | null;
 }
 
+type TikTokConfigUpdate = Partial<Pick<TikTokConfig,
+  | 'app_key'
+  | 'app_secret'
+  | 'shop_id'
+  | 'shop_name'
+  | 'is_active'
+  | 'access_token'
+  | 'token_expires_at'
+  | 'last_sync_at'
+  | 'warehouse_id'
+  | 'warehouse_name'
+  | 'auto_sync_products'
+  | 'auto_sync_orders'
+  | 'last_order_pull_at'
+>>;
+
 interface TikTokCategory {
   id: string;
   parent_id: string;
@@ -116,9 +132,10 @@ export default function TikTokShop() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const updateConfigField = async (field: keyof TikTokConfig, value: any) => {
+  const updateConfigField = async <K extends keyof TikTokConfigUpdate>(field: K, value: TikTokConfigUpdate[K]) => {
     if (!config) return;
-    const { error } = await supabase.from('tiktok_shop_config').update({ [field]: value }).eq('id', config.id);
+    const updates: TikTokConfigUpdate = { [field]: value };
+    const { error } = await supabase.from('tiktok_shop_config').update(updates).eq('id', config.id);
     if (error) { toast({ title: 'Erro', description: error.message, variant: 'destructive' }); return; }
     setConfig({ ...config, [field]: value });
   };

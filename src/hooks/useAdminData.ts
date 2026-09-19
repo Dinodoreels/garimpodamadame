@@ -195,7 +195,13 @@ export function useAdminData() {
   }, [orders, customers]);
 
   const updateOrderStatus = async (orderId: string, status: string) => {
-    const updates: Record<string, string> = { status, updated_at: new Date().toISOString() };
+    const updates: {
+      status: string;
+      updated_at: string;
+      paid_at?: string;
+      delivered_at?: string;
+      shipped_at?: string;
+    } = { status, updated_at: new Date().toISOString() };
     if (status === 'paid') updates.paid_at = new Date().toISOString();
     if (status === 'delivered') updates.delivered_at = new Date().toISOString();
     if (status === 'shipped') updates.shipped_at = new Date().toISOString();
