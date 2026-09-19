@@ -121,3 +121,5 @@
 - [x] Publicar automaticamente no TikTok todos os produtos completos após receber categoria e atributos reais do Bling
 - [x] Publicar o Body Splash isoladamente no TikTok; anúncio `1737590202684507389` enviado e em análise
 - [x] Automatizar a publicação direta no TikTok de produtos completos de todas as categorias, reutilizando vínculos reais e sem duplicidade
+- [x] Criar e reutilizar automaticamente no Bling as categorias reais confirmadas no cadastro, sem duplicidade
+- [ ] Classificar os produtos que ainda não possuem categoria real antes da publicação automática

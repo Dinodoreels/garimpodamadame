@@ -1,6 +1,7 @@
 // Push a store product (and its variants) to Bling as one product per SKU.
 import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from "./bling.ts";
 import { fetchBlingStock } from "./bling-import.ts";
+import { ensureBlingProductCategory } from "./bling-categories.ts";
 
 interface SyncUnit {
   variantId: string | null;
@@ -150,6 +151,21 @@ export async function syncProductToBling(productId: string) {
   if (error) throw error;
   if (!product) throw new Error("Produto não encontrado");
 
+  let categoryId = product.marketplace_attributes?.bling_category_id
+    ? String(product.marketplace_attributes.bling_category_id)
+    : null;
+  if (!categoryId && String(product.product_type ?? '').trim()) {
+    const category = await ensureBlingProductCategory(String(product.product_type));
+    categoryId = category.id;
+    const marketplaceAttributes = product.marketplace_attributes && typeof product.marketplace_attributes === 'object'
+      ? product.marketplace_attributes
+      : {};
+    const { error: categoryUpdateError } = await supa.from('products').update({
+      marketplace_attributes: { ...marketplaceAttributes, bling_category_id: category.id },
+    }).eq('id', productId);
+    if (categoryUpdateError) throw categoryUpdateError;
+  }
+
   const images = (product.product_images ?? [])
     .sort((a: any, b: any) => (a.position ?? 0) - (b.position ?? 0))
     .map((i: any) => i.url);
@@ -178,7 +194,7 @@ export async function syncProductToBling(productId: string) {
       fiscalOrigin: product.fiscal_origin,
       condition: product.condition ?? "new",
       warrantyMonths: product.warranty_months,
-      categoryId: product.marketplace_attributes?.bling_category_id ?? null,
+      categoryId,
     }))
     : [{
       variantId: null,
@@ -200,7 +216,7 @@ export async function syncProductToBling(productId: string) {
       fiscalOrigin: product.fiscal_origin,
       condition: product.condition ?? "new",
       warrantyMonths: product.warranty_months,
-      categoryId: product.marketplace_attributes?.bling_category_id ?? null,
+      categoryId,
     }];
 
   const results: any[] = [];
