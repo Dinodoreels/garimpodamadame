@@ -1,5 +1,6 @@
 // Push a store product (and its variants) to Bling as one product per SKU.
 import { blingError, callBling, getConfig, getSupabaseAdmin, logSync } from "./bling.ts";
+import { fetchBlingStock } from "./bling-import.ts";
 
 interface SyncUnit {
   variantId: string | null;
@@ -96,7 +97,12 @@ export async function pushStockToBling(blingProductId: string, quantity: number,
     config: cfg,
   });
   if (status >= 400) throw new Error(blingError(status, data));
-  return data;
+  const confirmed = await fetchBlingStock([blingProductId], cfg.deposito_id);
+  const confirmedQuantity = confirmed.get(String(blingProductId));
+  if (confirmedQuantity != null && Math.max(0, Math.trunc(confirmedQuantity)) !== Math.max(0, Math.trunc(quantity))) {
+    throw new Error(`O Bling recebeu a atualização, mas retornou saldo ${confirmedQuantity} no depósito selecionado.`);
+  }
+  return { data, confirmed_quantity: confirmedQuantity ?? null };
 }
 
 export async function syncProductToBling(productId: string) {
@@ -206,7 +212,7 @@ export async function syncProductToBling(productId: string) {
 
     const newId = String(data?.data?.id ?? blingId);
 
-    await supa.from("bling_product_links").upsert({
+    const { error: linkError } = await supa.from("bling_product_links").upsert({
       product_id: productId,
       variant_id: u.variantId,
       bling_product_id: newId,
@@ -215,18 +221,31 @@ export async function syncProductToBling(productId: string) {
       last_pushed_at: new Date().toISOString(),
       last_error: null,
     }, { onConflict: "product_id,variant_id" });
+    if (linkError) throw linkError;
 
     // Push stock when the store is the authority
+    let confirmedStock: number | null = null;
     if (cfg.sync_stock && cfg.stock_authority === "store" && cfg.deposito_id && u.variantId) {
       try {
-        await pushStockToBling(newId, u.quantity, cfg.sync_prices && cfg.price_authority === "store" ? u.price : undefined);
+        const stockResult = await pushStockToBling(newId, u.quantity, cfg.sync_prices && cfg.price_authority === "store" ? u.price : undefined);
+        confirmedStock = stockResult.confirmed_quantity;
+        await logSync({
+          entity_type: "stock",
+          entity_id: productId,
+          action: "push",
+          status: "success",
+          payload: { variant_id: u.variantId, bling_product_id: newId, deposito_id: cfg.deposito_id, quantity: u.quantity },
+        });
       } catch (e) {
-        await logSync({ entity_type: "stock", entity_id: productId, action: "push", status: "error", error_message: e instanceof Error ? e.message : String(e) });
+        const stockError = e instanceof Error ? e.message : String(e);
+        await supa.from("bling_product_links").update({ status: "error", last_error: stockError }).eq("product_id", productId).eq("variant_id", u.variantId);
+        await logSync({ entity_type: "stock", entity_id: productId, action: "push", status: "error", payload: { variant_id: u.variantId, bling_product_id: newId, deposito_id: cfg.deposito_id, quantity: u.quantity }, error_message: stockError });
+        throw e;
       }
     }
 
     await logSync({ entity_type: "product", entity_id: productId, action: isUpdate ? "update" : "create", status: "success", payload, response: data });
-    results.push({ sku: u.sku, ok: true, bling_product_id: newId });
+    results.push({ sku: u.sku, ok: true, bling_product_id: newId, confirmed_stock: confirmedStock });
   }
 
   const failed = results.filter((r) => !r.ok);

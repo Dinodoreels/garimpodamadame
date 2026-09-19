@@ -36,6 +36,13 @@
       "when": 1789795073970,
       "tag": "0004_create_vip_stock_campaigns",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789796739302,
+      "tag": "0005_fix_bling_links_and_stock_queue",
+      "breakpoints": true
     }
   ]
 }
