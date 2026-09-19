@@ -112,6 +112,7 @@
 - [x] Salvar corretamente o vínculo retornado pelo Bling antes de enviar o saldo
 - [x] Enviar e confirmar as 1.000 unidades do produto real no depósito Geral
 - [x] Manter a busca do Bling sem sobrescrever o estoque principal do painel
-- [ ] Conectar a conta TikTok Shop e validar categoria e atributos reais
+- [x] Reconhecer a conta TikTok Shop já conectada ao Bling
+- [ ] Validar categoria e atributos reais do TikTok Shop
 - [ ] Publicar o produto e sincronizar o estoque no TikTok após a conexão
 - [ ] Manter o custo real do produto sincronizado no Bling junto com preço e estoque

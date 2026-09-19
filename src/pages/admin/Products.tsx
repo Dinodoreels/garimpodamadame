@@ -102,13 +102,18 @@ async function uploadImageToStorage(base64: string, filename: string): Promise<s
 }
 
 function ChannelBadges({ product }: { product: Product }) {
+  const publication = product.marketplace_publications?.[0];
   return (
     <div className="mt-1 flex flex-wrap gap-1">
       {product.bling_links?.length ? <Badge variant="outline" className="gap-1"><Link2 className="h-3 w-3" />Bling</Badge> : null}
-      {product.tiktok_links?.some((link) => link.status === 'synced') ? (
+      {publication?.status === 'published' || product.tiktok_links?.some((link) => link.status === 'synced') ? (
         <Badge variant="secondary">TikTok publicado</Badge>
-      ) : product.tiktok_links?.some((link) => link.status === 'error') ? (
+      ) : publication?.status === 'error' || product.tiktok_links?.some((link) => link.status === 'error') ? (
         <Badge variant="destructive">TikTok com erro</Badge>
+      ) : publication?.pending_fields?.includes('confirmation') ? (
+        <Badge variant="outline">TikTok: confirmar dados</Badge>
+      ) : publication?.pending_fields?.includes('tiktok_category') ? (
+        <Badge variant="outline">TikTok: falta categoria</Badge>
       ) : (
         <Badge variant="outline">TikTok não enviado</Badge>
       )}
