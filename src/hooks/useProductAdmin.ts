@@ -101,8 +101,7 @@ export function useAdminProducts(limit: number = 2000) {
             images:product_images(*),
             variants:product_variants(*),
             options:product_options(*),
-            bling_links:bling_product_links(id, bling_product_id, bling_sku, status),
-            tiktok_links:tiktok_product_links(id, tiktok_product_id, tiktok_status, status, last_error)
+            bling_links:bling_product_links(id, bling_product_id, bling_sku, status)
           `)
           .order('position', { ascending: true })
           .range(from, to);
@@ -117,10 +116,27 @@ export function useAdminProducts(limit: number = 2000) {
         from += PAGE_SIZE;
       }
 
+      const productIds = all.map((product) => product.id);
+      const { data: tiktokLinks, error: tiktokError } = productIds.length
+        ? await supabase
+            .from('tiktok_product_links')
+            .select('id, product_id, tiktok_product_id, tiktok_status, status, last_error')
+            .in('product_id', productIds)
+        : { data: [], error: null };
+      if (tiktokError) throw tiktokError;
+
+      const tiktokByProduct = new Map<string, typeof tiktokLinks>();
+      for (const link of tiktokLinks ?? []) {
+        const current = tiktokByProduct.get(link.product_id) ?? [];
+        current.push(link);
+        tiktokByProduct.set(link.product_id, current);
+      }
+
       return all.map(product => ({
         ...product,
         images: (product.images || []).sort((a: ProductImage, b: ProductImage) => a.position - b.position),
         options: (product.options || []).sort((a: ProductOption, b: ProductOption) => a.position - b.position),
+        tiktok_links: tiktokByProduct.get(product.id) ?? [],
       })) as Product[];
     },
   });
