@@ -44,19 +44,27 @@ Deno.serve(async (req) => {
     if (action === 'batch_pdf') {
       const { data: labels, error } = await supa
         .from('marketplace_shipping_labels')
-        .select('order_id, label_url, status')
+        .select('order_id, label_url, storage_path, status')
         .in('order_id', orderIds);
       if (error) throw error;
       const output = await PDFDocument.create();
       const included: string[] = [];
       const failed: string[] = [];
-      const readyLabels = (labels ?? []).filter((label) => label.status === 'ready' && label.label_url);
+      const readyLabels = (labels ?? []).filter((label) => label.status === 'ready' && (label.label_url || label.storage_path));
       const pending = orderIds.filter((orderId) => !readyLabels.some((label) => label.order_id === orderId));
       for (const label of readyLabels) {
         try {
-          const response = await fetch(String(label.label_url));
-          if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const source = await PDFDocument.load(await response.arrayBuffer());
+          let pdfBytes: ArrayBuffer;
+          if (label.storage_path) {
+            const { data: storedFile, error: downloadError } = await supa.storage.from('shipping-labels').download(String(label.storage_path));
+            if (downloadError || !storedFile) throw downloadError ?? new Error('Arquivo não encontrado');
+            pdfBytes = await storedFile.arrayBuffer();
+          } else {
+            const response = await fetch(String(label.label_url));
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            pdfBytes = await response.arrayBuffer();
+          }
+          const source = await PDFDocument.load(pdfBytes);
           const pages = await output.copyPages(source, source.getPageIndices());
           pages.forEach((page) => output.addPage(page));
           included.push(label.order_id);

@@ -273,7 +273,7 @@ export function useAdminData() {
 
   // Atualiza automaticamente quando vendas/itens/estoque mudam em qualquer canal
   useRealtimeRefetch(
-    ['orders', 'order_items', 'product_variants', 'fiscal_documents', 'melhor_envio_shipments', 'melhor_envio_shipment_events'],
+    ['orders', 'order_items', 'product_variants', 'fiscal_documents', 'melhor_envio_shipments', 'melhor_envio_shipment_events', 'marketplace_shipping_labels'],
     () => {
       if (!isVendedor) return;
       fetchOrders();

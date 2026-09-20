@@ -81,9 +81,10 @@ export async function syncMarketplaceLabel(orderId: string, blingOrderId: string
       const direct = await getTikTokLabel(orderId);
       const { data: existing } = await supa
         .from('marketplace_shipping_labels')
-        .select('id, attempts, status, label_url')
+        .select('id, attempts, status, label_url, storage_path, upload_source, uploaded_at, uploaded_by, provider_note, provider_payload, printed_at, format, platform, bling_order_id, order_id')
         .eq('order_id', orderId)
         .maybeSingle();
+      if (existing?.upload_source === 'manual_tiktok' && existing.storage_path) return existing;
       const row = {
         order_id: orderId,
         bling_order_id: blingOrderId,
