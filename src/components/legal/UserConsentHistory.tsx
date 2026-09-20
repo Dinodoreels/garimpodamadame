@@ -35,7 +35,7 @@ export function UserConsentHistory() {
         <div className="flex flex-wrap gap-2 pt-2">
           <Button asChild variant="outline" size="sm"><a href="/termos">Ver Termos</a></Button>
           <Button asChild variant="outline" size="sm"><a href="/privacidade">Ver Privacidade</a></Button>
-          <Button asChild variant="outline" size="sm"><a href="/cookies">Gerenciar cookies</a></Button>
+          <Button variant="outline" size="sm" onClick={() => window.dispatchEvent(new Event('open-cookie-settings'))}>Gerenciar cookies</Button>
         </div>
       </CardContent>
     </Card>
