@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -113,6 +113,16 @@ function StorefrontOverlays() {
   return <><CookieConsent /><BackToTop /><CustomerSupportChat /></>;
 }
 
+function ScrollToTopOnNavigation() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [pathname]);
+
+  return null;
+}
+
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem storageKey="admin-theme">
   <QueryClientProvider client={queryClient}>
@@ -124,6 +134,7 @@ const App = () => (
            <AnalyticsProvider>
            <PushNotificationProvider>
            <PixelProvider>
+          <ScrollToTopOnNavigation />
           <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}>
           <LegalConsentGate />
           <Routes>
