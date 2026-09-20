@@ -18,6 +18,7 @@ import {
 
 interface TikTokConfig {
   id: string;
+  service_id: string | null;
   app_key: string | null;
   app_secret: string | null;
   shop_id: string | null;
@@ -61,6 +62,7 @@ export default function TikTokShop() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [connecting, setConnecting] = useState(false);
+  const [serviceId, setServiceId] = useState('');
   const [appKey, setAppKey] = useState('');
   const [appSecret, setAppSecret] = useState('');
   const [showSecret, setShowSecret] = useState(false);
@@ -73,6 +75,7 @@ export default function TikTokShop() {
     const { data } = await supabase.from('tiktok_shop_config').select('*').limit(1).maybeSingle();
     if (data) {
       setConfig(data as TikTokConfig);
+      setServiceId(data.service_id || '');
       setAppKey(data.app_key || '');
       setAppSecret(data.app_secret || '');
     }
@@ -82,12 +85,12 @@ export default function TikTokShop() {
   useEffect(() => { load(); }, []);
 
   const handleSaveCredentials = async () => {
-    if (!appKey.trim() || !appSecret.trim()) {
-      toast({ title: 'Preencha App Key e App Secret', variant: 'destructive' });
+    if (!serviceId.trim() || !appKey.trim() || !appSecret.trim()) {
+      toast({ title: 'Preencha Service ID, App Key e App Secret', variant: 'destructive' });
       return;
     }
     setSaving(true);
-    const values = { app_key: appKey.trim(), app_secret: appSecret.trim() };
+    const values = { service_id: serviceId.trim(), app_key: appKey.trim(), app_secret: appSecret.trim() };
     const result = config
       ? await supabase.from('tiktok_shop_config').update(values).eq('id', config.id)
       : await supabase.from('tiktok_shop_config').insert(values);
@@ -118,11 +121,12 @@ export default function TikTokShop() {
   };
 
   const handleDisconnect = async () => {
+    if (!config) return;
     if (!confirm('Desconectar a loja do TikTok?')) return;
     await supabase.from('tiktok_shop_config').update({
       access_token: null, refresh_token: null, token_expires_at: null,
       refresh_expires_at: null, shop_id: null, shop_name: null, is_active: false,
-    }).eq('id', config!.id);
+    }).eq('id', config.id);
     toast({ title: 'Loja desconectada' });
     load();
   };
@@ -141,9 +145,19 @@ export default function TikTokShop() {
     setConfig({ ...config, [field]: value });
   };
 
-  const hasCredentials = !!(config?.app_key && config?.app_secret);
+  const hasCredentials = !!(config?.service_id && config?.app_key && config?.app_secret);
   const isConnected = !!config?.is_active && !!config?.access_token;
-  const credentialsChanged = appKey !== (config?.app_key || '') || appSecret !== (config?.app_secret || '');
+  const credentialsChanged = serviceId !== (config?.service_id || '') || appKey !== (config?.app_key || '') || appSecret !== (config?.app_secret || '');
+
+  useEffect(() => {
+    const onTikTokAuthorized = (event: MessageEvent) => {
+      if (event.data?.type !== 'tiktok-shop-authorized') return;
+      toast({ title: 'TikTok Shop conectado', description: 'Buscando a loja e as etiquetas oficiais.' });
+      load();
+    };
+    window.addEventListener('message', onTikTokAuthorized);
+    return () => window.removeEventListener('message', onTikTokAuthorized);
+  }, []);
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-[60vh]"><Loader2 className="h-6 w-6 animate-spin" /></div>;
@@ -178,15 +192,25 @@ export default function TikTokShop() {
         <TabsContent value="connection" className="space-y-6 mt-6">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">1. Credenciais da App</CardTitle>
+              <CardTitle className="text-base">1. Criar o aplicativo no TikTok</CardTitle>
               <CardDescription>
-                Cole sua App Key e App Secret obtidas no{' '}
+                Acesse o Partner Center como vendedor, crie um aplicativo privado para sua própria loja e habilite pedidos e logística. Depois cole os três códigos abaixo.{' '}
                 <a href="https://partner.tiktokshop.com" target="_blank" rel="noopener noreferrer" className="text-primary underline inline-flex items-center gap-1">
-                  TikTok Partner Center <ExternalLink className="h-3 w-3" />
+                  Abrir TikTok Partner Center <ExternalLink className="h-3 w-3" />
                 </a>.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="rounded-md border bg-muted/30 p-4 text-sm space-y-2">
+                <p><strong>1.</strong> Entre com a conta responsável pela sua TikTok Shop.</p>
+                <p><strong>2.</strong> Escolha <strong>Seller developer</strong> e crie um <strong>Private app</strong>.</p>
+                <p><strong>3.</strong> Solicite acesso a pedidos, pacotes, logística e documentos de envio.</p>
+                <p><strong>4.</strong> Cadastre exatamente o endereço de retorno mostrado abaixo.</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="service_id">Service ID</Label>
+                <Input id="service_id" value={serviceId} onChange={(e) => setServiceId(e.target.value)} placeholder="Código do serviço" />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="app_key">App Key</Label>
                 <Input id="app_key" value={appKey} onChange={(e) => setAppKey(e.target.value)} placeholder="6abc1234..." />
@@ -202,7 +226,7 @@ export default function TikTokShop() {
               </div>
               <Separator />
               <div className="space-y-2">
-                <Label>Redirect URL (cole no Partner Center)</Label>
+                <Label>Endereço de retorno (cole no Partner Center)</Label>
                 <div className="flex gap-2">
                   <Input value={callbackUrl} readOnly className="font-mono text-xs" />
                   <Button variant="outline" size="icon" onClick={copyCallback}>
@@ -230,7 +254,7 @@ export default function TikTokShop() {
                 </div>
               )}
               {!hasCredentials && (
-                <div className="text-sm text-muted-foreground p-3 rounded-md border border-dashed">Salve as credenciais acima antes de conectar.</div>
+                <div className="text-sm text-muted-foreground p-3 rounded-md border border-dashed">Crie o aplicativo no Partner Center e salve os três códigos acima antes de conectar.</div>
               )}
               <div className="flex gap-2">
                 {!isConnected ? (

@@ -1,4 +1,4 @@
-import { getSupabaseAdmin, getAuthBase, logSync, corsHeaders } from "../_shared/tiktok.ts";
+import { callTikTok, getSupabaseAdmin, getAuthBase, logSync, corsHeaders } from "../_shared/tiktok.ts";
 
 // TikTok redirects user back here with ?code=...&state=...&app_key=...
 Deno.serve(async (req) => {
@@ -8,7 +8,7 @@ Deno.serve(async (req) => {
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
 
-  const html = (title: string, body: string, ok = true) => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:-apple-system,system-ui,sans-serif;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;text-align:center}div{max-width:480px}h1{color:${ok ? "#22c55e" : "#ef4444"};margin:0 0 12px}p{color:#a3a3a3;line-height:1.5}</style></head><body><div><h1>${title}</h1><p>${body}</p><p style="margin-top:24px;font-size:14px">Você pode fechar esta janela.</p></div></body></html>`;
+  const html = (title: string, body: string, ok = true) => `<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>body{font-family:-apple-system,system-ui,sans-serif;background:#0a0a0a;color:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;text-align:center}div{max-width:480px}h1{color:${ok ? "#22c55e" : "#ef4444"};margin:0 0 12px}p{color:#a3a3a3;line-height:1.5}</style></head><body><div><h1>${title}</h1><p>${body}</p><p style="margin-top:24px;font-size:14px">Você pode fechar esta janela.</p></div>${ok ? '<script>if(window.opener){window.opener.postMessage({type:"tiktok-shop-authorized"},"*")}setTimeout(()=>window.close(),1500)</script>' : ''}</body></html>`;
 
   try {
     if (!code) throw new Error("Código de autorização ausente.");
@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
 
     const d = data.data;
     const now = Date.now();
-    await admin
+    const { error: updateError } = await admin
       .from("tiktok_shop_config")
       .update({
         access_token: d.access_token,
@@ -48,6 +48,24 @@ Deno.serve(async (req) => {
         shop_id: d.open_id ?? cfg.shop_id,
       })
       .eq("id", cfg.id);
+    if (updateError) throw updateError;
+
+    const shopsResponse = await callTikTok({ path: "/authorization/202309/shops" });
+    const shops = Array.isArray(shopsResponse.data?.data?.shops) ? shopsResponse.data.data.shops : [];
+    const shop = shops[0];
+    if (!shop?.cipher) {
+      await admin.from("tiktok_shop_config").update({ is_active: false }).eq("id", cfg.id);
+      throw new Error(shopsResponse.data?.message || "A autorização não retornou nenhuma loja TikTok Shop disponível.");
+    }
+
+    await admin.from("tiktok_shop_config").update({
+      shop_cipher: shop.cipher,
+      shop_id: shop.id ?? d.open_id ?? null,
+      shop_name: shop.name ?? null,
+      region: shop.region ?? null,
+      is_active: true,
+      last_sync_at: new Date().toISOString(),
+    }).eq("id", cfg.id);
 
     return new Response(html("Conectado!", "TikTok Shop foi autorizado com sucesso."), {
       status: 200,
