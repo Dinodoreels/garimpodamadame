@@ -4,6 +4,7 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
@@ -12,22 +13,12 @@ import {
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
-import {
-  BrandButton,
-  BrandFooter,
-  BrandHeader,
-  CouponBlock,
-  DEFAULT_BRANDING,
-  brandStyles,
-} from './_components.tsx'
-import type { EmailBranding } from '../email-branding.ts'
 
 interface SignupEmailProps {
   siteName: string
   siteUrl: string
   recipient: string
   confirmationUrl: string
-  branding?: EmailBranding
 }
 
 export const SignupEmail = ({
@@ -35,52 +26,72 @@ export const SignupEmail = ({
   siteUrl,
   recipient,
   confirmationUrl,
-  branding,
-}: SignupEmailProps) => {
-  const b = branding ?? { ...DEFAULT_BRANDING, storeName: siteName || DEFAULT_BRANDING.storeName, siteUrl: siteUrl || DEFAULT_BRANDING.siteUrl }
-  const s = brandStyles(b)
-  return (
-    <Html lang="pt-BR" dir="ltr">
-      <Head />
-      <Preview>{`Confirme seu email na ${b.storeName}`}</Preview>
-      <Body style={main}>
-        <Container style={container}>
-          <BrandHeader branding={b} />
-          <Heading style={s.h1}>Confirme seu email</Heading>
-          <Text style={text}>
-            Obrigada por se cadastrar na{' '}
-            <Link href={b.siteUrl} style={s.link}>
-              <strong>{b.storeName}</strong>
-            </Link>
-            ✨
-          </Text>
-          <Text style={text}>
-            Confirme seu endereço (
-            <Link href={`mailto:${recipient}`} style={s.link}>
-              {recipient}
-            </Link>
-            ) clicando no botão abaixo para ativar sua conta.
-          </Text>
-          <BrandButton branding={b} href={confirmationUrl}>Confirmar email</BrandButton>
-          <CouponBlock coupon={b.activeCoupon} branding={b} />
-          <Text style={footer}>
-            Se você não criou esta conta, pode ignorar este email com segurança.
-          </Text>
-          <BrandFooter branding={b} />
-        </Container>
-      </Body>
-    </Html>
-  )
-}
+}: SignupEmailProps) => (
+  <Html lang="en" dir="ltr">
+    <Head>
+      <style>{darkModeCss}</style>
+    </Head>
+    <Preview>Confirm your email for {siteName}</Preview>
+    <Body style={main}>
+      <Container style={container}>
+        <Heading style={h1}>Confirm your email</Heading>
+        <Text style={text}>
+          Thanks for signing up for{' '}
+          <Link href={siteUrl} style={link}>
+            <strong>{siteName}</strong>
+          </Link>
+          !
+        </Text>
+        <Text style={text}>
+          Please confirm your email address (
+          <Link href={`mailto:${recipient}`} style={link}>
+            {recipient}
+          </Link>
+          ) by clicking the button below:
+        </Text>
+        <Button className="dm-btn" style={button} href={confirmationUrl}>
+          Verify Email
+        </Button>
+        <Text style={footer}>
+          If you didn't create an account, you can safely ignore this email.
+        </Text>
+      </Container>
+    </Body>
+  </Html>
+)
 
 export default SignupEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
-const text = {
-  fontSize: '15px',
-  color: '#1a1a1a',
-  lineHeight: '1.7',
-  margin: '0 0 22px',
+const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
+const container = { padding: '20px 25px' }
+const h1 = {
+  fontSize: '22px',
+  fontWeight: 'bold' as const,
+  color: '#000000',
+  margin: '0 0 20px',
 }
-const footer = { fontSize: '12px', color: '#999', margin: '32px 0 0' }
+const text = {
+  fontSize: '14px',
+  color: '#55575d',
+  lineHeight: '1.5',
+  margin: '0 0 25px',
+}
+const link = { color: 'inherit', textDecoration: 'underline' }
+const button = {
+  backgroundColor: '#000000',
+  color: '#ffffff',
+  fontSize: '14px',
+  border: '1px solid #000000',
+  borderRadius: '8px',
+  padding: '12px 20px',
+  textDecoration: 'none',
+}
+const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
+// Rendered as a text child, which React may HTML-escape: keep this CSS free of >, &, and quotes.
+const darkModeCss = `
+  @media (prefers-color-scheme: dark) {
+    .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  }
+  [data-ogsc] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+  [data-ogsb] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
+`
