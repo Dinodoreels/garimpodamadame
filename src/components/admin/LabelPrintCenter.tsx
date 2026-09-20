@@ -26,9 +26,10 @@ export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
   const [printing, setPrinting] = useState<'marketplace' | 'melhor-envio' | null>(null);
 
   const counts = useMemo(() => {
+    const printableStatuses = new Set(['paid', 'processing', 'ready_to_ship']);
     const marketplace = orders.filter(order => {
       const source = String(order.source ?? '').toLowerCase();
-      return source.startsWith('bling:') || source.includes('tiktok');
+      return printableStatuses.has(order.status) && (source.startsWith('bling:') || source.includes('tiktok'));
     });
     const melhorEnvio = orders.filter(order => order.source === 'website' && order.melhor_envio_shipment);
     return {
