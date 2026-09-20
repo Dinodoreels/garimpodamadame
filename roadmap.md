@@ -134,5 +134,5 @@
 # Identidade dos emails
 
 - [x] Aplicar O Garimpo Digital, domínio oficial e logo enviada em todos os emails
-- [ ] Publicar e conferir a prévia dos emails atualizados
+- [x] Publicar e conferir a prévia dos emails atualizados
 
