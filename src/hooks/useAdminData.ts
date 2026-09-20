@@ -36,6 +36,12 @@ export interface AdminOrder {
   shipping_original_cost?: number | null;
   melhor_envio_shipment?: any;
   marketplace_shipping_label?: any;
+  payment_method?: string | null;
+  payment_status_detail?: string | null;
+  last_payment_error?: string | null;
+  paid_at?: string | null;
+  payment_attempts?: number | null;
+  mercadopago_payment_id?: string | null;
 }
 
 export interface AdminCustomer {

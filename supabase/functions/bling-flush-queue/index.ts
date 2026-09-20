@@ -3,6 +3,7 @@ import { assertAdmin, corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, lo
 import { pushStockToBling, syncProductToBling } from "../_shared/bling-product-sync.ts";
 import { pushOrderToBling } from "../_shared/bling-orders.ts";
 import { runAutomaticTikTokPublication } from "../_shared/bling-auto-publish.ts";
+import { syncPendingMarketplaceLabels } from "../_shared/bling-marketplace-labels.ts";
 
 const BATCH = 10;
 
@@ -30,7 +31,8 @@ Deno.serve(async (req) => {
       .order("scheduled_for", { ascending: true })
       .limit(BATCH);
 
-    if (!queue?.length) return jsonResponse({ processed: 0 });
+    const labelResults = await syncPendingMarketplaceLabels(20);
+    if (!queue?.length) return jsonResponse({ processed: 0, labels_checked: labelResults.length });
 
     const results: any[] = [];
     for (const item of queue) {
@@ -83,7 +85,7 @@ Deno.serve(async (req) => {
         results.push({ id: item.id, ok: false, error: msg });
       }
     }
-    return jsonResponse({ processed: results.length, results });
+    return jsonResponse({ processed: results.length, results, labels_checked: labelResults.length });
   } catch (e) {
     if (e instanceof Response) return e;
     return jsonResponse({ error: e instanceof Error ? e.message : String(e) }, 500);

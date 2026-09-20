@@ -483,7 +483,12 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
                     </p>
                   )}
                 </div>
+                <Badge variant="outline">{order.paid_at ? 'Cobrança confirmada' : order.status === 'payment_failed' ? 'Cobrança com falha' : 'Aguardando pagamento'}</Badge>
               </div>
+
+              {order.paid_at && <p className="mt-3 text-xs text-muted-foreground">Confirmado em {format(new Date(order.paid_at), "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })}</p>}
+              {order.payment_status_detail && <p className="mt-2 text-xs text-muted-foreground">Retorno do pagamento: {order.payment_status_detail}</p>}
+              {order.last_payment_error && <p className="mt-2 text-xs text-destructive">Falha registrada: {order.last_payment_error}</p>}
 
               {paymentReceiptUrl && (
                 <div className="mt-3">

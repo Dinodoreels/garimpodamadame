@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Download, RefreshCw, Tag } from 'lucide-react';
+import { ExternalLink, Printer, RefreshCw, Tag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +45,7 @@ export function MarketplaceLabelSection({ orderId, source, label: initialLabel }
     if (!label?.label_url) return;
     window.open(label.label_url, '_blank', 'noopener,noreferrer');
     await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'mark_printed', order_ids: [orderId] } });
+    setLabel((current: any) => ({ ...current, printed_at: new Date().toISOString() }));
   };
 
   return (
@@ -57,17 +58,23 @@ export function MarketplaceLabelSection({ orderId, source, label: initialLabel }
             <p className="text-xs text-muted-foreground">Separada das etiquetas do Melhor Envio</p>
           </div>
         </div>
-        <Badge variant="outline">{label?.status === 'ready' ? 'Pronta' : label?.status === 'error' ? 'Erro' : 'Aguardando plataforma'}</Badge>
+        <Badge variant="outline">{label?.printed_at ? 'Impressa' : label?.status === 'ready' ? 'Pronta' : label?.status === 'error' ? 'Erro' : 'Aguardando plataforma'}</Badge>
+      </div>
+      <div className="grid gap-2 text-xs text-muted-foreground sm:grid-cols-3">
+        <span>Plataforma: <strong className="text-foreground">{label?.platform || 'Marketplace'}</strong></span>
+        <span>Formato: <strong className="text-foreground">{label?.format || 'PDF'}</strong></span>
+        <span>Tentativas: <strong className="text-foreground">{label?.attempts || 0}</strong></span>
       </div>
       {(label?.provider_note || label?.last_error) && <p className="text-xs text-muted-foreground">{label.provider_note || label.last_error}</p>}
+      <p className="text-xs text-muted-foreground">Use o PDF original sem recortar, editar ou redimensionar. O tamanho correto é definido pela própria plataforma.</p>
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={() => void load(true)} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
         <Button size="sm" onClick={() => void print()} disabled={!label?.label_url}>
-          <Download className="mr-2 h-4 w-4" />
-          Imprimir etiqueta
+          {label?.printed_at ? <ExternalLink className="mr-2 h-4 w-4" /> : <Printer className="mr-2 h-4 w-4" />}
+          {label?.printed_at ? 'Abrir novamente' : 'Abrir e imprimir'}
         </Button>
       </div>
     </div>
