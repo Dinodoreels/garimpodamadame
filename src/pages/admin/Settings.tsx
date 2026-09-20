@@ -13,6 +13,7 @@ import { ShopifyTab } from '@/components/admin/integrations/ShopifyTab';
 import { BlingTab } from '@/components/admin/integrations/BlingTab';
 import { FiscalTab } from '@/components/admin/integrations/FiscalTab';
 import { MelhorEnvioConnection } from '@/components/admin/MelhorEnvioConnection';
+import { ShippingOriginCard } from '@/components/admin/ShippingOriginCard';
 import { VipSalesTab } from '@/components/admin/integrations/VipSalesTab';
 
 import { Button } from '@/components/ui/button';
@@ -467,11 +468,18 @@ function ShippingTab() {
           </CardContent>
         </Card>
       ) : (
-        <ShippingProviderCards
-          config={integrationsConfig}
-          onSave={(c) => saveIntegrations.mutate(c)}
-          saving={saveIntegrations.isPending}
-        />
+        <>
+          <ShippingProviderCards
+            config={integrationsConfig}
+            onSave={(c) => saveIntegrations.mutate(c)}
+            saving={saveIntegrations.isPending}
+          />
+          <ShippingOriginCard
+            zipCode={integrationsConfig.shipping.active_provider === 'correios'
+              ? integrationsConfig.shipping.correios.origin_zip
+              : integrationsConfig.shipping.melhor_envio.origin_zip}
+          />
+        </>
       )}
 
       <MelhorEnvioConnection />

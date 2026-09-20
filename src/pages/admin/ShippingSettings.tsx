@@ -64,6 +64,7 @@ import {
 } from '@/hooks/useShippingSettings';
 import { useIntegrations, useSaveIntegrations, type IntegrationsConfig } from '@/hooks/useIntegrations';
 import { MelhorEnvioConnection } from '@/components/admin/MelhorEnvioConnection';
+import { ShippingOriginCard } from '@/components/admin/ShippingOriginCard';
 
 // ── Shipping Providers ──
 const SHIPPING_PROVIDERS = [
