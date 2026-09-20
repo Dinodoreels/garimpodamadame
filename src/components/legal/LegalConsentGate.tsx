@@ -27,7 +27,7 @@ export function LegalConsentGate() {
 
   return (
     <Dialog open={needsAcceptance}>
-      <DialogContent className="max-w-md [&>button]:hidden" onEscapeKeyDown={event => event.preventDefault()} onPointerDownOutside={event => event.preventDefault()}>
+      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto [&>button]:hidden" onEscapeKeyDown={event => event.preventDefault()} onPointerDownOutside={event => event.preventDefault()}>
         <DialogHeader>
           <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
             <ShieldCheck className="h-5 w-5 text-primary" />
@@ -48,7 +48,13 @@ export function LegalConsentGate() {
           <Checkbox checked={confirmed} onCheckedChange={value => setConfirmed(value === true)} className="mt-0.5" />
           <span>Li e aceito os Termos de Uso e declaro ciência da Política de Privacidade.</span>
         </label>
-        <Button onClick={handleAccept} disabled={!confirmed || saving} className="w-full">
+        <Button
+          type="button"
+          size="lg"
+          onClick={handleAccept}
+          disabled={!confirmed || saving}
+          className="mt-1 w-full shrink-0"
+        >
           {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
           Confirmar e continuar
         </Button>
