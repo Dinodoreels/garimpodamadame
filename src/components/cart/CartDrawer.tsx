@@ -11,7 +11,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Gift, MessageCircle } from "lucide-react";
+import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Gift } from "lucide-react";
 import { Package, Bookmark, BookmarkCheck } from "lucide-react";
 import {
   AlertDialog,
@@ -37,7 +37,6 @@ import { CartItemsList } from "./CartItemsList";
 import { calculateShipping } from "@/lib/shipping";
 import { toast } from "sonner";
 import { DiscountCode } from "@/hooks/useDiscounts";
-import { useCMSThemeContext } from "@/providers/CMSThemeProvider";
 
 export function CartDrawer() {
   const [isOpen, setIsOpen] = useState(false);
@@ -48,9 +47,6 @@ export function CartDrawer() {
   const { profile } = useProfile();
   const { addresses } = useAddresses();
   const { data: freeShippingSettings } = useFreeShippingSettings();
-  const theme = useCMSThemeContext();
-  const social = (theme?.social as Record<string, string>) || {};
-  const whatsappNumber = social.whatsapp || '5511999999999';
   const { 
     items, 
     isLoading, 
@@ -423,53 +419,6 @@ export function CartDrawer() {
                     )}
                   </Button>
 
-                  <Button
-                    variant="outline"
-                    className="w-full h-12 sm:h-10 text-sm border-green-500 text-green-600 hover:bg-green-50 hover:text-green-700 touch-manipulation transition-all duration-300 group"
-                    size="lg"
-                    disabled={items.length === 0}
-                    onClick={() => {
-                      const itemsList = items.map(item => {
-                        const variantInfo = item.variant.title !== 'Default'
-                          ? ` (${[item.variant.option1, item.variant.option2, item.variant.option3].filter(Boolean).join(' / ')})`
-                          : '';
-                        return `▸ ${item.product.title}${variantInfo} — Qtd: ${item.quantity} — ${formatPrice(item.variant.price * item.quantity)}`;
-                      }).join('\n');
-
-                      const shippingLine = qualifiesForFreeShipping
-                        ? '🚚 Frete: GRÁTIS'
-                        : shippingCost > 0
-                          ? `🚚 Frete: ${formatPrice(shippingCost)}`
-                          : '🚚 Frete: A calcular';
-
-                      const discountLine = appliedDiscount
-                        ? `🏷️ Cupom: ${appliedDiscount.code} (-${formatPrice(appliedDiscount.discountAmount)})\n`
-                        : '';
-
-                      const totalValue = qualifiesForFreeShipping ? discountedSubtotal : grandTotal;
-
-                      const message = [
-                        `🛒 *PEDIDO VIA WHATSAPP*`,
-                        ``,
-                        `📦 *Itens:*`,
-                        itemsList,
-                        ``,
-                        `💰 Subtotal: ${formatPrice(subtotal)}`,
-                        discountLine,
-                        shippingLine,
-                        ``,
-                        `💳 *Total: ${formatPrice(totalValue)}*`,
-                        ``,
-                        `Gostaria de finalizar este pedido!`
-                      ].filter(line => line !== undefined).join('\n');
-
-                      const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    }}
-                  >
-                    <MessageCircle className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
-                    Comprar via WhatsApp
-                  </Button>
                 </div>
                 
                 {/* Trust Badges */}

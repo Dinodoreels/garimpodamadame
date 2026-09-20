@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { BuyNowModal } from '@/components/cart/BuyNowModal';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import { ChevronLeft, Minus, Plus, ShoppingCart, MessageCircle, Check, X, Heart, Loader2, Zap } from 'lucide-react';
+import { ChevronLeft, Minus, Plus, ShoppingCart, Check, X, Heart, Loader2, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -17,7 +17,6 @@ import { toast } from 'sonner';
 import { Product, ProductVariant } from '@/hooks/useProducts';
 import { ProductReviews } from '@/components/products/ProductReviews';
 import { ProductSection } from '@/components/home/ProductSection';
-import { useCMSThemeContext } from '@/providers/CMSThemeProvider';
 import { ProductShippingEstimate } from '@/components/product/ProductShippingEstimate';
 import { useProductCategories } from '@/hooks/useProductCategories';
 import { getDaysToExpiry, getExpiryStatus, formatDateBR } from '@/lib/expiry';
@@ -29,10 +28,7 @@ export default function ProductDetail() {
   const { data: categories } = useProductCategories();
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { addItem, createDirectCheckout, isLoading: checkoutLoading } = useCartStore();
-  const theme = useCMSThemeContext();
-  const social = (theme?.social as Record<string, string>) || {};
-  const whatsappNumber = social.whatsapp || '5511999999999';
+  const { addItem } = useCartStore();
   
   const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
   const [quantity, setQuantity] = useState(1);
@@ -40,7 +36,6 @@ export default function ProductDetail() {
   const [favoriteLoading, setFavoriteLoading] = useState(false);
   const [buyNowLoading, setBuyNowLoading] = useState(false);
   const [buyNowModalOpen, setBuyNowModalOpen] = useState(false);
-  const [buyNowMode, setBuyNowMode] = useState<'checkout' | 'whatsapp'>('checkout');
   const touchStartX = useRef(0);
   const touchEndX = useRef(0);
 
@@ -131,25 +126,6 @@ export default function ProductDetail() {
       return;
     }
     
-    setBuyNowMode('checkout');
-    setBuyNowModalOpen(true);
-  };
-
-  const handleWhatsAppBuy = () => {
-    if (!product || !selectedVariant) return;
-    
-    if (!user) {
-      toast.error('Faça login para comprar', {
-        position: 'top-center',
-        action: {
-          label: 'Entrar',
-          onClick: () => navigate('/auth')
-        }
-      });
-      return;
-    }
-    
-    setBuyNowMode('whatsapp');
     setBuyNowModalOpen(true);
   };
 
@@ -185,10 +161,6 @@ export default function ProductDetail() {
       });
     }
   };
-
-  const whatsappMessage = product 
-    ? `Olá! Tenho interesse no produto: ${product.title}`
-    : 'Olá! Gostaria de mais informações.';
 
   if (isLoading) {
     return (
@@ -486,16 +458,6 @@ export default function ProductDetail() {
                   Comprar Agora
                 </Button>
                 
-                <Button 
-                  onClick={handleWhatsAppBuy}
-                  variant="ghost"
-                  className="w-full text-sm"
-                  size="default"
-                  disabled={!isAvailable}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-                  <span className="truncate">Comprar via WhatsApp</span>
-                </Button>
               </div>
 
               {/* Actions - desktop */}
@@ -521,16 +483,6 @@ export default function ProductDetail() {
                   Comprar Agora
                 </Button>
                 
-                <Button 
-                  onClick={handleWhatsAppBuy}
-                  variant="ghost"
-                  className="w-full text-sm"
-                  size="default"
-                  disabled={!isAvailable}
-                >
-                  <MessageCircle className="h-4 w-4 mr-2 flex-shrink-0" />
-                  <span className="truncate">Comprar via WhatsApp</span>
-                </Button>
               </div>
 
               {/* Shipping Estimate (mobile + desktop) */}
@@ -606,8 +558,6 @@ export default function ProductDetail() {
         open={buyNowModalOpen}
         onOpenChange={setBuyNowModalOpen}
         item={buyNowItem}
-        mode={buyNowMode}
-        whatsappNumber={whatsappNumber}
       />
     </div>
   );

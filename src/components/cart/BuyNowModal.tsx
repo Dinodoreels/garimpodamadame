@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Loader2, MapPin, Truck, Check, Plus, User, AlertCircle, Zap, MessageCircle } from 'lucide-react';
+import { Loader2, MapPin, Truck, Check, Plus, User, AlertCircle, Zap } from 'lucide-react';
 import { useAddresses, Address } from '@/hooks/useAddresses';
 import { useProfile } from '@/hooks/useProfile';
 import { useAuth } from '@/hooks/useAuth';
@@ -22,11 +22,9 @@ interface BuyNowModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   item: CartItem | null;
-  mode: 'checkout' | 'whatsapp';
-  whatsappNumber: string;
 }
 
-export function BuyNowModal({ open, onOpenChange, item, mode, whatsappNumber }: BuyNowModalProps) {
+export function BuyNowModal({ open, onOpenChange, item }: BuyNowModalProps) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { profile, loading: profileLoading, updateProfile } = useProfile();
@@ -249,44 +247,6 @@ export function BuyNowModal({ open, onOpenChange, item, mode, whatsappNumber }: 
     } finally {
       setProcessing(false);
     }
-  };
-
-  const handleConfirmWhatsApp = () => {
-    if (!item || !selectedAddress) return;
-
-    const variantInfo = item.variant.title !== 'Default' ? `\n📏 Variante: ${item.variant.title}` : '';
-    const subtotal = item.variant.price * item.quantity;
-    const shippingCost = shippingResult?.cost || 0;
-    const total = subtotal + shippingCost;
-
-    const message = [
-      `🛒 *PEDIDO VIA WHATSAPP*`,
-      ``,
-      `📦 *Produto:* ${item.product.title}${variantInfo}`,
-      `🔢 *Quantidade:* ${item.quantity}`,
-      `💰 *Preço unitário:* ${formatPrice(item.variant.price)}`,
-      `💵 *Subtotal:* ${formatPrice(subtotal)}`,
-      ``,
-      `📍 *Endereço de Entrega:*`,
-      `${selectedAddress.recipient_name}`,
-      `${selectedAddress.street}, ${selectedAddress.number}${selectedAddress.complement ? ` - ${selectedAddress.complement}` : ''}`,
-      `${selectedAddress.neighborhood}`,
-      `${selectedAddress.city} - ${selectedAddress.state}`,
-      `CEP: ${formatZipCode(selectedAddress.zip_code)}`,
-      ``,
-      `🚚 *Frete:* ${shippingResult?.isFreeShipping ? 'GRÁTIS' : formatPrice(shippingCost)}`,
-      shippingResult?.estimatedDays ? `⏰ *Prazo:* ${shippingResult.estimatedDays}` : '',
-      ``,
-      `💳 *Total:* ${formatPrice(total)}`,
-      ``,
-      `👤 *Cliente:* ${profileForm.full_name}`,
-      `📱 *Telefone:* ${profileForm.phone}`,
-      profileForm.cpf ? `📄 *CPF:* ${profileForm.cpf}` : '',
-    ].filter(Boolean).join('\n');
-
-    const url = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
-    window.open(url, '_blank', 'noopener,noreferrer');
-    onOpenChange(false);
   };
 
   if (!item) return null;
@@ -614,25 +574,14 @@ export function BuyNowModal({ open, onOpenChange, item, mode, whatsappNumber }: 
               <Button variant="outline" onClick={() => setStep('address')} className="flex-1">
                 Voltar
               </Button>
-              {mode === 'checkout' ? (
-                <Button
-                  onClick={handleConfirmCheckout}
-                  disabled={processing}
-                  className="flex-1 bg-chrome hover:bg-chrome-dark text-white"
-                >
-                  {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
-                  Finalizar Compra
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleConfirmWhatsApp}
-                  disabled={processing}
-                  className="flex-1 bg-green-500 hover:bg-green-600 text-white"
-                >
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Enviar via WhatsApp
-                </Button>
-              )}
+              <Button
+                onClick={handleConfirmCheckout}
+                disabled={processing}
+                className="flex-1 bg-chrome hover:bg-chrome-dark text-white"
+              >
+                {processing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Zap className="h-4 w-4 mr-2" />}
+                Finalizar Compra
+              </Button>
             </div>
           </div>
         )}
