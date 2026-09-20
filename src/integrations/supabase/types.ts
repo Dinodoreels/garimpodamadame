@@ -1008,6 +1008,48 @@ export type Database = {
           },
         ]
       }
+      cookie_consent_log: {
+        Row: {
+          action: string
+          analytics: boolean
+          created_at: string
+          essential: boolean
+          id: string
+          ip_address: unknown
+          marketing: boolean
+          policy_version: string
+          session_id: string
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action: string
+          analytics?: boolean
+          created_at?: string
+          essential?: boolean
+          id?: string
+          ip_address?: unknown
+          marketing?: boolean
+          policy_version: string
+          session_id: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action?: string
+          analytics?: boolean
+          created_at?: string
+          essential?: boolean
+          id?: string
+          ip_address?: unknown
+          marketing?: boolean
+          policy_version?: string
+          session_id?: string
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       customer_coupons: {
         Row: {
           assigned_at: string | null
@@ -2283,6 +2325,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_document_versions: {
+        Row: {
+          content: Json
+          created_at: string
+          created_by: string | null
+          document_key: string
+          effective_at: string
+          id: string
+          title: string
+          version: string
+        }
+        Insert: {
+          content: Json
+          created_at?: string
+          created_by?: string | null
+          document_key: string
+          effective_at?: string
+          id?: string
+          title: string
+          version: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          created_by?: string | null
+          document_key?: string
+          effective_at?: string
+          id?: string
+          title?: string
+          version?: string
+        }
+        Relationships: []
       }
       lots: {
         Row: {
@@ -5142,6 +5217,45 @@ export type Database = {
           },
         ]
       }
+      user_legal_consents: {
+        Row: {
+          accepted_at: string
+          created_at: string
+          document_key: string
+          document_version: string
+          id: string
+          ip_address: unknown
+          session_id: string | null
+          source: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          created_at?: string
+          document_key: string
+          document_version: string
+          id?: string
+          ip_address?: unknown
+          session_id?: string | null
+          source: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          created_at?: string
+          document_key?: string
+          document_version?: string
+          id?: string
+          ip_address?: unknown
+          session_id?: string | null
+          source?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -5507,6 +5621,27 @@ export type Database = {
           msg_id: number
           read_ct: number
         }[]
+      }
+      record_cookie_consent: {
+        Args: {
+          p_action: string
+          p_analytics: boolean
+          p_marketing: boolean
+          p_policy_version: string
+          p_session_id: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
+      record_legal_acceptance: {
+        Args: {
+          p_privacy_version: string
+          p_session_id?: string
+          p_source?: string
+          p_terms_version: string
+          p_user_agent?: string
+        }
+        Returns: undefined
       }
       release_bling_catalog_sync: { Args: never; Returns: undefined }
       release_inbound_item: {
