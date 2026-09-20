@@ -28,7 +28,6 @@ import {
   Calculator,
   Mail,
   CalendarClock,
-  Music2,
   Wallet,
   Truck,
   ScanLine,
@@ -144,7 +143,6 @@ const menuItems: MenuItem[] = [
   { icon: FileText, label: 'Conteúdo', path: '/admin/content' },
   { icon: Mail, label: 'Email Marketing', path: '/admin/email-marketing' },
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
-  { icon: Music2, label: 'TikTok Shop', path: '/admin/integrations/tiktok-shop' },
   { icon: Settings, label: 'Configurações', path: '/admin/settings' },
 ];
 
