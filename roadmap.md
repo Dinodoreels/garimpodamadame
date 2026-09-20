@@ -176,3 +176,4 @@
 - [x] Mostrar e abrir o PDF oficial sem alterar o arquivo
 - [x] Consultar automaticamente etiquetas pendentes e avisar quando forem liberadas
 - [x] Publicar e validar a rotina automática no ambiente online
+- [x] Gerar lista de separação com resumo total e páginas por pedido, usando foto, variação, SKU, quantidade e conferência

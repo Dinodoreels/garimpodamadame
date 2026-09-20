@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, Clock3, FileText, Loader2, Package, Printer, ShoppingBag } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, Clock3, FileText, Loader2, Package, Printer, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import type { AdminOrder } from '@/hooks/useAdminData';
+import { openPickingListPrint } from '@/lib/pickingListPrint';
 import { toast } from 'sonner';
 
 interface LabelPrintCenterProps {
@@ -85,6 +86,15 @@ export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
     }
   };
 
+  const printPickingList = () => {
+    const result = openPickingListPrint(orders);
+    if (result === null) {
+      toast.error('Nenhum pedido com produtos para separar nos filtros atuais.');
+      return;
+    }
+    if (!result) toast.error('O navegador bloqueou a lista. Permita novas abas para este site.');
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -133,6 +143,18 @@ export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
             </Button>
           </section>
         </div>
+        <section className="flex flex-col gap-3 border p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <ClipboardCheck className="mt-0.5 h-5 w-5" />
+            <div>
+              <h3 className="font-medium">Lista de produtos para separar</h3>
+              <p className="text-xs text-muted-foreground">Resumo somado por produto e páginas individuais por pedido, com foto, variação, SKU, quantidade e conferência.</p>
+            </div>
+          </div>
+          <Button variant="outline" className="shrink-0" onClick={printPickingList} disabled={!orders.length}>
+            <ClipboardCheck className="mr-2 h-4 w-4" />Gerar lista de separação
+          </Button>
+        </section>
         <p className="text-xs text-muted-foreground">São considerados somente os pedidos exibidos pelos filtros atuais, até 50 por impressão. Etiquetas ainda não liberadas permanecem aguardando.</p>
       </DialogContent>
     </Dialog>
