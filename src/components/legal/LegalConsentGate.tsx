@@ -5,12 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useLegalConsent } from '@/hooks/useLegalConsent';
-import { CURRENT_LEGAL_VERSION } from '@/lib/legalContent';
 import { toast } from 'sonner';
 
 export function LegalConsentGate() {
   const { pathname } = useLocation();
-  const { loading, needsAcceptance, accept } = useLegalConsent();
+  const { loading, needsAcceptance, versions, accept } = useLegalConsent();
   const [confirmed, setConfirmed] = useState(false);
   const [saving, setSaving] = useState(false);
   const isLegalPage = ['/termos', '/privacidade', '/cookies'].includes(pathname);
@@ -39,7 +38,7 @@ export function LegalConsentGate() {
           </DialogDescription>
         </DialogHeader>
         <div className="rounded-md border bg-muted/40 p-3 text-sm">
-          <p className="font-medium">Versão {CURRENT_LEGAL_VERSION}</p>
+          <p className="font-medium">Termos {versions.terms} · Privacidade {versions.privacy}</p>
           <div className="mt-2 flex gap-3">
             <Link className="underline" to="/termos" target="_blank">Termos de Uso</Link>
             <Link className="underline" to="/privacidade" target="_blank">Privacidade</Link>

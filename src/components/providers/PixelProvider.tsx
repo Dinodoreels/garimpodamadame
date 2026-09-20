@@ -158,19 +158,18 @@ const TIKTOK_EVENT_MAP: Record<string, string> = {
 export function trackPixelEvent(eventName: string, params?: Record<string, any>) {
   if (typeof window === 'undefined') return;
   const preferences = JSON.parse(localStorage.getItem('cookie-preferences') || '{}');
-  if (!preferences.analytics && !preferences.marketing) return;
   // Meta
-  if (window.fbq) {
+  if (preferences.marketing && window.fbq) {
     const mapped = META_EVENT_MAP[eventName] || eventName;
     window.fbq('track', mapped, params);
   }
   // GA4
-  if (window.gtag) {
+  if (preferences.analytics && window.gtag) {
     const mapped = GA4_EVENT_MAP[eventName] || eventName;
     window.gtag('event', mapped, params);
   }
   // TikTok
-  if (window.ttq) {
+  if (preferences.marketing && window.ttq) {
     const mapped = TIKTOK_EVENT_MAP[eventName] || eventName;
     window.ttq.track(mapped, params);
   }
