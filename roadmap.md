@@ -148,3 +148,12 @@
 - [x] Exibir histórico próprio na conta e histórico geral para administradores
 - [x] Validar cadastro, login, nova versão e preferências
 - [ ] Corrigir todos os alertas atuais de SEO e validar novamente (site corrigido; Search Console aguarda conexão e publicação)
+
+# Campanhas WhatsApp
+
+- [x] Cadastrar grupos reais com acesso administrativo
+- [x] Criar campanhas com texto, link, mídia, produtos e cupons
+- [x] Permitir prévia, envio imediato, agendamento e cancelamento
+- [x] Registrar envio idempotente e histórico por grupo
+- [x] Validar banco, função e painel com checagem TypeScript/Deno
+- [ ] Publicar as funções quando a autorização de deploy do Supabase estiver disponível

@@ -112,6 +112,25 @@ Deno.serve(async (req) => {
       }
     }
 
+    try {
+      const campaignResponse = await fetch(
+        `${Deno.env.get('SUPABASE_URL')}/functions/v1/whatsapp-campaign-dispatch`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+          },
+          body: JSON.stringify({}),
+        },
+      )
+      if (!campaignResponse.ok) {
+        console.error('WhatsApp campaign processing failed:', campaignResponse.status, await campaignResponse.text())
+      }
+    } catch (campaignError) {
+      console.error('WhatsApp campaign processing error:', campaignError)
+    }
+
     return new Response(JSON.stringify({ ok: true, processed: results.length, results }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

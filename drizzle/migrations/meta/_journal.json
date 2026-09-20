@@ -71,6 +71,13 @@
       "when": 1789882764572,
       "tag": "0009_create_legal_documents_and_consent_audit",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789933561237,
+      "tag": "0010_create_whatsapp_group_campaigns",
+      "breakpoints": true
     }
   ]
 }

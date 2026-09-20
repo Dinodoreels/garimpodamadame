@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Truck, Gift, Search, Edit2, Save, X, Loader2, Package, Settings as SettingsIcon, Plug, Bell, CheckCircle2, Settings2, Power, Sparkles, BarChart3, CreditCard, MessageSquare, FileCheck2, Megaphone } from 'lucide-react';
+import { UserPlus, Truck, Gift, Search, Edit2, Save, X, Loader2, Package, Settings as SettingsIcon, Plug, Bell, CheckCircle2, Settings2, Power, Sparkles, BarChart3, CreditCard, MessageSquare, FileCheck2, Megaphone, Send } from 'lucide-react';
 import { useIntegrations, useSaveIntegrations, type IntegrationsConfig } from '@/hooks/useIntegrations';
 import { PaymentTab } from '@/components/admin/integrations/PaymentTab';
 import { WhatsAppTab } from '@/components/admin/integrations/WhatsAppTab';
@@ -15,6 +15,7 @@ import { FiscalTab } from '@/components/admin/integrations/FiscalTab';
 import { MelhorEnvioConnection } from '@/components/admin/MelhorEnvioConnection';
 import { ShippingOriginCard } from '@/components/admin/ShippingOriginCard';
 import { VipSalesTab } from '@/components/admin/integrations/VipSalesTab';
+import { WhatsAppCampaignsTab } from '@/components/admin/integrations/WhatsAppCampaignsTab';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -735,6 +736,10 @@ export default function Settings() {
             <Megaphone className="h-4 w-4" />
             Grupo VIP
           </TabsTrigger>
+          <TabsTrigger value="whatsapp-campaigns" className="gap-2">
+            <Send className="h-4 w-4" />
+            Campanhas WhatsApp
+          </TabsTrigger>
         </TabsList>
 
 
@@ -784,6 +789,10 @@ export default function Settings() {
 
         <TabsContent value="vip-sales" className="mt-6">
           <VipSalesTab />
+        </TabsContent>
+
+        <TabsContent value="whatsapp-campaigns" className="mt-6">
+          <WhatsAppCampaignsTab />
         </TabsContent>
       </Tabs>
 

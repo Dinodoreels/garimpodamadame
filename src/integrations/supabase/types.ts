@@ -5520,6 +5520,236 @@ export type Database = {
         }
         Relationships: []
       }
+      whatsapp_campaign_events: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          error_message: string | null
+          event_type: string
+          id: string
+          payload: Json
+          target_id: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          error_message?: string | null
+          event_type: string
+          id?: string
+          payload?: Json
+          target_id?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          error_message?: string | null
+          event_type?: string
+          id?: string
+          payload?: Json
+          target_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaign_events_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaign_events_target_id_fkey"
+            columns: ["target_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_campaign_targets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_campaign_products: {
+        Row: {
+          campaign_id: string
+          product_id: string
+        }
+        Insert: {
+          campaign_id: string
+          product_id: string
+        }
+        Update: {
+          campaign_id?: string
+          product_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaign_products_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaign_products_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_campaign_targets: {
+        Row: {
+          attempts: number
+          campaign_id: string
+          created_at: string
+          group_id: string
+          id: string
+          last_error: string | null
+          provider_message_id: string | null
+          rendered_message: string | null
+          sent_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          campaign_id: string
+          created_at?: string
+          group_id: string
+          id?: string
+          last_error?: string | null
+          provider_message_id?: string | null
+          rendered_message?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          campaign_id?: string
+          created_at?: string
+          group_id?: string
+          id?: string
+          last_error?: string | null
+          provider_message_id?: string | null
+          rendered_message?: string | null
+          sent_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaign_targets_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "whatsapp_campaign_targets_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "whatsapp_groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_campaigns: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          discount_code_id: string | null
+          id: string
+          last_error: string | null
+          link_url: string | null
+          media_type: string | null
+          media_url: string | null
+          message_body: string
+          processing_started_at: string | null
+          scheduled_for: string | null
+          sent_at: string | null
+          status: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          discount_code_id?: string | null
+          id?: string
+          last_error?: string | null
+          link_url?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_body: string
+          processing_started_at?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          discount_code_id?: string | null
+          id?: string
+          last_error?: string | null
+          link_url?: string | null
+          media_type?: string | null
+          media_url?: string | null
+          message_body?: string
+          processing_started_at?: string | null
+          scheduled_for?: string | null
+          sent_at?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_campaigns_discount_code_id_fkey"
+            columns: ["discount_code_id"]
+            isOneToOne: false
+            referencedRelation: "discount_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      whatsapp_groups: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          description: string | null
+          group_identifier: string
+          id: string
+          is_active: boolean
+          name: string
+          provider: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_identifier: string
+          id?: string
+          is_active?: boolean
+          name: string
+          provider: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_identifier?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          provider?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -5551,6 +5781,10 @@ export type Database = {
       }
       can_view_inbound: { Args: { _user_id: string }; Returns: boolean }
       claim_bling_catalog_sync: { Args: never; Returns: boolean }
+      claim_whatsapp_campaign: {
+        Args: { p_campaign_id?: string }
+        Returns: string
+      }
       delete_email: {
         Args: { message_id: number; queue_name: string }
         Returns: boolean
