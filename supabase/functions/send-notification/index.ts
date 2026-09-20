@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
         link_rastreio: '',
         codigo_rastreio: '',
         itens: '',
-        link_loja: 'https://storenataliapardal.com',
+        link_loja: 'https://ogarimpodigital.com.br',
         tempo_cliente: tempoCliente,
         dias_inativo: diasInativo,
         ultimo_produto: ultimoProduto,
@@ -306,7 +306,7 @@ Deno.serve(async (req) => {
       try {
         // Branding (logo, colors, store name, campaign coupon footer)
         const branding = await getEmailBranding(supabase)
-        const storeUrl = branding.siteUrl || 'https://storenataliapardal.com'
+        const storeUrl = branding.siteUrl || 'https://ogarimpodigital.com.br'
 
         // Pick CTA based on event type
         let ctaLabel: string | undefined

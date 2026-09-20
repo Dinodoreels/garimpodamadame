@@ -98,7 +98,7 @@ const CustomerNotificationEmail = ({
 export const template = {
   component: CustomerNotificationEmail,
   subject: (data: Record<string, any>) =>
-    data?.subject || data?.title || `[${data?.branding?.storeName || 'Loja'}] Aviso`,
+    data?.subject || data?.title || `[${data?.branding?.storeName || 'O Garimpo Digital'}] Aviso`,
   displayName: 'Notificação ao cliente',
   previewData: {
     title: 'Pedido PI20260001 confirmado',
@@ -106,7 +106,7 @@ export const template = {
     bodyText:
       'Olá Maria! Seu pedido foi confirmado e já está sendo preparado. Total: R$ 249,90.\n\nEm breve enviaremos o código de rastreio.',
     ctaLabel: 'Acompanhar pedido',
-    ctaUrl: 'https://storenataliapardal.com/pedido/PI20260001',
+    ctaUrl: 'https://ogarimpodigital.com.br/rastreio/PI20260001',
   },
 } satisfies TemplateEntry
 

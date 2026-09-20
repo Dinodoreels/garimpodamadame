@@ -175,7 +175,7 @@ Deno.serve(async (req) => {
               title: subject,
               bodyText: message,
               ctaLabel: 'Visitar loja',
-              ctaUrl: branding.siteUrl || 'https://storenataliapardal.com',
+              ctaUrl: branding.siteUrl || 'https://ogarimpodigital.com.br',
               preheader: 'Mensagem de teste',
               branding,
             },

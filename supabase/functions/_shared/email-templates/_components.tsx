@@ -13,10 +13,10 @@ import {
 import type { EmailBranding, EmailCoupon } from '../email-branding.ts'
 
 export const DEFAULT_BRANDING: EmailBranding = {
-  storeName: 'Loja',
-  logoUrl: '',
-  siteUrl: 'https://storenataliapardal.com',
-  colors: { primary: '#0a0a0a', primaryFg: '#ffffff', accent: '#6b6660' },
+  storeName: 'O Garimpo Digital',
+  logoUrl: 'https://ogarimpodigital.com.br/__l5e/assets-v1/f92206c5-3e2c-438c-9a85-78016eff682a/logo-o-garimpo-digital.png',
+  siteUrl: 'https://ogarimpodigital.com.br',
+  colors: { primary: '#d10078', primaryFg: '#ffffff', accent: '#b77900' },
   activeCoupon: null,
 }
 
@@ -66,7 +66,7 @@ export function BrandHeader({ branding }: { branding: EmailBranding }) {
         <Img
           src={branding.logoUrl}
           alt={branding.storeName}
-          style={{ maxHeight: '48px', maxWidth: '220px', objectFit: 'contain' }}
+          style={{ maxHeight: '112px', maxWidth: '240px', objectFit: 'contain', margin: '0 auto' }}
         />
       </Section>
     )

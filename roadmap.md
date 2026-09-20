@@ -133,6 +133,6 @@
 - [x] Registrar cada baixa e devolução por pedido, item e variante, sem reprocessar pedidos históricos às cegas
 # Identidade dos emails
 
-- [ ] Aplicar O Garimpo Digital, domínio oficial e logo enviada em todos os emails
+- [x] Aplicar O Garimpo Digital, domínio oficial e logo enviada em todos os emails
 - [ ] Publicar e conferir a prévia dos emails atualizados
 

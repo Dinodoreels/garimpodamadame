@@ -15,11 +15,19 @@ const corsHeaders = {
 }
 
 // Configuration
-const SITE_NAME = "Remix of lojadamulherada"
+const SITE_NAME = "O Garimpo Digital"
 const SENDER_DOMAIN = "notify.ogarimpodigital.com.br"
 const ROOT_DOMAIN = "ogarimpodigital.com.br"
 const FROM_DOMAIN = "notify.ogarimpodigital.com.br"
 const SITE_URL = `https://${ROOT_DOMAIN}`
+const LOGO_URL = `${SITE_URL}/__l5e/assets-v1/f92206c5-3e2c-438c-9a85-78016eff682a/logo-o-garimpo-digital.png`
+const EMAIL_BRANDING = {
+  storeName: SITE_NAME,
+  logoUrl: LOGO_URL,
+  siteUrl: SITE_URL,
+  colors: { primary: '#d10078', primaryFg: '#ffffff', accent: '#b77900' },
+  activeCoupon: null,
+}
 
 // Template mapping for preview mode
 const EMAIL_TEMPLATES: Record<string, React.ComponentType<any>> = {
@@ -129,42 +137,46 @@ const handler = createAuthEmailHandler({
   sendUrl: Deno.env.get('LOVABLE_SEND_URL'),
   emails: {
     signup: {
-      subject: 'Confirm your email',
+      subject: 'Confirme seu email — O Garimpo Digital',
       render: (data) =>
         React.createElement(SignupEmail, {
           siteName: SITE_NAME,
           siteUrl: SITE_URL,
           recipient: data.email,
           confirmationUrl: data.url,
+          branding: EMAIL_BRANDING,
         }),
     },
     invite: {
-      subject: "You've been invited",
+      subject: 'Seu convite — O Garimpo Digital',
       render: (data) =>
         React.createElement(InviteEmail, {
           siteName: SITE_NAME,
           siteUrl: SITE_URL,
           confirmationUrl: data.url,
+          branding: EMAIL_BRANDING,
         }),
     },
     magiclink: {
-      subject: 'Your login link',
+      subject: 'Seu link de acesso — O Garimpo Digital',
       render: (data) =>
         React.createElement(MagicLinkEmail, {
           siteName: SITE_NAME,
           confirmationUrl: data.url,
+          branding: EMAIL_BRANDING,
         }),
     },
     recovery: {
-      subject: 'Reset your password',
+      subject: 'Redefina sua senha — O Garimpo Digital',
       render: (data) =>
         React.createElement(RecoveryEmail, {
           siteName: SITE_NAME,
           confirmationUrl: data.url,
+          branding: EMAIL_BRANDING,
         }),
     },
     email_change: {
-      subject: 'Confirm your new email',
+      subject: 'Confirme seu novo email — O Garimpo Digital',
       render: (data) =>
         React.createElement(EmailChangeEmail, {
           siteName: SITE_NAME,
@@ -172,12 +184,17 @@ const handler = createAuthEmailHandler({
           email: data.email,
           newEmail: data.new_email ?? '',
           confirmationUrl: data.url,
+          branding: EMAIL_BRANDING,
         }),
     },
     reauthentication: {
-      subject: 'Your verification code',
+      subject: 'Seu código de verificação — O Garimpo Digital',
       render: (data) =>
-        React.createElement(ReauthenticationEmail, { token: data.token ?? '' }),
+        React.createElement(ReauthenticationEmail, {
+          token: data.token ?? '',
+          siteName: SITE_NAME,
+          branding: EMAIL_BRANDING,
+        }),
     },
   },
 })
