@@ -12,9 +12,10 @@
    value: string;
    onChange: (url: string) => void;
    label?: string;
+   accept?: string;
  }
  
- export function MediaPicker({ value, onChange, label = 'Selecionar Imagem' }: MediaPickerProps) {
+ export function MediaPicker({ value, onChange, label = 'Selecionar Imagem', accept = 'image/*' }: MediaPickerProps) {
    const [open, setOpen] = useState(false);
    const [urlInput, setUrlInput] = useState('');
    const fileInputRef = useRef<HTMLInputElement>(null);
@@ -48,11 +49,9 @@
      <div className="space-y-2">
        {value && (
          <div className="relative rounded-lg overflow-hidden bg-muted">
-           <img 
-             src={value} 
-             alt="Preview" 
-             className="w-full h-32 object-cover"
-           />
+            /\.(mp4|webm|mov)(\?|$)/i.test(value)
+              ? <video src={value} controls className="w-full h-32 object-cover" />
+              : <img src={value} alt="Preview" className="w-full h-32 object-cover" />
          </div>
        )}
        
@@ -117,7 +116,7 @@
                  <input
                    ref={fileInputRef}
                    type="file"
-                   accept="image/*"
+                    accept={accept}
                    onChange={handleFileChange}
                    className="hidden"
                  />
@@ -136,7 +135,7 @@
                      'Escolher Arquivo'
                    )}
                  </Button>
-                 <p className="text-xs text-muted-foreground mt-2">PNG, JPG ou WEBP</p>
+                  <p className="text-xs text-muted-foreground mt-2">Imagem ou vídeo compatível</p>
                </div>
              </TabsContent>
              

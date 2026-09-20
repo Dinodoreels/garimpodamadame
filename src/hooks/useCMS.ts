@@ -600,7 +600,7 @@ export function useUpdateCMSTheme() {
            url: urlData.publicUrl,
            file_name: file.name,
            file_size: file.size,
-           type: file.type.startsWith('image') ? 'image' : 'document',
+            type: file.type.startsWith('image') ? 'image' : file.type.startsWith('video') ? 'video' : 'document',
          })
          .select()
          .single();
