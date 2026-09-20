@@ -99,6 +99,13 @@
       "when": 1789946564749,
       "tag": "0013_add_tiktok_shop_service_id",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789948052917,
+      "tag": "0014_add_manual_marketplace_shipping_labels",
+      "breakpoints": true
     }
   ]
 }

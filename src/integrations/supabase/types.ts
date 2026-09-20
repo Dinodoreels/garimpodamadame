@@ -2806,7 +2806,11 @@ export type Database = {
           provider_note: string | null
           provider_payload: Json
           status: string
+          storage_path: string | null
           updated_at: string
+          upload_source: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
         }
         Insert: {
           attempts?: number
@@ -2823,7 +2827,11 @@ export type Database = {
           provider_note?: string | null
           provider_payload?: Json
           status?: string
+          storage_path?: string | null
           updated_at?: string
+          upload_source?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
         }
         Update: {
           attempts?: number
@@ -2840,7 +2848,11 @@ export type Database = {
           provider_note?: string | null
           provider_payload?: Json
           status?: string
+          storage_path?: string | null
           updated_at?: string
+          upload_source?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
         }
         Relationships: [
           {
