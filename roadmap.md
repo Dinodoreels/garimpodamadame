@@ -164,3 +164,8 @@
 - [x] Registrar envio idempotente e histórico por grupo
 - [x] Validar banco, função e painel com checagem TypeScript/Deno
 - [ ] Publicar as funções quando a autorização de deploy do Supabase estiver disponível
+
+# Cópia do banco
+
+- [x] Entregar o SQL da estrutura pública sem registros
+- [x] Orientar a exportação segura dos dados atuais pelo Lovable Cloud
