@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { CheckCircle, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Header } from '@/components/layout/Header';
@@ -8,13 +8,17 @@ import { useCartStore } from '@/stores/cartStore';
 
 export default function CheckoutSuccess() {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const orderNumber = searchParams.get('order');
   const { clearCart } = useCartStore();
 
   useEffect(() => {
     // Clear cart on successful checkout
     clearCart();
-  }, [clearCart]);
+    const redirectTimer = window.setTimeout(() => navigate('/catalog', { replace: true }), 5000);
+
+    return () => window.clearTimeout(redirectTimer);
+  }, [clearCart, navigate]);
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -42,7 +46,7 @@ export default function CheckoutSuccess() {
           )}
           
           <p className="text-sm text-muted-foreground mb-8">
-            Você receberá um e-mail de confirmação com os detalhes do seu pedido.
+            Você receberá um e-mail de confirmação com os detalhes do seu pedido e será levado ao catálogo em alguns segundos.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
