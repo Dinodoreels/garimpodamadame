@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { CheckCircle2, ClipboardCheck, Clock3, FileText, Loader2, Package, Printer, ShoppingBag } from 'lucide-react';
+import { CheckCircle2, ClipboardCheck, Clock3, FileText, Loader2, Package, Printer, Settings, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +26,10 @@ export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
   const [printing, setPrinting] = useState<'marketplace' | 'melhor-envio' | null>(null);
 
   const counts = useMemo(() => {
-    const marketplace = orders.filter(order => String(order.source ?? '').startsWith('bling:'));
+    const marketplace = orders.filter(order => {
+      const source = String(order.source ?? '').toLowerCase();
+      return source.startsWith('bling:') || source.includes('tiktok');
+    });
     const melhorEnvio = orders.filter(order => order.source === 'website' && order.melhor_envio_shipment);
     return {
       marketplace,
@@ -123,6 +126,11 @@ export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
             <Button className="w-full" onClick={() => void printMarketplace()} disabled={printing !== null || !counts.marketplace.length}>
               {printing === 'marketplace' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Printer className="mr-2 h-4 w-4" />}Imprimir plataformas em massa
             </Button>
+            {!counts.marketplaceReady && counts.marketplace.some(order => /tiktok/i.test(String(order.source ?? '') + String(order.bling_channel ?? ''))) && (
+              <Button variant="outline" className="w-full" asChild>
+                <a href="/admin/integrations/tiktok-shop"><Settings className="mr-2 h-4 w-4" />Conectar TikTok para buscar etiquetas</a>
+              </Button>
+            )}
           </section>
 
           <section className="space-y-4 border p-4">

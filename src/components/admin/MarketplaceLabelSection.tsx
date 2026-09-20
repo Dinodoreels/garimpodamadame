@@ -14,7 +14,8 @@ interface MarketplaceLabelSectionProps {
 export function MarketplaceLabelSection({ orderId, source, label: initialLabel }: MarketplaceLabelSectionProps) {
   const [label, setLabel] = useState<any>(initialLabel ?? null);
   const [loading, setLoading] = useState(false);
-  const isMarketplace = String(source ?? '').startsWith('bling:');
+  const normalizedSource = String(source ?? '').toLowerCase();
+  const isMarketplace = normalizedSource.startsWith('bling:') || normalizedSource.includes('tiktok');
 
   const load = useCallback(async (showToast = false) => {
     if (!isMarketplace) return;
