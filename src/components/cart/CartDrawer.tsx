@@ -44,7 +44,7 @@ export function CartDrawer() {
   const [isCalculatingAuto, setIsCalculatingAuto] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { profile } = useProfile();
+  const { profile, loading: profileLoading, refetch: refetchProfile } = useProfile();
   const { addresses } = useAddresses();
   const { data: freeShippingSettings } = useFreeShippingSettings();
   const { 
@@ -140,12 +140,24 @@ export function CartDrawer() {
       return;
     }
 
-    // Check if profile is complete
-    const isProfileComplete = profile?.full_name && profile?.phone && profile?.cpf && profile?.birth_date;
-    if (!isProfileComplete) {
+    // Always validate the latest saved profile. The drawer can stay mounted while
+    // the customer completes their data on the account page.
+    const latestProfile = await refetchProfile();
+    const profileToValidate = latestProfile ?? profile;
+    const requiredProfileFields = [
+      { label: 'nome', value: profileToValidate?.full_name },
+      { label: 'telefone', value: profileToValidate?.phone },
+      { label: 'CPF', value: profileToValidate?.cpf },
+      { label: 'data de nascimento', value: profileToValidate?.birth_date },
+    ];
+    const missingProfileFields = requiredProfileFields
+      .filter(({ value }) => !value?.trim())
+      .map(({ label }) => label);
+
+    if (missingProfileFields.length > 0) {
       toast.error("Complete seu perfil para finalizar a compra", {
         position: "top-center",
-        description: "Preencha nome, telefone, CPF e data de nascimento.",
+        description: `Falta preencher: ${missingProfileFields.join(', ')}.`,
         action: {
           label: "Completar Perfil",
           onClick: () => {
@@ -405,12 +417,12 @@ export function CartDrawer() {
                     onClick={handleCheckout}
                     className="w-full h-14 sm:h-12 text-base sm:text-sm bg-chrome hover:bg-chrome-dark text-white touch-manipulation transition-all duration-300 hover:shadow-lg group" 
                     size="lg"
-                    disabled={items.length === 0 || isLoading || isCalculatingAuto || (deliveryType === 'shipping' && !shippingOption)}
+                    disabled={items.length === 0 || isLoading || profileLoading || isCalculatingAuto || (deliveryType === 'shipping' && !shippingOption)}
                   >
-                    {isLoading || isCalculatingAuto ? (
+                    {isLoading || profileLoading || isCalculatingAuto ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        {isCalculatingAuto ? 'Calculando frete...' : 'Processando...'}
+                        {isCalculatingAuto ? 'Calculando frete...' : profileLoading ? 'Conferindo dados...' : 'Processando...'}
                       </>
                     ) : (
                       <>

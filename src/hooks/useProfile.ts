@@ -26,8 +26,8 @@ export function useProfile() {
     }
   }, [user]);
 
-  const fetchProfile = async () => {
-    if (!user) return;
+  const fetchProfile = async (): Promise<Profile | null> => {
+    if (!user) return null;
     
     setLoading(true);
     const { data, error } = await supabase
@@ -38,10 +38,13 @@ export function useProfile() {
 
     if (error) {
       console.error('Error fetching profile:', error);
+      setLoading(false);
+      return null;
     } else {
       setProfile(data);
     }
     setLoading(false);
+    return data;
   };
 
   const updateProfile = async (updates: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>) => {

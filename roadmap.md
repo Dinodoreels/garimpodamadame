@@ -57,6 +57,10 @@
 - [x] Mostrar no painel de frete o CEP e endereço completo do ponto de distribuição
 - [ ] Autorizar a conta e validar em produção sem comprar etiqueta automaticamente
 
+# Fluxo de compra
+
+- [x] Recarregar o perfil salvo antes de validar a compra e informar somente os campos realmente pendentes
+
 # Etiquetas de marketplaces e cadastro automático
 
 - [x] Buscar automaticamente as etiquetas oficiais de todos os marketplaces conectados ao Bling, priorizando TikTok Shop
