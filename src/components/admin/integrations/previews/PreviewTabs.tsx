@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Mail, MessageCircle, Bell } from 'lucide-react';
 import { GmailPreview } from './GmailPreview';
@@ -35,6 +35,7 @@ function PushPreview({ subject, template, storeName }: Props) {
 
 export function PreviewTabs(props: Props) {
   const { channel } = props;
+  const [val, setVal] = useState('email');
   const showEmail = ['email', 'both', 'email_push', 'all'].includes(channel);
   const showWhats = ['whatsapp', 'both', 'whatsapp_push', 'all'].includes(channel);
   const showPush = ['push', 'whatsapp_push', 'email_push', 'all'].includes(channel);
@@ -44,13 +45,15 @@ export function PreviewTabs(props: Props) {
   if (showWhats) tabs.push({ value: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, node: <WhatsAppPreview {...props} /> });
   if (showPush) tabs.push({ value: 'push', label: 'Push', icon: Bell, node: <PushPreview {...props} /> });
 
-  if (tabs.length === 0) return null;
+  const firstTabValue = tabs[0]?.value;
 
-  const [val, setVal] = useState(tabs[0].value);
-  // ensure current value is valid when channel changes
-  if (!tabs.find((t) => t.value === val)) {
-    setTimeout(() => setVal(tabs[0].value), 0);
-  }
+  useEffect(() => {
+    if (firstTabValue && !tabs.some((tab) => tab.value === val)) {
+      setVal(firstTabValue);
+    }
+  }, [firstTabValue, tabs, val]);
+
+  if (tabs.length === 0) return null;
 
   return (
     <Tabs value={val} onValueChange={setVal} className="w-full">
