@@ -27,37 +27,41 @@ export function LegalConsentGate() {
 
   return (
     <Dialog open={needsAcceptance}>
-      <DialogContent className="max-h-[90vh] max-w-md overflow-y-auto [&>button]:hidden" onEscapeKeyDown={event => event.preventDefault()} onPointerDownOutside={event => event.preventDefault()}>
-        <DialogHeader>
-          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <ShieldCheck className="h-5 w-5 text-primary" />
+      <DialogContent className="flex max-h-[90vh] max-w-md flex-col gap-0 overflow-hidden p-0 [&>button]:hidden" onEscapeKeyDown={event => event.preventDefault()} onPointerDownOutside={event => event.preventDefault()}>
+        <div className="min-h-0 overflow-y-auto p-6 pb-4">
+          <DialogHeader>
+            <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+            </div>
+            <DialogTitle>Confirme os documentos da loja</DialogTitle>
+            <DialogDescription>
+              Para continuar, leia e aceite a versão vigente dos documentos legais.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 rounded-md border bg-muted/40 p-3 text-sm">
+            <p className="font-medium">Termos {versions.terms} · Privacidade {versions.privacy}</p>
+            <div className="mt-2 flex gap-3">
+              <Link className="underline" to="/termos" target="_blank">Termos de Uso</Link>
+              <Link className="underline" to="/privacidade" target="_blank">Privacidade</Link>
+            </div>
           </div>
-          <DialogTitle>Confirme os documentos da loja</DialogTitle>
-          <DialogDescription>
-            Para continuar, leia e aceite a versão vigente dos documentos legais.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="rounded-md border bg-muted/40 p-3 text-sm">
-          <p className="font-medium">Termos {versions.terms} · Privacidade {versions.privacy}</p>
-          <div className="mt-2 flex gap-3">
-            <Link className="underline" to="/termos" target="_blank">Termos de Uso</Link>
-            <Link className="underline" to="/privacidade" target="_blank">Privacidade</Link>
-          </div>
+          <label className="mt-4 flex cursor-pointer items-start gap-3 text-sm leading-relaxed">
+            <Checkbox checked={confirmed} onCheckedChange={value => setConfirmed(value === true)} className="mt-0.5" />
+            <span>Li e aceito os Termos de Uso e declaro ciência da Política de Privacidade.</span>
+          </label>
         </div>
-        <label className="flex cursor-pointer items-start gap-3 text-sm leading-relaxed">
-          <Checkbox checked={confirmed} onCheckedChange={value => setConfirmed(value === true)} className="mt-0.5" />
-          <span>Li e aceito os Termos de Uso e declaro ciência da Política de Privacidade.</span>
-        </label>
-        <Button
-          type="button"
-          size="lg"
-          onClick={handleAccept}
-          disabled={!confirmed || saving}
-          className="mt-1 w-full shrink-0"
-        >
-          {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          Confirmar e continuar
-        </Button>
+        <div className="shrink-0 border-t bg-background p-4 sm:px-6">
+          <Button
+            type="button"
+            size="lg"
+            onClick={handleAccept}
+            disabled={!confirmed || saving}
+            className="w-full"
+          >
+            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            Confirmar e continuar
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
