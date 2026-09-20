@@ -4,7 +4,6 @@ import * as React from 'npm:react@18.3.1'
 
 import {
   Body,
-  Button,
   Container,
   Head,
   Heading,
@@ -13,78 +12,59 @@ import {
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
+import { BrandButton, BrandFooter, BrandHeader, CouponBlock, DEFAULT_BRANDING, brandStyles } from './_components.tsx'
+import type { EmailBranding } from '../email-branding.ts'
 
 interface InviteEmailProps {
   siteName: string
   siteUrl: string
   confirmationUrl: string
+  branding?: EmailBranding
 }
 
 export const InviteEmail = ({
   siteName,
   siteUrl,
   confirmationUrl,
-}: InviteEmailProps) => (
-  <Html lang="en" dir="ltr">
-    <Head>
-      <style>{darkModeCss}</style>
-    </Head>
-    <Preview>You've been invited to join {siteName}</Preview>
-    <Body style={main}>
-      <Container style={container}>
-        <Heading style={h1}>You've been invited</Heading>
-        <Text style={text}>
-          You've been invited to join{' '}
-          <Link href={siteUrl} style={link}>
-            <strong>{siteName}</strong>
-          </Link>
-          . Click the button below to accept the invitation and create your
-          account.
-        </Text>
-        <Button className="dm-btn" style={button} href={confirmationUrl}>
-          Accept Invitation
-        </Button>
-        <Text style={footer}>
-          If you weren't expecting this invitation, you can safely ignore this
-          email.
-        </Text>
-      </Container>
-    </Body>
-  </Html>
-)
+  branding,
+}: InviteEmailProps) => {
+  const b = branding ?? { ...DEFAULT_BRANDING, storeName: siteName || DEFAULT_BRANDING.storeName, siteUrl: siteUrl || DEFAULT_BRANDING.siteUrl }
+  const s = brandStyles(b)
+  return (
+    <Html lang="pt-BR" dir="ltr">
+      <Head />
+      <Preview>{`Você foi convidada para a ${b.storeName}`}</Preview>
+      <Body style={main}>
+        <Container style={container}>
+          <BrandHeader branding={b} />
+          <Heading style={s.h1}>Você foi convidada</Heading>
+          <Text style={text}>
+            Você recebeu um convite para acessar a{' '}
+            <Link href={b.siteUrl} style={s.link}>
+              <strong>{b.storeName}</strong>
+            </Link>
+            . Clique no botão abaixo para aceitar o convite e criar sua conta.
+          </Text>
+          <BrandButton branding={b} href={confirmationUrl}>Aceitar convite</BrandButton>
+          <CouponBlock coupon={b.activeCoupon} branding={b} />
+          <Text style={footer}>
+            Se você não esperava este convite, pode ignorar este email.
+          </Text>
+          <BrandFooter branding={b} />
+        </Container>
+      </Body>
+    </Html>
+  )
+}
 
 export default InviteEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: 'Arial, sans-serif' }
-const container = { padding: '20px 25px' }
-const h1 = {
-  fontSize: '22px',
-  fontWeight: 'bold' as const,
-  color: '#000000',
-  margin: '0 0 20px',
-}
+const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
+const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
 const text = {
-  fontSize: '14px',
-  color: '#55575d',
-  lineHeight: '1.5',
-  margin: '0 0 25px',
+  fontSize: '15px',
+  color: '#1a1a1a',
+  lineHeight: '1.7',
+  margin: '0 0 22px',
 }
-const link = { color: 'inherit', textDecoration: 'underline' }
-const button = {
-  backgroundColor: '#000000',
-  color: '#ffffff',
-  fontSize: '14px',
-  border: '1px solid #000000',
-  borderRadius: '8px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-}
-const footer = { fontSize: '12px', color: '#999999', margin: '30px 0 0' }
-// Rendered as a text child, which React may HTML-escape: keep this CSS free of >, &, and quotes.
-const darkModeCss = `
-  @media (prefers-color-scheme: dark) {
-    .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
-  }
-  [data-ogsc] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
-  [data-ogsb] .dm-btn { background-color: #ffffff !important; color: #000000 !important; }
-`
+const footer = { fontSize: '12px', color: '#999', margin: '32px 0 0' }
