@@ -65,6 +65,10 @@ function setMeta(selector: string, attribute: 'name' | 'property', key: string, 
   element.content = content;
 }
 
+function removeMeta(selector: string) {
+  document.head.querySelector(selector)?.remove();
+}
+
 export function applySeoMetadata(title: string, description: string, path: string, image?: string) {
   const canonicalUrl = `${SITE_URL}${path === '/' ? '/' : path}`;
   document.title = title;
@@ -77,6 +81,9 @@ export function applySeoMetadata(title: string, description: string, path: strin
   if (image) {
     setMeta("meta[property='og:image']", 'property', 'og:image', image);
     setMeta("meta[name='twitter:image']", 'name', 'twitter:image', image);
+  } else if (path !== '/') {
+    removeMeta("meta[property='og:image']");
+    removeMeta("meta[name='twitter:image']");
   }
 
   let canonical = document.head.querySelector<HTMLLinkElement>("link[rel='canonical']");
