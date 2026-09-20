@@ -3,7 +3,7 @@ import { assertAdmin, corsHeaders, getSupabaseAdmin, jsonResponse } from '../_sh
 import { syncMarketplaceLabel } from '../_shared/bling-marketplace-labels.ts';
 
 const validIds = (value: unknown) => Array.isArray(value)
-  ? value.filter((id): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)).slice(0, 20)
+  ? value.filter((id): id is string => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)).slice(0, 50)
   : [];
 
 async function linkedOrders(orderIds: string[]) {

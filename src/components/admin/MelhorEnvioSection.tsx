@@ -30,14 +30,20 @@ export function MelhorEnvioSection({ orderId, source, service, carrier, estimate
   if (!isWebsite) return <Alert><Truck className="h-4 w-4" /><AlertTitle>Frete gerenciado pela plataforma</AlertTitle><AlertDescription>Este pedido veio do Bling ou de um marketplace. O Melhor Envio não fará alterações nele.</AlertDescription></Alert>;
 
   const action = async (name: 'prepare' | 'purchase' | 'generate' | 'print' | 'sync' | 'cancel') => {
+    const printWindow = name === 'print' ? window.open('', '_blank') : null;
+    if (name === 'print' && !printWindow) {
+      toast({ variant: 'destructive', title: 'Impressão bloqueada', description: 'Permita novas abas para este site e tente novamente.' });
+      return;
+    }
     setLoading(name);
     const { data, error } = await supabase.functions.invoke('melhor-envio', { body: { action: name, order_id: orderId } });
     setLoading(null);
     if (error || !data?.ok) {
+      if (printWindow && !printWindow.closed) printWindow.close();
       toast({ variant: 'destructive', title: 'Operação não concluída', description: data?.error || 'Confira os dados e tente novamente.' });
       return;
     }
-    if (name === 'print' && data.url) window.open(data.url, '_blank', 'noopener,noreferrer');
+    if (name === 'print' && data.url && printWindow) printWindow.location.href = data.url;
     toast({ title: name === 'purchase' ? 'Etiqueta comprada' : 'Envio atualizado' });
     await load();
   };
