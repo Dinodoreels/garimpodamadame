@@ -1,18 +1,17 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Plus, CalendarIcon, X, Globe, MessageCircle, Store, User, Printer } from 'lucide-react';
+import { Search, Plus, CalendarIcon, X, Globe, MessageCircle, Store, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { OrdersTable } from '@/components/admin/OrdersTable';
 import { ExportButton } from '@/components/admin/ExportButton';
+import { LabelPrintCenter } from '@/components/admin/LabelPrintCenter';
 import { useAdminData } from '@/hooks/useAdminData';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import {
   Select,
   SelectContent,
@@ -64,7 +63,6 @@ export default function Orders() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
-  const [printingLabels, setPrintingLabels] = useState(false);
 
   // Status counts from ALL orders
   const statusCounts = useMemo(() => {
@@ -167,37 +165,6 @@ export default function Orders() {
 
   const hasActiveFilters = search || statusFilter !== 'all' || sourceFilter !== 'all' || vendorFilter !== 'all' || paymentFilter !== 'all' || labelFilter !== 'all' || dateFrom || dateTo;
 
-  const handlePrintMarketplaceLabels = async () => {
-    const orderIds = filteredOrders.filter(order => String(order.source ?? '').startsWith('bling:')).map(order => order.id).slice(0, 20);
-    if (!orderIds.length) {
-      toast.error('Nenhum pedido de plataforma nesta seleção');
-      return;
-    }
-    setPrintingLabels(true);
-    try {
-      const { data: syncData, error: syncError } = await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'sync', order_ids: orderIds } });
-      if (syncError || syncData?.error) throw new Error(syncData?.error || syncError?.message);
-      const { data, error } = await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'batch_pdf', order_ids: orderIds } });
-      if (error || data?.error) throw new Error(data?.error || error?.message);
-      if (data?.pending && !data?.pdf_base64) {
-        toast.info(data.message || 'As plataformas ainda não liberaram as etiquetas');
-        return;
-      }
-      if (!data?.pdf_base64) throw new Error('O arquivo das etiquetas não foi recebido. Atualize e tente novamente.');
-      const binary = atob(data.pdf_base64);
-      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
-      const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
-      window.open(url, '_blank', 'noopener,noreferrer');
-      window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      const unavailableCount = (data.pending?.length ?? 0) + (data.failed?.length ?? 0);
-      if (unavailableCount) toast.warning(`${unavailableCount} etiqueta(s) ainda não foram liberadas`);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Não foi possível preparar as etiquetas');
-    } finally {
-      setPrintingLabels(false);
-    }
-  };
-
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -217,10 +184,7 @@ export default function Orders() {
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Button variant="outline" onClick={() => void handlePrintMarketplaceLabels()} disabled={printingLabels}>
-            <Printer className="h-4 w-4 mr-2" />
-            {printingLabels ? 'Preparando...' : 'Etiquetas das plataformas'}
-          </Button>
+          <LabelPrintCenter orders={filteredOrders} />
           <ExportButton orders={filteredOrders} />
           <Button onClick={() => navigate('/admin/orders/new')} className="flex-1 sm:flex-none">
             <Plus className="h-4 w-4 mr-2" />

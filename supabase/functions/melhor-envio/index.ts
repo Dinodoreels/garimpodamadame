@@ -2,7 +2,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { callMelhorEnvio } from '../_shared/melhor-envio.ts'
 
-type Action = 'test' | 'prepare' | 'purchase' | 'generate' | 'print' | 'sync' | 'cancel'
+type Action = 'test' | 'prepare' | 'purchase' | 'generate' | 'print' | 'print_batch' | 'sync' | 'cancel'
 
 const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
 
@@ -35,12 +35,42 @@ Deno.serve(async (req) => {
     const { data: role } = await admin.from('user_roles').select('role').eq('user_id', userData.user.id).eq('role', 'admin').maybeSingle()
     if (!role) return response({ ok: false, error: 'Apenas administradores podem operar o Melhor Envio' }, 403)
 
-    const input = await req.json().catch(() => ({})) as { action?: Action; order_id?: string }
+    const input = await req.json().catch(() => ({})) as { action?: Action; order_id?: string; order_ids?: string[] }
     const action = input.action
     if (!action) return response({ ok: false, error: 'Ação obrigatória' }, 400)
     if (action === 'test') {
       const account = await callMelhorEnvio('')
       return response({ ok: true, account: { firstname: account.firstname, lastname: account.lastname, email: account.email } })
+    }
+
+    if (action === 'print_batch') {
+      const orderIds = Array.isArray(input.order_ids)
+        ? input.order_ids.filter(id => typeof id === 'string' && /^[0-9a-f-]{36}$/i.test(id)).slice(0, 50)
+        : []
+      if (!orderIds.length) return response({ ok: false, error: 'Selecione ao menos um pedido.' }, 400)
+      const { data: shipments, error: shipmentsError } = await admin
+        .from('melhor_envio_shipments')
+        .select('id, order_id, external_cart_id, label_generated_at')
+        .in('order_id', orderIds)
+        .not('label_generated_at', 'is', null)
+      if (shipmentsError) throw shipmentsError
+      const ready = (shipments ?? []).filter(shipment => shipment.external_cart_id)
+      if (!ready.length) return response({ ok: false, error: 'Nenhuma etiqueta do Melhor Envio está pronta para impressão.' }, 200)
+      const printed = await callMelhorEnvio('/shipment/print', 'POST', { mode: 'private', orders: ready.map(shipment => shipment.external_cart_id) })
+      const labelUrl = printed.url || printed.link || null
+      if (!labelUrl) return response({ ok: false, error: 'O Melhor Envio não retornou o arquivo oficial.' }, 200)
+      const now = new Date().toISOString()
+      await admin.from('melhor_envio_shipments').update({ label_url: labelUrl, label_format: 'pdf', provider_payload: printed }).in('id', ready.map(shipment => shipment.id))
+      await admin.from('melhor_envio_shipment_events').insert(ready.map(shipment => ({
+        shipment_id: shipment.id,
+        order_id: shipment.order_id,
+        event_type: 'printed',
+        status: 'label_generated',
+        message: 'Etiqueta incluída em impressão em massa.',
+        actor_id: userData.user.id,
+        response_data: { printed_at: now },
+      })))
+      return response({ ok: true, url: labelUrl, count: ready.length, pending: orderIds.length - ready.length })
     }
 
     if (!input.order_id) return response({ ok: false, error: 'Pedido obrigatório' }, 400)
