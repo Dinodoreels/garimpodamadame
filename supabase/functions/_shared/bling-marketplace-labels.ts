@@ -48,28 +48,9 @@ async function getTikTokLabel(orderId: string) {
     };
   }
 
-  const packageResponse = await callTikTok({
-    path: '/fulfillment/202309/packages/search',
-    method: 'POST',
-    body: { order_ids: [marketplaceOrderId], page_size: 20 },
-  });
-  const packageId = findString(packageResponse.data?.data, ['package_id', 'packageId']);
-  if (packageResponse.status >= 400 || packageResponse.data?.code !== 0 || !packageId) {
-    const providerMessage = cleanText(packageResponse.data?.message);
-    return {
-      labelUrl: '',
-      note: providerMessage || 'O TikTok ainda não criou o pacote de envio deste pedido.',
-      payload: { marketplace_order_id: marketplaceOrderId, package_search: packageResponse.data },
-    };
-  }
-
   const documentResponse = await callTikTok({
-    path: `/fulfillment/202309/packages/${encodeURIComponent(packageId)}/shipping_documents`,
-    query: {
-      document_type: 'SHIPPING_LABEL',
-      document_size: 'A6',
-      document_format: 'PDF',
-    },
+    path: `/logistics/202309/orders/${encodeURIComponent(marketplaceOrderId)}/shipping_documents`,
+    query: { document_type: 'SHIPPING_LABEL' },
   });
   const labelUrl = findString(documentResponse.data?.data, [
     'doc_url', 'document_url', 'shipping_label_url', 'label_url', 'url',
@@ -80,14 +61,14 @@ async function getTikTokLabel(orderId: string) {
     entity_id: marketplaceOrderId,
     action: 'pull',
     status: labelUrl ? 'success' : 'pending',
-    payload: { order_id: orderId, package_id: packageId },
+    payload: { order_id: orderId },
     response: documentResponse.data,
     error_message: labelUrl ? undefined : providerMessage || 'Etiqueta ainda não liberada',
   });
   return {
     labelUrl,
-    note: labelUrl ? null : providerMessage || 'O pacote existe, mas o TikTok ainda não liberou o PDF oficial.',
-    payload: { marketplace_order_id: marketplaceOrderId, package_id: packageId, shipping_document: documentResponse.data },
+    note: labelUrl ? null : providerMessage || 'O TikTok ainda não liberou o PDF oficial deste pedido.',
+    payload: { marketplace_order_id: marketplaceOrderId, shipping_document: documentResponse.data },
   };
 }
 
