@@ -78,6 +78,20 @@
       "when": 1789933561237,
       "tag": "0010_create_whatsapp_group_campaigns",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789935270025,
+      "tag": "0011_restore_profile_data_api_permissions",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789935286252,
+      "tag": "0012_restore_new_user_profile_trigger",
+      "breakpoints": true
     }
   ]
 }
