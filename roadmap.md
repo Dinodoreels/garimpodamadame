@@ -138,10 +138,10 @@
 
 
 # Documentação legal e aceites
-- [ ] Entregar no chat os textos completos e o checklist jurídico
-- [ ] Publicar Termos de Uso, Privacidade e Cookies completos e editáveis
+- [x] Entregar no chat os textos completos e o checklist jurídico
+- [x] Publicar Termos de Uso, Privacidade e Cookies completos e editáveis
 - [ ] Cadastrar dados legais reais da empresa sem preencher informações desconhecidas
-- [ ] Registrar aceite obrigatório e versionado de todos os usuários
-- [ ] Registrar e permitir revisão das preferências de cookies
-- [ ] Exibir histórico próprio na conta e histórico geral para administradores
-- [ ] Validar cadastro, login, nova versão e preferências
+- [x] Registrar aceite obrigatório e versionado de todos os usuários
+- [x] Registrar e permitir revisão das preferências de cookies
+- [x] Exibir histórico próprio na conta e histórico geral para administradores
+- [x] Validar cadastro, login, nova versão e preferências
