@@ -31,7 +31,8 @@ function LegalDocEditor({ settingsKey, label, defaultDoc }: { settingsKey: strin
       document_key: documentKey(settingsKey), version: form.version, title: form.page_title,
       content: form as any, created_by: user?.id, effective_at: new Date().toISOString(),
     });
-    if (error && error.code !== '23505') return toast.error('Não foi possível criar o histórico desta versão.');
+    if (error?.code === '23505') return toast.error('Esta versão já existe. Informe uma nova versão para preservar o histórico.');
+    if (error) return toast.error('Não foi possível criar o histórico desta versão.');
     save(form);
   };
 

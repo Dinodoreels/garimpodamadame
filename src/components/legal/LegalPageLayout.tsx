@@ -4,6 +4,8 @@ import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { Loader2 } from 'lucide-react';
 import type { LegalDocument } from '@/lib/legalContent';
+import type { LegalEntity } from '@/lib/legalContent';
+import { AlertTriangle } from 'lucide-react';
 
 interface LegalPageLayoutProps {
   settingsKey: string;
@@ -12,6 +14,7 @@ interface LegalPageLayoutProps {
 
 export function LegalPageLayout({ settingsKey, fallback }: LegalPageLayoutProps) {
   const { data, isLoading } = useSiteContent<LegalDocument>(settingsKey);
+  const { data: entity } = useSiteContent<LegalEntity>('legal_entity');
 
   const hasContent = data && data.sections && data.sections.length > 0 && data.sections.some(s => s.title || s.content);
 
@@ -33,6 +36,15 @@ export function LegalPageLayout({ settingsKey, fallback }: LegalPageLayoutProps)
               </p>
             )}
             {data.review_notice && <p className="mb-8 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{data.review_notice}</p>}
+            {entity && (
+              <aside className="mb-8 rounded-lg border bg-muted/30 p-4 text-sm">
+                <p className="font-semibold">Responsável: {entity.legal_name || entity.trade_name}</p>
+                {entity.tax_id && <p>CPF/CNPJ: {entity.tax_id}</p>}
+                {entity.address && <p>Endereço: {entity.address}</p>}
+                {(entity.privacy_email || entity.legal_email) && <p>Contato: {entity.privacy_email || entity.legal_email}</p>}
+                {(!entity.legal_name || !entity.tax_id || !entity.address || !entity.privacy_email) && <p className="mt-2 flex items-center gap-2 text-amber-700"><AlertTriangle className="h-4 w-4" /> Dados oficiais ainda precisam ser completados pela administração.</p>}
+              </aside>
+            )}
             <div className="prose prose-neutral max-w-none space-y-8">
               {data.sections.map((section, index) => (
                 <section key={index}>

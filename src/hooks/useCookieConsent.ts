@@ -53,7 +53,10 @@ export function useCookieConsent() {
   useEffect(() => {
     const sync = () => {
       const saved = localStorage.getItem(COOKIE_PREFERENCES_KEY);
-      if (saved) setPreferences({ ...defaultPreferences, ...JSON.parse(saved), essential: true });
+      if (saved) {
+        try { setPreferences({ ...defaultPreferences, ...JSON.parse(saved), essential: true }); }
+        catch { setPreferences(defaultPreferences); }
+      }
       setHasConsented(localStorage.getItem(COOKIE_CONSENT_KEY) === 'true');
     };
     const open = () => setShowBanner(true);
