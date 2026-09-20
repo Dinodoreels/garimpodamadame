@@ -36,7 +36,7 @@
 - [x] Criar dados fiscais, documentos e histórico com acessos por função
 - [x] Criar configuração fiscal e situação da nota dentro de cada pedido
 - [x] Preparar emissão e consulta da NF-e pelo Bling para o cliente final
-- [ ] Cadastrar a credencial segura do Mercado Pago (aguardando preenchimento do administrador)
+- [x] Cadastrar e validar a credencial segura de produção do Mercado Pago
 - [ ] Preencher os dados fiscais reais e validar impostos/certificado no Bling
 - [x] Bloquear emissão real e mostrar checklist fiscal por empresa, Bling, produtos, cliente, pedido e pagamento
 - [x] Mostrar a plataforma real do pedido e registrar a origem no complemento fiscal
