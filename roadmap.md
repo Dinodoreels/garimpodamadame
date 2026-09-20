@@ -54,6 +54,7 @@
 - [x] Preparar compra manual de etiqueta, impressão, rastreio e histórico somente para pedidos do site
 - [x] Criar retorno público, autorização segura e renovação automática da conexão
 - [x] Guardar o Client ID e Client Secret recebidos no cofre seguro
+- [x] Mostrar no painel de frete o CEP e endereço completo do ponto de distribuição
 - [ ] Autorizar a conta e validar em produção sem comprar etiqueta automaticamente
 
 # Etiquetas de marketplaces e cadastro automático

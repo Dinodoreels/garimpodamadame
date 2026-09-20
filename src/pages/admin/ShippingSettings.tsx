@@ -64,6 +64,7 @@ import {
 } from '@/hooks/useShippingSettings';
 import { useIntegrations, useSaveIntegrations, type IntegrationsConfig } from '@/hooks/useIntegrations';
 import { MelhorEnvioConnection } from '@/components/admin/MelhorEnvioConnection';
+import { ShippingOriginCard } from '@/components/admin/ShippingOriginCard';
 
 // ── Shipping Providers ──
 const SHIPPING_PROVIDERS = [
@@ -419,11 +420,18 @@ export default function ShippingSettings() {
           </CardContent>
         </Card>
       ) : (
-        <ShippingProviderCards
-          config={integrationsConfig}
-          onSave={(c) => saveIntegrations.mutate(c)}
-          saving={saveIntegrations.isPending}
-        />
+        <>
+          <ShippingProviderCards
+            config={integrationsConfig}
+            onSave={(c) => saveIntegrations.mutate(c)}
+            saving={saveIntegrations.isPending}
+          />
+          <ShippingOriginCard
+            zipCode={integrationsConfig.shipping.active_provider === 'correios'
+              ? integrationsConfig.shipping.correios.origin_zip
+              : integrationsConfig.shipping.melhor_envio.origin_zip}
+          />
+        </>
       )}
 
       <MelhorEnvioConnection />
