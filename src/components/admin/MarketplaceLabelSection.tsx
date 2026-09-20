@@ -8,11 +8,12 @@ import { ManualTikTokLabelUpload } from './ManualTikTokLabelUpload';
 
 interface MarketplaceLabelSectionProps {
   orderId: string;
+  orderNumber: string;
   source?: string | null;
   label?: any;
 }
 
-export function MarketplaceLabelSection({ orderId, source, label: initialLabel }: MarketplaceLabelSectionProps) {
+export function MarketplaceLabelSection({ orderId, orderNumber, source, label: initialLabel }: MarketplaceLabelSectionProps) {
   const [label, setLabel] = useState<any>(initialLabel ?? null);
   const [loading, setLoading] = useState(false);
   const normalizedSource = String(source ?? '').toLowerCase();
@@ -99,7 +100,7 @@ export function MarketplaceLabelSection({ orderId, source, label: initialLabel }
         <ManualTikTokLabelUpload
           compact
           orderId={orderId}
-          orderNumber={label?.provider_payload?.order_number || label?.bling_order_id || orderId.slice(0, 8)}
+          orderNumber={orderNumber}
           source={source}
           blingOrderId={label?.bling_order_id}
           label={label}

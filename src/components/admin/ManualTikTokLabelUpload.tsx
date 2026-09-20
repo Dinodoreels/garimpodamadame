@@ -44,6 +44,12 @@ export function ManualTikTokLabelUpload({
       return;
     }
 
+    const signature = new TextDecoder().decode(await file.slice(0, 5).arrayBuffer());
+    if (signature !== '%PDF-') {
+      toast.error('O arquivo selecionado não é um PDF válido.');
+      return;
+    }
+
     setBusy(true);
     const storagePath = `tiktok/${orderId}/etiqueta-oficial.pdf`;
     try {

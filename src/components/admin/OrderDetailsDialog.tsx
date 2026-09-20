@@ -509,6 +509,7 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
           <TabsContent value="tracking" className="space-y-6 mt-4">
             <MarketplaceLabelSection
               orderId={order.id}
+              orderNumber={order.order_number}
               source={order.source}
               label={order.marketplace_shipping_label}
             />
