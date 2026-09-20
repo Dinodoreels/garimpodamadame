@@ -1,9 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 
 interface CheckoutItem {
   product_id: string
@@ -39,6 +35,20 @@ interface CheckoutRequest {
     estimated_days: number
     original_cost: number
   }
+}
+
+function splitName(fullName?: string | null) {
+  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean)
+  return {
+    name: parts[0] || undefined,
+    surname: parts.slice(1).join(' ') || undefined,
+  }
+}
+
+function normalizePhone(phone?: string | null) {
+  const digits = String(phone || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')
+  if (digits.length < 10 || digits.length > 11) return undefined
+  return { area_code: digits.slice(0, 2), number: digits.slice(2) }
 }
 
 Deno.serve(async (req) => {
@@ -77,6 +87,12 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.user.id
+
+    const { data: profile } = await admin
+      .from('profiles')
+      .select('full_name, phone, cpf')
+      .eq('id', userId)
+      .maybeSingle()
 
     const body: CheckoutRequest = await req.json()
     const { items, shipping_cost, shipping_address, discount_code, discount_amount, loyalty_points_used, shipping_option } = body
@@ -266,6 +282,17 @@ Deno.serve(async (req) => {
     const allowedOrigins = ['https://ogarimpodigital.com.br', 'https://www.ogarimpodigital.com.br', 'https://garimpodamadame.lovable.app']
     const projectUrl = allowedOrigins.includes(requestOrigin) || requestOrigin.endsWith('.lovable.app') ? requestOrigin : 'https://ogarimpodigital.com.br'
 
+    const payerName = splitName(profile?.full_name)
+    const payerPhone = normalizePhone(profile?.phone)
+    const payerCpf = String(profile?.cpf || '').replace(/\D/g, '')
+    const payerAddress = shipping_address
+      ? {
+          zip_code: String(shipping_address.zip_code || '').replace(/\D/g, ''),
+          street_name: shipping_address.street,
+          street_number: shipping_address.number,
+        }
+      : undefined
+
     const preference = {
       items: preferenceItems,
       external_reference: order.id,
@@ -284,6 +311,11 @@ Deno.serve(async (req) => {
       },
       payer: {
         email: claimsData.user.email,
+        ...(payerName.name && { name: payerName.name }),
+        ...(payerName.surname && { surname: payerName.surname }),
+        ...(payerPhone && { phone: payerPhone }),
+        ...(payerCpf.length === 11 && { identification: { type: 'CPF', number: payerCpf } }),
+        ...(payerAddress && { address: payerAddress }),
       },
     }
 

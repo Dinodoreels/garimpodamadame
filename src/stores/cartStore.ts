@@ -4,6 +4,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { Product, ProductVariant } from '@/hooks/useProducts';
 import type { ShippingOption } from '@/lib/shipping';
 
+async function getCheckoutErrorMessage(error: unknown, fallback: string) {
+  const response = (error as { context?: Response })?.context;
+  if (!response) return error instanceof Error ? error.message : fallback;
+
+  try {
+    const payload = await response.clone().json() as { error?: string; detail?: string };
+    return payload.detail || payload.error || fallback;
+  } catch {
+    return fallback;
+  }
+}
+
 export interface CartItem {
   product: Product;
   variant: ProductVariant;
@@ -349,7 +361,7 @@ export const useCartStore = create<CartStore>()(
 
           if (error) {
             console.error('Checkout error:', error);
-            return null;
+            throw new Error(await getCheckoutErrorMessage(error, 'Não foi possível iniciar o pagamento.'));
           }
 
           if (data?.checkout_url) {
@@ -359,7 +371,7 @@ export const useCartStore = create<CartStore>()(
           return null;
         } catch (error) {
           console.error('Falha ao criar checkout:', error);
-          return null;
+          throw error;
         } finally {
           setLoading(false);
         }
@@ -397,7 +409,7 @@ export const useCartStore = create<CartStore>()(
 
           if (error) {
             console.error('Direct checkout error:', error);
-            return null;
+            throw new Error(await getCheckoutErrorMessage(error, 'Não foi possível iniciar o pagamento.'));
           }
 
           if (data?.checkout_url) {
@@ -407,7 +419,7 @@ export const useCartStore = create<CartStore>()(
           return null;
         } catch (error) {
           console.error('Falha no checkout direto:', error);
-          return null;
+          throw error;
         } finally {
           setLoading(false);
         }
