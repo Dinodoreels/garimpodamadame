@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { getEmailBranding } from '../_shared/email-branding.ts'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -165,25 +166,20 @@ Deno.serve(async (req) => {
     if (channel === 'email') {
       try {
         const branding = await getEmailBranding(supabase)
-        const { data, error } = await supabase.functions.invoke('send-transactional-email', {
-          body: {
-            templateName: 'customer-notification',
-            recipientEmail: recipient,
-            idempotencyKey: `test-${user.id}-${Date.now()}`,
-            templateData: {
-              subject,
-              title: subject,
-              bodyText: message,
-              ctaLabel: 'Visitar loja',
-              ctaUrl: branding.siteUrl || 'https://ogarimpodigital.com.br',
-              preheader: 'Mensagem de teste',
-              branding,
-            },
+        const result = await sendTemplateEmail('customer-notification', recipient, {
+          idempotencyKey: `test-${user.id}-${Date.now()}`,
+          templateData: {
+            subject,
+            title: subject,
+            bodyText: message,
+            ctaLabel: 'Visitar loja',
+            ctaUrl: branding.siteUrl || 'https://ogarimpodigital.com.br',
+            preheader: 'Mensagem de teste',
+            branding,
           },
         })
-        if (error) return json({ ok: false, provider: 'lovable-email', error: error.message })
-        if (data?.success) return json({ ok: true, provider: 'lovable-email', status: 202, response: 'queued for delivery' })
-        return json({ ok: false, provider: 'lovable-email', error: data?.reason || 'send failed', response: JSON.stringify(data).substring(0, 500) })
+        if (result.sent) return json({ ok: true, provider: 'lovable-email', status: 202, response: 'accepted for delivery' })
+        return json({ ok: false, provider: 'lovable-email', error: result.reason })
       } catch (e: any) {
         return json({ ok: false, provider: 'lovable-email', error: e?.message || String(e) })
       }

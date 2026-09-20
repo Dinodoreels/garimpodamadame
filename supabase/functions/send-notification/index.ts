@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { getEmailBranding } from '../_shared/email-branding.ts'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -333,32 +334,20 @@ Deno.serve(async (req) => {
           ? `${type}-${userId}-${stepIndex}-${Date.now()}`
           : `${type}-${Date.now()}`
 
-        const { data: emailData, error: emailError } = await supabase.functions.invoke(
-          'send-transactional-email',
-          {
-            body: {
-              templateName: 'customer-notification',
-              recipientEmail: customerEmail,
-              idempotencyKey,
-              templateData: {
-                subject,
-                title: subject,
-                bodyText: message,
-                ctaLabel,
-                ctaUrl,
-                coupon: couponCode || undefined,
-                preheader: subject,
-                branding,
-              },
-            },
+        const emailResult = await sendTemplateEmail('customer-notification', customerEmail, {
+          idempotencyKey,
+          templateData: {
+            subject,
+            title: subject,
+            bodyText: message,
+            ctaLabel,
+            ctaUrl,
+            coupon: couponCode || undefined,
+            preheader: subject,
+            branding,
           },
-        )
-        if (emailError) {
-          console.error('send-transactional-email error:', emailError)
-          results.push(`Email:failed`)
-        } else {
-          results.push(`Email:${emailData?.success ? 'queued' : (emailData?.reason || 'unknown')}`)
-        }
+        })
+        results.push(`Email:${emailResult.sent ? 'sent' : emailResult.reason}`)
       } catch (e) {
         console.error('Email send error:', e)
         results.push(`Email:error`)

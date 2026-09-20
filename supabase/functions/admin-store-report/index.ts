@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getEmailBranding } from '../_shared/email-branding.ts'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -244,19 +246,16 @@ Deno.serve(async (req) => {
     const emailResults: { recipient: string; status: string }[] = []
     if (wantsEmail && emailRecipients.length > 0) {
       const title = `Resumo ${periodLabel(period)} — ${dateStr}`
+      const branding = await getEmailBranding(supabase)
       for (const recipient of emailRecipients) {
         const clean = String(recipient).trim()
         if (!clean) continue
         try {
-          const { error } = await supabase.functions.invoke('send-transactional-email', {
-            body: {
-              templateName: 'admin-report',
-              recipientEmail: clean,
-              idempotencyKey: `admin-report-${period}-${startISO.slice(0, 10)}-${clean}`,
-              templateData: { title, subtitle: prevWord, bodyText: msg.replace(/\*/g, '') },
-            },
+          const result = await sendTemplateEmail('admin-report', clean, {
+            idempotencyKey: `admin-report-${period}-${startISO.slice(0, 10)}-${clean}`,
+            templateData: { title, subtitle: prevWord, bodyText: msg.replace(/\*/g, ''), branding },
           })
-          emailResults.push({ recipient: clean, status: error ? `failed:${error.message}` : 'sent' })
+          emailResults.push({ recipient: clean, status: result.sent ? 'sent' : result.reason })
         } catch (e) {
           emailResults.push({ recipient: clean, status: `error:${String(e)}` })
         }
