@@ -3,7 +3,7 @@ import { Footer } from '@/components/layout/Footer';
 import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { Loader2 } from 'lucide-react';
-import type { LegalDocument } from '@/components/admin/LegalTab';
+import type { LegalDocument } from '@/lib/legalContent';
 
 interface LegalPageLayoutProps {
   settingsKey: string;
@@ -29,9 +29,10 @@ export function LegalPageLayout({ settingsKey, fallback }: LegalPageLayoutProps)
             {data.subtitle && <p className="text-lg text-chrome font-medium mb-2">{data.subtitle}</p>}
             {data.last_updated && (
               <p className="text-sm text-muted-foreground mb-8">
-                Última atualização: {data.last_updated}
+                Versão {data.version || 'não informada'} · Vigência: {data.effective_at || data.last_updated} · Última atualização: {data.last_updated}
               </p>
             )}
+            {data.review_notice && <p className="mb-8 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{data.review_notice}</p>}
             <div className="prose prose-neutral max-w-none space-y-8">
               {data.sections.map((section, index) => (
                 <section key={index}>

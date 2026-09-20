@@ -29,6 +29,7 @@ import { cn } from '@/lib/utils';
 import { generateReceiptHTML } from '@/lib/generateReceipt';
 import { supabase } from '@/integrations/supabase/client';
 import { useIntegrations } from '@/hooks/useIntegrations';
+import { UserConsentHistory } from '@/components/legal/UserConsentHistory';
 
 const STATUS_STYLES: Record<string, string> = {
   pending: 'bg-yellow-100 text-yellow-700',
@@ -627,6 +628,8 @@ export default function Account() {
                     </div>
                   </CardContent>
                 </Card>
+
+                <UserConsentHistory />
 
                 <Card>
                   <CardContent className="pt-6">

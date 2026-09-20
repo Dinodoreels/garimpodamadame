@@ -1,25 +1,8 @@
 import { LegalPageLayout } from '@/components/legal/LegalPageLayout';
+import { DEFAULT_PRIVACY } from '@/lib/legalContent';
 
 function PrivacyFallback() {
-  return (
-    <>
-      <h1 className="text-3xl font-display font-bold mb-4">Política de Privacidade e Proteção de Dados</h1>
-      <p className="text-lg text-chrome font-medium mb-2">VANGUARD STORE</p>
-      <p className="text-sm text-muted-foreground mb-8">
-        Versão jurídica reforçada e blindada (LGPD Ready)<br />
-        Última atualização: 30/01/2026
-      </p>
-      <div className="prose prose-neutral max-w-none space-y-8">
-        <section>
-          <h2 className="text-xl font-semibold mb-4">1. Aceitação e Ciência do Titular</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Ao acessar, navegar, cadastrar-se ou realizar compras no site Vanguard Store,
-            o titular dos dados declara que leu integralmente esta Política de Privacidade e concorda com o tratamento de seus dados pessoais.
-          </p>
-        </section>
-      </div>
-    </>
-  );
+  return <><h1 className="text-3xl font-display font-bold mb-4">{DEFAULT_PRIVACY.page_title}</h1><p className="text-lg font-medium mb-2">{DEFAULT_PRIVACY.subtitle}</p><p className="text-sm text-muted-foreground mb-4">Versão {DEFAULT_PRIVACY.version} · Vigência: {DEFAULT_PRIVACY.effective_at}</p><p className="mb-8 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{DEFAULT_PRIVACY.review_notice}</p><div className="space-y-8">{DEFAULT_PRIVACY.sections.map(section => <section key={section.title}><h2 className="text-xl font-semibold mb-4">{section.title}</h2>{section.content.split('\n\n').map(paragraph => <p key={paragraph} className="text-muted-foreground leading-relaxed mb-4">{paragraph}</p>)}</section>)}</div></>;
 }
 
 export default function Privacy() {
