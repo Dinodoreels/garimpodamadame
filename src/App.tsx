@@ -37,6 +37,7 @@ import { BackToTop } from "@/components/ui/BackToTop";
 import { CustomerSupportChat } from "@/components/ui/CustomerSupportChat";
 import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
 import { PushNotificationProvider } from "@/components/providers/PushNotificationProvider";
+import { LegalConsentGate } from "@/components/legal/LegalConsentGate";
 
 // Lazy load admin & seller routes
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
@@ -124,6 +125,7 @@ const App = () => (
            <PushNotificationProvider>
            <PixelProvider>
           <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}>
+          <LegalConsentGate />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/catalog" element={<Catalog />} />

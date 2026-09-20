@@ -12,6 +12,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { toast } from 'sonner';
 import { z } from 'zod';
+import { recordCurrentLegalAcceptance } from '@/hooks/useLegalConsent';
+import { CURRENT_LEGAL_VERSION } from '@/lib/legalContent';
 
 const loginSchema = z.object({
   email: z.string().email('Email inválido'),
@@ -153,6 +155,7 @@ export default function Auth() {
       return;
     }
     
+    await recordCurrentLegalAcceptance('signup');
     toast.success('Conta criada!', {
       description: 'Bem-vinda! Sua conta já está ativa.'
     });
@@ -549,6 +552,7 @@ export default function Auth() {
                         >
                           Política de Privacidade
                         </Link>
+                        {' '}(versão {CURRENT_LEGAL_VERSION})
                       </label>
                     </div>
                     {errors.acceptTerms && (

@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useSiteContent } from '@/hooks/useSiteContent';
+import { useCookieConsent } from '@/hooks/useCookieConsent';
 
 declare global {
   interface Window {
@@ -156,6 +157,8 @@ const TIKTOK_EVENT_MAP: Record<string, string> = {
 
 export function trackPixelEvent(eventName: string, params?: Record<string, any>) {
   if (typeof window === 'undefined') return;
+  const preferences = JSON.parse(localStorage.getItem('cookie-preferences') || '{}');
+  if (!preferences.analytics && !preferences.marketing) return;
   // Meta
   if (window.fbq) {
     const mapped = META_EVENT_MAP[eventName] || eventName;
@@ -175,29 +178,30 @@ export function trackPixelEvent(eventName: string, params?: Record<string, any>)
 
 export function PixelProvider({ children }: { children: React.ReactNode }) {
   const { data } = useSiteContent<PixelsConfig>('pixels_config');
+  const { hasConsented, preferences } = useCookieConsent();
   const location = useLocation();
 
   useEffect(() => {
-    if (!data) return;
-    if (data.meta?.enabled && data.meta.pixelId) injectMetaPixel(data.meta.pixelId);
-    if (data.google_analytics?.enabled && data.google_analytics.measurementId) injectGA4(data.google_analytics.measurementId);
-    if (data.tiktok?.enabled && data.tiktok.pixelId) injectTikTok(data.tiktok.pixelId);
-    if (data.gtm?.enabled && data.gtm.containerId) injectGTM(data.gtm.containerId);
-    if (data.custom?.enabled && data.custom.script) injectCustomScript(data.custom.script);
-  }, [data]);
+    if (!data || !hasConsented) return;
+    if (preferences.marketing && data.meta?.enabled && data.meta.pixelId) injectMetaPixel(data.meta.pixelId);
+    if (preferences.analytics && data.google_analytics?.enabled && data.google_analytics.measurementId) injectGA4(data.google_analytics.measurementId);
+    if (preferences.marketing && data.tiktok?.enabled && data.tiktok.pixelId) injectTikTok(data.tiktok.pixelId);
+    if (preferences.analytics && data.gtm?.enabled && data.gtm.containerId) injectGTM(data.gtm.containerId);
+    if (preferences.marketing && data.custom?.enabled && data.custom.script) injectCustomScript(data.custom.script);
+  }, [data, hasConsented, preferences.analytics, preferences.marketing]);
 
   useEffect(() => {
-    if (!data) return;
-    if (data.meta?.enabled && data.meta.pixelId && data.meta.events?.pageView && window.fbq) {
+    if (!data || !hasConsented) return;
+    if (preferences.marketing && data.meta?.enabled && data.meta.pixelId && data.meta.events?.pageView && window.fbq) {
       window.fbq('track', 'PageView');
     }
-    if (data.google_analytics?.enabled && data.google_analytics.measurementId && data.google_analytics.events?.page_view && window.gtag) {
+    if (preferences.analytics && data.google_analytics?.enabled && data.google_analytics.measurementId && data.google_analytics.events?.page_view && window.gtag) {
       window.gtag('event', 'page_view', { page_path: location.pathname });
     }
-    if (data.tiktok?.enabled && data.tiktok.pixelId && data.tiktok.events?.PageVisit && window.ttq) {
+    if (preferences.marketing && data.tiktok?.enabled && data.tiktok.pixelId && data.tiktok.events?.PageVisit && window.ttq) {
       window.ttq.page();
     }
-  }, [location.pathname, data]);
+  }, [location.pathname, data, hasConsented, preferences.analytics, preferences.marketing]);
 
   return <>{children}</>;
 }
