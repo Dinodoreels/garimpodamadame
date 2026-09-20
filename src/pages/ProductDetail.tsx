@@ -1,4 +1,4 @@
-import { useState, useMemo, useRef } from 'react';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { BuyNowModal } from '@/components/cart/BuyNowModal';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { ChevronLeft, Minus, Plus, ShoppingCart, Check, X, Heart, Loader2, Zap } from 'lucide-react';
@@ -20,6 +20,7 @@ import { ProductSection } from '@/components/home/ProductSection';
 import { ProductShippingEstimate } from '@/components/product/ProductShippingEstimate';
 import { useProductCategories } from '@/hooks/useProductCategories';
 import { getDaysToExpiry, getExpiryStatus, formatDateBR } from '@/lib/expiry';
+import { applySeoMetadata } from '@/components/seo/RouteSeo';
 
 export default function ProductDetail() {
   const { handle } = useParams<{ handle: string }>();
@@ -59,6 +60,49 @@ export default function ProductDetail() {
   const { data: allProducts, isLoading: productsLoading } = useProducts(12);
 
   const productIsFavorite = product ? isFavorite(product.id) : false;
+
+  useEffect(() => {
+    if (!product) return;
+    const description = product.description?.trim().slice(0, 160) || `Conheça ${product.title} no O Garimpo Digital.`;
+    applySeoMetadata(
+      `${product.title} | O Garimpo Digital`,
+      description,
+      `/product/${product.handle}`,
+      product.images?.[0]?.url,
+    );
+
+    const variants = product.variants || [];
+    const prices = variants.map(variant => Number(variant.price)).filter(Number.isFinite);
+    const price = prices.length > 0 ? Math.min(...prices) : Number(product.price);
+    const available = variants.some(variant => variant.inventory_quantity > 0 || variant.inventory_policy === 'continue');
+    const structuredData = {
+      '@context': 'https://schema.org',
+      '@type': 'Product',
+      name: product.title,
+      image: (product.images || []).map(image => image.url),
+      description,
+      sku: variants.find(variant => variant.sku)?.sku || undefined,
+      brand: product.vendor ? { '@type': 'Brand', name: product.vendor } : undefined,
+      offers: {
+        '@type': 'Offer',
+        url: `https://ogarimpodigital.com.br/product/${product.handle}`,
+        priceCurrency: 'BRL',
+        price: price.toFixed(2),
+        availability: available ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+        itemCondition: 'https://schema.org/NewCondition',
+      },
+    };
+    let script = document.head.querySelector<HTMLScriptElement>("script[data-seo='product']");
+    if (!script) {
+      script = document.createElement('script');
+      script.type = 'application/ld+json';
+      script.dataset.seo = 'product';
+      document.head.appendChild(script);
+    }
+    script.textContent = JSON.stringify(structuredData);
+
+    return () => script?.remove();
+  }, [product]);
 
   // Initialize selected options when product loads
   useMemo(() => {
@@ -248,9 +292,9 @@ export default function ProductDetail() {
                 
                 {/* Gradient overlay with title/price on mobile */}
                 <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent p-4 pb-5 md:hidden">
-                  <h1 className="font-display text-base font-bold text-white leading-tight line-clamp-2 mb-0.5">
+                  <div className="font-display text-base font-bold text-white leading-tight line-clamp-2 mb-0.5">
                     {product.title}
-                  </h1>
+                  </div>
                   <span className="text-lg font-bold text-gold">
                     {selectedVariant && formatPrice(selectedVariant.price)}
                   </span>
@@ -421,6 +465,7 @@ export default function ProductDetail() {
                     size="icon"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                     disabled={quantity <= 1}
+                    aria-label="Diminuir quantidade"
                   >
                     <Minus className="h-4 w-4" />
                   </Button>
@@ -429,6 +474,7 @@ export default function ProductDetail() {
                     variant="outline"
                     size="icon"
                     onClick={() => setQuantity(quantity + 1)}
+                    aria-label="Aumentar quantidade"
                   >
                     <Plus className="h-4 w-4" />
                   </Button>

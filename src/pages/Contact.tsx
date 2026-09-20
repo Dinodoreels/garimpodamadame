@@ -31,10 +31,10 @@ function StaticContactPage() {
   const theme = useCMSThemeContext();
   const social = (theme?.social as Record<string, string>) || {};
   const { data: intConfig } = useIntegrations();
-  const whatsappNumber = intConfig?.contact_phone || social.whatsapp || '5511999999999';
-  const emailContact = intConfig?.contact_email || social.email || 'atendimento@principeimports.com.br';
-  const addressText = social.address || 'Envio a partir de São Paulo - SP';
-  const hoursText = social.hours || 'De segunda a sábado, das 9h às 18h';
+  const whatsappNumber = intConfig?.contact_phone || social.whatsapp || '';
+  const emailContact = intConfig?.contact_email || social.email || '';
+  const addressText = social.address || '';
+  const hoursText = social.hours || '';
 
   const { data: content } = useSiteContent<ContactContent>('contact_content');
 
@@ -50,7 +50,7 @@ function StaticContactPage() {
     { icon: MapPin, label: 'Endereço', value: addressText },
     { icon: Clock, label: 'Suporte de Pedidos', value: hoursText },
     { icon: Mail, label: 'E-mail de Suporte', value: emailContact },
-  ];
+  ].filter(item => item.value);
 
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -108,7 +108,7 @@ function StaticContactPage() {
               </Card>
 
               <div className="space-y-8">
-                <Card className="bg-primary text-primary-foreground border-0">
+                {whatsappNumber && <Card className="bg-primary text-primary-foreground border-0">
                   <CardContent className="pt-6">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="w-12 h-12 rounded-full bg-emerald-500 flex items-center justify-center"><MessageCircle className="h-6 w-6 text-white" /></div>
@@ -122,9 +122,9 @@ function StaticContactPage() {
                       <Button className="w-full bg-emerald-500 hover:bg-emerald-600 text-white"><Phone className="h-4 w-4 mr-2" />Chamar no WhatsApp</Button>
                     </a>
                   </CardContent>
-                </Card>
+                </Card>}
 
-                <Card className="border-border">
+                {infoItems.length > 0 && <Card className="border-border">
                   <CardContent className="pt-6">
                     <h3 className="font-semibold text-lg mb-6">{info_title}</h3>
                     <div className="space-y-4">
@@ -136,7 +136,7 @@ function StaticContactPage() {
                       ))}
                     </div>
                   </CardContent>
-                </Card>
+                </Card>}
               </div>
             </div>
           </div>

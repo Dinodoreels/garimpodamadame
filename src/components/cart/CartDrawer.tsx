@@ -229,6 +229,7 @@ export function CartDrawer() {
         <Button 
           variant="ghost" 
           size="icon" 
+          aria-label={`Abrir carrinho com ${totalItems} ${totalItems === 1 ? 'item' : 'itens'}`}
           className="relative min-w-[44px] min-h-[44px] hover:bg-transparent hover:scale-105 transition-transform"
           data-cart-trigger
         >

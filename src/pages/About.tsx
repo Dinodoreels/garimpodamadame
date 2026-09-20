@@ -34,10 +34,10 @@ function StaticAboutPage() {
   const { data: content } = useSiteContent<AboutContent>('about_content');
 
   const hero_title = content?.hero_title || 'Não vendemos roupa. Entregamos presença.';
-  const hero_subtitle = content?.hero_subtitle || 'Conheça a história por trás da Vanguard Store e nossa missão de levar o melhor do mundo até você.';
+  const hero_subtitle = content?.hero_subtitle || 'Conheça a história por trás do O Garimpo Digital e nossa missão de oferecer uma seleção cuidadosa de produtos.';
   const story_title = content?.story_title || 'De onde viemos';
   const story_paragraphs = content?.story_paragraphs || [
-    'A VANGUARD STORE nasceu com um propósito claro: entregar produtos importados de primeira linha com estilo e procedência — sem burocracia, sem complicação.',
+    'O Garimpo Digital nasceu com um propósito claro: oferecer produtos selecionados com cuidado, procedência e uma experiência de compra simples.',
     'Começamos pequeno, atendendo amigos próximos e familiares que queriam acesso ao que há de melhor no mercado internacional. O boca a boca fez o resto. Hoje, somos referência para quem busca qualidade, autenticidade e atendimento diferenciado.',
     'Cada peça que entra no nosso catálogo passa por uma curadoria rigorosa. Não trabalhamos com quantidade — trabalhamos com confiança.',
   ];
