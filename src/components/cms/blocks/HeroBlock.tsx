@@ -42,9 +42,9 @@
          settings.text_align === 'right' && "items-end text-right",
          settings.text_align === 'left' && "items-start text-left",
        )}>
-         <h1 className="font-display text-4xl lg:text-6xl text-white mb-4">
+          <h2 className="font-display text-4xl lg:text-6xl text-white mb-4">
            {content.title}
-         </h1>
+          </h2>
          {content.subtitle && (
            <p className="text-lg text-white/70 mb-8 max-w-xl">
              {content.subtitle}

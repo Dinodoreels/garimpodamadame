@@ -14,20 +14,20 @@ export function Footer() {
    const { data: intConfig } = useIntegrations();
    
    // Use theme values or defaults — integrations config takes priority
-   const siteName = intConfig?.store_name || theme?.name || 'Vanguard Store';
-   const whatsappNumber = intConfig?.contact_phone || (theme?.social as Record<string, string>)?.whatsapp || '5511999999999';
-   const instagramHandle = (theme?.social as Record<string, string>)?.instagram || '@vanguardstore';
+   const siteName = intConfig?.store_name || theme?.name || 'O Garimpo Digital';
+   const whatsappNumber = intConfig?.contact_phone || (theme?.social as Record<string, string>)?.whatsapp || '';
+   const instagramHandle = (theme?.social as Record<string, string>)?.instagram || '';
    const logoUrl = theme?.logo_url || logo;
    
    // Dynamic texts
    const texts = ((theme as unknown as Record<string, unknown>)?.texts || {}) as Record<string, string>;
-   const tagline = texts.footer_tagline || 'Exclusividade que se veste.';
-   const description = texts.footer_description || 'Produtos importados premium com qualidade e atendimento personalizado.';
+   const tagline = texts.footer_tagline || 'Achados especiais para você.';
+   const description = texts.footer_description || 'Produtos selecionados com cuidado e atendimento personalizado.';
    const newsletterTitle = texts.footer_newsletter_title || 'Fique por dentro';
    const newsletterSubtitle = texts.footer_newsletter_subtitle || 'Receba novidades e ofertas exclusivas em primeira mão.';
-   const contactEmail = intConfig?.contact_email || (theme?.social as Record<string, string>)?.email || texts.footer_email || 'contato@vanguardstore.com';
+   const contactEmail = intConfig?.contact_email || (theme?.social as Record<string, string>)?.email || texts.footer_email || '';
    const security1 = texts.footer_security_1 || 'Site 100% Seguro';
-   const security2 = texts.footer_security_2 || 'Pix, Cartão e Boleto';
+   const security2 = texts.footer_security_2 || 'Pix, crédito e débito';
    const security3 = texts.footer_security_3 || 'Entrega para todo Brasil';
 
   const handleNewsletterSubmit = (e: React.FormEvent) => {
@@ -87,22 +87,22 @@ export function Footer() {
             </p>
             {/* Social Icons */}
             <div className="flex items-center gap-3 pt-2">
-              <a 
+              {instagramHandle && <a 
                href={`https://instagram.com/${instagramHandle.replace('@', '')}`}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-2.5 rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-all hover:scale-110 min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
                 <Instagram className="h-5 w-5" />
-              </a>
-              <a 
+              </a>}
+              {whatsappNumber && <a 
                href={`https://wa.me/${whatsappNumber}`}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="p-2.5 rounded-full bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-all hover:scale-110 min-w-[44px] min-h-[44px] flex items-center justify-center"
               >
                 <Phone className="h-5 w-5" />
-              </a>
+              </a>}
             </div>
           </div>
 
@@ -166,22 +166,22 @@ export function Footer() {
           <div>
             <h3 className="font-display text-lg font-semibold mb-4">Contato</h3>
             <ul className="space-y-3">
-              <li className="flex items-center gap-3 text-sm text-muted-foreground min-h-[44px]">
+              {whatsappNumber && <li className="flex items-center gap-3 text-sm text-muted-foreground min-h-[44px]">
                 <Phone className="h-4 w-4 text-chrome flex-shrink-0" />
                <a href={`https://wa.me/${whatsappNumber}`} target="_blank" rel="noopener noreferrer" className="hover:text-chrome transition-colors">
                  +{whatsappNumber.slice(0,2)} {whatsappNumber.slice(2,4)} {whatsappNumber.slice(4,9)}-{whatsappNumber.slice(9)}
                 </a>
-              </li>
-              <li className="flex items-center gap-3 text-sm text-muted-foreground min-h-[44px]">
+              </li>}
+              {contactEmail && <li className="flex items-center gap-3 text-sm text-muted-foreground min-h-[44px]">
                 <Mail className="h-4 w-4 text-chrome flex-shrink-0" />
                 <span>{contactEmail}</span>
-              </li>
-              <li className="flex items-center gap-3 text-sm text-muted-foreground min-h-[44px]">
+              </li>}
+              {instagramHandle && <li className="flex items-center gap-3 text-sm text-muted-foreground min-h-[44px]">
                 <Instagram className="h-4 w-4 text-chrome flex-shrink-0" />
                <a href={`https://instagram.com/${instagramHandle.replace('@', '')}`} target="_blank" rel="noopener noreferrer" className="hover:text-chrome transition-colors">
                  {instagramHandle}
                 </a>
-              </li>
+              </li>}
             </ul>
           </div>
 

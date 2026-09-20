@@ -102,6 +102,7 @@ export function Header() {
               <div className="border-t border-border pt-8 mt-4">
                 <button
                   onClick={toggleColorMode}
+                  aria-label="Alternar modo de cores"
                   className="flex items-center gap-3 py-4 text-sm tracking-wide hover:opacity-60 min-h-[44px] w-full text-left"
                 >
                   {colorMode === 'dark' ? <Sun className="h-4 w-4" strokeWidth={1.5} /> : <Moon className="h-4 w-4" strokeWidth={1.5} />}
