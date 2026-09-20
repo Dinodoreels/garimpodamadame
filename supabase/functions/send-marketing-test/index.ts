@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getEmailBranding } from '../_shared/email-branding.ts'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,48 +16,25 @@ Deno.serve(async (req) => {
     const { data: { user } } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''))
     if (!user) return json({ ok: false, error: 'Não autorizado' }, 401)
 
+    const { data: roles } = await supabase.from('user_roles').select('role').eq('user_id', user.id)
+    if (!(roles || []).some((role: { role: string }) => role.role === 'admin')) {
+      return json({ ok: false, error: 'Sem permissão' }, 403)
+    }
+
     const { html, subject, toEmail } = await req.json()
     const recipient = toEmail || user.email
     if (!recipient) return json({ ok: false, error: 'Sem destinatário' }, 400)
 
-    // Load integrations email config
-    const { data: settings } = await supabase.from('site_settings').select('value').eq('key', 'integrations').maybeSingle()
-    const config = (settings?.value as any)?.email
-    if (!config?.active_provider) return json({ ok: false, error: 'Configure um provedor de email em Integrações' })
-
-    const fromEmail = config.from_email || 'noreply@example.com'
-    const fromName = config.from_name || 'Loja'
-    const finalHtml = String(html || '').replace(/{{unsubscribe_url}}/g, '#')
-
-    if (config.active_provider === 'resend') {
-      const apiKey = config.resend?.api_key
-      if (!apiKey) return json({ ok: false, error: 'API Key Resend ausente' })
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({ from: `${fromName} <${fromEmail}>`, to: [recipient], subject: subject || '(sem assunto)', html: finalHtml }),
-      })
-      const r = await res.json()
-      if (!res.ok) return json({ ok: false, error: r.message || JSON.stringify(r) })
-      return json({ ok: true })
-    }
-    if (config.active_provider === 'sendgrid') {
-      const apiKey = config.sendgrid?.api_key
-      if (!apiKey) return json({ ok: false, error: 'API Key SendGrid ausente' })
-      const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        body: JSON.stringify({
-          personalizations: [{ to: [{ email: recipient }] }],
-          from: { email: fromEmail, name: fromName },
-          subject: subject || '(sem assunto)',
-          content: [{ type: 'text/html', value: finalHtml }],
-        }),
-      })
-      if (!res.ok) return json({ ok: false, error: await res.text() })
-      return json({ ok: true })
-    }
-    return json({ ok: false, error: 'Provedor não suportado para envio (use Resend ou SendGrid)' })
+    const branding = await getEmailBranding(supabase)
+    const result = await sendTemplateEmail('marketing-message', recipient, {
+      idempotencyKey: `marketing-test-${user.id}-${Date.now()}`,
+      templateData: {
+        subject: subject || 'Novidades — O Garimpo Digital',
+        html: String(html || '').replace(/{{unsubscribe_url}}/g, '#'),
+        branding,
+      },
+    })
+    return json({ ok: result.sent, reason: result.sent ? undefined : result.reason })
   } catch (e) {
     return json({ ok: false, error: String(e) }, 500)
   }
