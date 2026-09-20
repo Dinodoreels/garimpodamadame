@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { getEmailBranding, type EmailBranding } from '../_shared/email-branding.ts'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -220,36 +221,23 @@ Deno.serve(async (req) => {
     }
 
     // Send via Email
-    if (config && customerEmail) {
-      const emailCfg = config.email || {}
-      const emailProvider = emailCfg.active_provider
-      const fromEmail = emailCfg.from_email || emailCfg.smtp?.user || 'noreply@example.com'
-      const fromName = emailCfg.from_name || storeName
-      const subject = `Comprovante de Compra - Pedido #${order.order_number}`
-
+    if (customerEmail) {
       try {
-        if (emailProvider === 'resend' && emailCfg.resend?.api_key) {
-          const res = await fetch('https://api.resend.com/emails', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${emailCfg.resend.api_key}` },
-            body: JSON.stringify({ from: `${fromName} <${fromEmail}>`, to: [customerEmail], subject, html: htmlReceipt }),
-          })
-          results.push(`Email(resend):${res.status}`)
-        } else if (emailProvider === 'sendgrid' && emailCfg.sendgrid?.api_key) {
-          const res = await fetch('https://api.sendgrid.com/v3/mail/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${emailCfg.sendgrid.api_key}` },
-            body: JSON.stringify({
-              personalizations: [{ to: [{ email: customerEmail }] }],
-              from: { email: fromEmail, name: fromName },
-              subject,
-              content: [{ type: 'text/html', value: htmlReceipt }],
-            }),
-          })
-          results.push(`Email(sendgrid):${res.status}`)
-        } else {
-          results.push('Email:no_provider')
-        }
+        const emailResult = await sendTemplateEmail('customer-notification', customerEmail, {
+          idempotencyKey: `purchase-receipt-${order.id}`,
+          templateData: {
+            subject: `Comprovante de compra — Pedido #${order.order_number}`,
+            title: 'Comprovante de compra',
+            subtitle: `Pedido #${order.order_number}`,
+            bodyText: textReceipt.replace(/[*📄🏪🙏]/g, '').trim(),
+            ctaLabel: 'Acompanhar pedido',
+            ctaUrl: `${branding.siteUrl}/rastreio/${order.order_number}`,
+            preheader: `Comprovante do pedido #${order.order_number}`,
+            branding,
+            showCampaignCoupon: false,
+          },
+        })
+        results.push(`Email:${emailResult.sent ? 'sent' : emailResult.reason}`)
       } catch (e) {
         console.error('Email error:', e)
         results.push('Email:error')
