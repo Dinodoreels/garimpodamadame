@@ -59,9 +59,10 @@ Deno.serve(async (req) => {
         JSON.stringify({ 
           success: false, 
           error: 'Token não configurado',
-          detail: 'Nenhum Access Token foi encontrado. Configure o segredo MERCADOPAGO_ACCESS_TOKEN no backend.'
+          detail: 'Cadastre o Access Token de produção do Mercado Pago no cofre seguro e teste novamente.'
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        // Missing configuration is an expected admin state, not a function failure.
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 

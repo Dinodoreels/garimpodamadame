@@ -189,7 +189,17 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
       });
 
       if (error) {
-        toast({ variant: 'destructive', title: 'Erro ao testar', description: 'Não foi possível conectar ao servidor de validação.' });
+        let description = 'Não foi possível conectar ao servidor de validação.';
+        try {
+          const response = (error as { context?: Response }).context;
+          if (response) {
+            const payload = await response.clone().json();
+            description = payload.detail || payload.error || description;
+          }
+        } catch {
+          // Keep the safe fallback when the server did not return JSON.
+        }
+        toast({ variant: 'destructive', title: 'Erro ao testar', description });
         return;
       }
 
