@@ -14,7 +14,8 @@ interface MarketplaceLabelSectionProps {
 export function MarketplaceLabelSection({ orderId, source, label: initialLabel }: MarketplaceLabelSectionProps) {
   const [label, setLabel] = useState<any>(initialLabel ?? null);
   const [loading, setLoading] = useState(false);
-  const isMarketplace = String(source ?? '').startsWith('bling:');
+  const normalizedSource = String(source ?? '').toLowerCase();
+  const isMarketplace = normalizedSource.startsWith('bling:') || normalizedSource.includes('tiktok');
 
   const load = useCallback(async (showToast = false) => {
     if (!isMarketplace) return;
@@ -43,7 +44,13 @@ export function MarketplaceLabelSection({ orderId, source, label: initialLabel }
 
   const print = async () => {
     if (!label?.label_url) return;
-    window.open(label.label_url, '_blank', 'noopener,noreferrer');
+    const target = window.open('', '_blank');
+    if (!target) {
+      toast.error('O navegador bloqueou a impressão. Permita novas abas para este site.');
+      return;
+    }
+    target.opener = null;
+    target.location.href = label.label_url;
     await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'mark_printed', order_ids: [orderId] } });
     setLabel((current: any) => ({ ...current, printed_at: new Date().toISOString() }));
   };

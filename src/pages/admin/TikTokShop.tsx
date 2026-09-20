@@ -87,10 +87,11 @@ export default function TikTokShop() {
       return;
     }
     setSaving(true);
-    const { error } = await supabase
-      .from('tiktok_shop_config')
-      .update({ app_key: appKey.trim(), app_secret: appSecret.trim() })
-      .eq('id', config!.id);
+    const values = { app_key: appKey.trim(), app_secret: appSecret.trim() };
+    const result = config
+      ? await supabase.from('tiktok_shop_config').update(values).eq('id', config.id)
+      : await supabase.from('tiktok_shop_config').insert(values);
+    const { error } = result;
     setSaving(false);
     if (error) {
       toast({ title: 'Erro ao salvar', description: error.message, variant: 'destructive' });
