@@ -159,6 +159,8 @@ Deno.serve(async (req) => {
     }
 
     let options: ShippingOption[] = [];
+    let providerError: string | null = null;
+    let reconnectRequired = false;
 
     // ── Route to active provider ──
     if (activeProvider === 'melhor_envio') {
@@ -171,10 +173,11 @@ Deno.serve(async (req) => {
         );
       } catch (e) {
         console.error('Melhor Envio API error:', e);
-        return new Response(JSON.stringify({ error: 'A cotação do Melhor Envio está temporariamente indisponível. Tente novamente.' }), {
-          status: 503,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
+        const detail = e instanceof Error ? e.message : String(e);
+        reconnectRequired = detail.includes('Conecte sua conta') || detail.includes('Reconecte a conta');
+        providerError = reconnectRequired
+          ? 'Conecte novamente a conta do Melhor Envio nas configurações de frete.'
+          : 'A cotação do Melhor Envio está temporariamente indisponível. Tente novamente.';
       }
     } else if (activeProvider === 'correios' || !activeProvider) {
       // Use native Correios simulation
@@ -186,7 +189,7 @@ Deno.serve(async (req) => {
     }
 
     // Fallback to shipping_rates table
-    if (options.length === 0) {
+    if (options.length === 0 && !providerError) {
       options = await getFallbackRates(supabase, cleanZip);
     }
 
@@ -234,6 +237,8 @@ Deno.serve(async (req) => {
         amount_remaining: qualifiesForFreeShipping ? 0 : Math.max(0, (freeShippingConfig.min_value || 0) - subtotal),
       } : null,
       dropship_extra_days: has_dropship_items ? dropshipExtraDays : 0,
+      provider_error: providerError,
+      reconnect_required: reconnectRequired,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
