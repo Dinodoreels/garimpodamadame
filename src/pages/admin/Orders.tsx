@@ -159,15 +159,22 @@ export default function Orders() {
     }
     setPrintingLabels(true);
     try {
-      await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'sync', order_ids: orderIds } });
+      const { data: syncData, error: syncError } = await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'sync', order_ids: orderIds } });
+      if (syncError || syncData?.error) throw new Error(syncData?.error || syncError?.message);
       const { data, error } = await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'batch_pdf', order_ids: orderIds } });
       if (error || data?.error) throw new Error(data?.error || error?.message);
+      if (data?.pending && !data?.pdf_base64) {
+        toast.info(data.message || 'As plataformas ainda não liberaram as etiquetas');
+        return;
+      }
+      if (!data?.pdf_base64) throw new Error('O arquivo das etiquetas não foi recebido. Atualize e tente novamente.');
       const binary = atob(data.pdf_base64);
       const bytes = Uint8Array.from(binary, character => character.charCodeAt(0));
       const url = URL.createObjectURL(new Blob([bytes], { type: 'application/pdf' }));
       window.open(url, '_blank', 'noopener,noreferrer');
       window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-      if (data.failed?.length) toast.warning(`${data.failed.length} etiqueta(s) ainda não foram liberadas`);
+      const unavailableCount = (data.pending?.length ?? 0) + (data.failed?.length ?? 0);
+      if (unavailableCount) toast.warning(`${unavailableCount} etiqueta(s) ainda não foram liberadas`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Não foi possível preparar as etiquetas');
     } finally {

@@ -44,14 +44,15 @@ Deno.serve(async (req) => {
     if (action === 'batch_pdf') {
       const { data: labels, error } = await supa
         .from('marketplace_shipping_labels')
-        .select('order_id, label_url')
-        .in('order_id', orderIds)
-        .eq('status', 'ready');
+        .select('order_id, label_url, status')
+        .in('order_id', orderIds);
       if (error) throw error;
       const output = await PDFDocument.create();
       const included: string[] = [];
       const failed: string[] = [];
-      for (const label of labels ?? []) {
+      const readyLabels = (labels ?? []).filter((label) => label.status === 'ready' && label.label_url);
+      const pending = orderIds.filter((orderId) => !readyLabels.some((label) => label.order_id === orderId));
+      for (const label of readyLabels) {
         try {
           const response = await fetch(String(label.label_url));
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -63,12 +64,20 @@ Deno.serve(async (req) => {
           failed.push(label.order_id);
         }
       }
-      if (!included.length) return jsonResponse({ error: 'Nenhuma etiqueta em PDF está pronta para impressão.' }, 409);
+      if (!included.length) {
+        return jsonResponse({
+          ok: false,
+          pending: true,
+          message: 'As plataformas ainda não liberaram nenhuma etiqueta em PDF.',
+          awaiting_order_ids: pending,
+          failed,
+        });
+      }
       const bytes = await output.save();
       let binary = '';
       for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
       await supa.from('marketplace_shipping_labels').update({ printed_at: new Date().toISOString() }).in('order_id', included);
-      return jsonResponse({ pdf_base64: btoa(binary), included, failed });
+      return jsonResponse({ ok: true, pdf_base64: btoa(binary), included, pending, failed });
     }
 
     return jsonResponse({ error: 'Ação inválida.' }, 400);
