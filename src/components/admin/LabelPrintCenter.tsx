@@ -2,10 +2,12 @@ import { useMemo, useState } from 'react';
 import { CheckCircle2, ClipboardCheck, Clock3, FileText, Loader2, Package, Printer, Settings, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import type { AdminOrder } from '@/hooks/useAdminData';
 import { openPickingListPrint } from '@/lib/pickingListPrint';
 import { toast } from 'sonner';
+import { ManualTikTokLabelUpload } from './ManualTikTokLabelUpload';
 
 interface LabelPrintCenterProps {
   orders: AdminOrder[];
@@ -24,6 +26,8 @@ function closePrintWindow(target: Window | null) {
 export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
   const [open, setOpen] = useState(false);
   const [printing, setPrinting] = useState<'marketplace' | 'melhor-envio' | null>(null);
+  const [selectedTikTokOrderId, setSelectedTikTokOrderId] = useState('');
+  const [manualLabels, setManualLabels] = useState<Record<string, any>>({});
 
   const counts = useMemo(() => {
     const printableStatuses = new Set(['paid', 'processing', 'ready_to_ship']);
@@ -34,11 +38,17 @@ export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
     const melhorEnvio = orders.filter(order => order.source === 'website' && order.melhor_envio_shipment);
     return {
       marketplace,
-      marketplaceReady: marketplace.filter(order => order.marketplace_shipping_label?.status === 'ready' && order.marketplace_shipping_label?.label_url).length,
+      marketplaceReady: marketplace.filter(order => {
+        const label = manualLabels[order.id] ?? order.marketplace_shipping_label;
+        return label?.status === 'ready' && (label?.label_url || label?.storage_path);
+      }).length,
       melhorEnvio,
       melhorEnvioReady: melhorEnvio.filter(order => order.melhor_envio_shipment?.label_generated_at).length,
     };
-  }, [orders]);
+  }, [manualLabels, orders]);
+
+  const tikTokOrders = useMemo(() => counts.marketplace.filter(order => /tiktok/i.test(String(order.source ?? '') + String(order.bling_channel ?? ''))), [counts.marketplace]);
+  const selectedTikTokOrder = tikTokOrders.find(order => order.id === selectedTikTokOrderId) ?? null;
 
   const printMarketplace = async () => {
     const orderIds = counts.marketplace.map(order => order.id).slice(0, 50);
@@ -131,6 +141,36 @@ export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
               <Button variant="outline" className="w-full" asChild>
                 <a href="/admin/integrations/tiktok-shop"><Settings className="mr-2 h-4 w-4" />Conectar TikTok para buscar etiquetas</a>
               </Button>
+            )}
+            {!!tikTokOrders.length && (
+              <div className="space-y-3 border-t pt-4">
+                <div>
+                  <p className="text-sm font-medium">Enviar PDF oficial manualmente</p>
+                  <p className="text-xs text-muted-foreground">Baixe no TikTok Shop e escolha o pedido correto antes de enviar.</p>
+                </div>
+                <Select value={selectedTikTokOrderId} onValueChange={setSelectedTikTokOrderId}>
+                  <SelectTrigger aria-label="Selecionar pedido TikTok">
+                    <SelectValue placeholder="Selecione o pedido" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {tikTokOrders.map(order => (
+                      <SelectItem key={order.id} value={order.id}>
+                        {order.order_number} — {order.profile?.full_name || 'Cliente não informado'}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {selectedTikTokOrder && (
+                  <ManualTikTokLabelUpload
+                    orderId={selectedTikTokOrder.id}
+                    orderNumber={selectedTikTokOrder.order_number}
+                    source={selectedTikTokOrder.source}
+                    blingOrderId={selectedTikTokOrder.bling_order_number}
+                    label={manualLabels[selectedTikTokOrder.id] ?? selectedTikTokOrder.marketplace_shipping_label}
+                    onChanged={(label) => setManualLabels(current => ({ ...current, [selectedTikTokOrder.id]: label }))}
+                  />
+                )}
+              </div>
             )}
           </section>
 

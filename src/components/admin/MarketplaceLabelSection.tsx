@@ -4,18 +4,21 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ManualTikTokLabelUpload } from './ManualTikTokLabelUpload';
 
 interface MarketplaceLabelSectionProps {
   orderId: string;
+  orderNumber: string;
   source?: string | null;
   label?: any;
 }
 
-export function MarketplaceLabelSection({ orderId, source, label: initialLabel }: MarketplaceLabelSectionProps) {
+export function MarketplaceLabelSection({ orderId, orderNumber, source, label: initialLabel }: MarketplaceLabelSectionProps) {
   const [label, setLabel] = useState<any>(initialLabel ?? null);
   const [loading, setLoading] = useState(false);
   const normalizedSource = String(source ?? '').toLowerCase();
   const isMarketplace = normalizedSource.startsWith('bling:') || normalizedSource.includes('tiktok');
+  const isManual = label?.upload_source === 'manual_tiktok';
 
   const load = useCallback(async (showToast = false) => {
     if (!isMarketplace) return;
@@ -43,14 +46,24 @@ export function MarketplaceLabelSection({ orderId, source, label: initialLabel }
   if (!isMarketplace) return null;
 
   const print = async () => {
-    if (!label?.label_url) return;
+    if (!label?.label_url && !label?.storage_path) return;
     const target = window.open('', '_blank');
     if (!target) {
       toast.error('O navegador bloqueou a impressão. Permita novas abas para este site.');
       return;
     }
+    let url = label.label_url;
+    if (label.storage_path) {
+      const { data, error } = await supabase.storage.from('shipping-labels').createSignedUrl(label.storage_path, 300);
+      if (error || !data?.signedUrl) {
+        target.close();
+        toast.error('Não foi possível abrir o PDF enviado.');
+        return;
+      }
+      url = data.signedUrl;
+    }
     target.opener = null;
-    target.location.href = label.label_url;
+    target.location.href = url;
     await supabase.functions.invoke('bling-marketplace-labels', { body: { action: 'mark_printed', order_ids: [orderId] } });
     setLabel((current: any) => ({ ...current, printed_at: new Date().toISOString() }));
   };
@@ -73,16 +86,26 @@ export function MarketplaceLabelSection({ orderId, source, label: initialLabel }
         <span>Tentativas: <strong className="text-foreground">{label?.attempts || 0}</strong></span>
       </div>
       {(label?.provider_note || label?.last_error) && <p className="text-xs text-muted-foreground">{label.provider_note || label.last_error}</p>}
+      {isManual && label?.uploaded_at && <p className="text-xs text-muted-foreground">Enviada manualmente em {new Date(label.uploaded_at).toLocaleString('pt-BR')}.</p>}
       <p className="text-xs text-muted-foreground">Use o PDF original sem recortar, editar ou redimensionar. O tamanho correto é definido pela própria plataforma.</p>
       <div className="flex gap-2">
         <Button variant="outline" size="sm" onClick={() => void load(true)} disabled={loading}>
           <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           Atualizar
         </Button>
-        <Button size="sm" onClick={() => void print()} disabled={!label?.label_url}>
+        <Button size="sm" onClick={() => void print()} disabled={!label?.label_url && !label?.storage_path}>
           {label?.printed_at ? <ExternalLink className="mr-2 h-4 w-4" /> : <Printer className="mr-2 h-4 w-4" />}
           {label?.printed_at ? 'Abrir novamente' : 'Abrir e imprimir'}
         </Button>
+        <ManualTikTokLabelUpload
+          compact
+          orderId={orderId}
+          orderNumber={orderNumber}
+          source={source}
+          blingOrderId={label?.bling_order_id}
+          label={label}
+          onChanged={setLabel}
+        />
       </div>
     </div>
   );

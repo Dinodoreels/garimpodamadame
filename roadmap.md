@@ -185,3 +185,10 @@
 - [x] Atualizar a tela após a autorização e orientar a criação do aplicativo no Partner Center
 - [ ] Concluir a autorização com os códigos reais fornecidos pelo TikTok Shop
 - [ ] Validar a recuperação dos PDFs oficiais dos pedidos após a autorização
+
+# Envio manual de etiquetas TikTok
+
+- [x] Criar armazenamento privado para PDFs oficiais
+- [x] Permitir vincular, substituir e remover o PDF por pedido TikTok
+- [x] Usar os PDFs enviados na impressão individual e em massa
+- [x] Validar o fluxo visual e funcional no painel
