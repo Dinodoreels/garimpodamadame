@@ -26,7 +26,6 @@ import {
   Zap,
   ChevronRight,
   Calculator,
-  Mail,
   CalendarClock,
   Wallet,
   Truck,
@@ -141,7 +140,6 @@ const menuItems: MenuItem[] = [
   },
   { icon: StoreIcon, label: 'Lojas', path: '/admin/stores' },
   { icon: FileText, label: 'Conteúdo', path: '/admin/content' },
-  { icon: Mail, label: 'Email Marketing', path: '/admin/email-marketing' },
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
   { icon: Settings, label: 'Configurações', path: '/admin/settings' },
 ];
