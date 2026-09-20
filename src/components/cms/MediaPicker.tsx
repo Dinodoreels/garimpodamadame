@@ -49,9 +49,9 @@
      <div className="space-y-2">
        {value && (
          <div className="relative rounded-lg overflow-hidden bg-muted">
-            /\.(mp4|webm|mov)(\?|$)/i.test(value)
+            {/\.(mp4|webm|mov)(\?|$)/i.test(value)
               ? <video src={value} controls className="w-full h-32 object-cover" />
-              : <img src={value} alt="Preview" className="w-full h-32 object-cover" />
+               : <img src={value} alt="Preview" className="w-full h-32 object-cover" />}
          </div>
        )}
        

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UserPlus, Truck, Gift, Search, Edit2, Save, X, Loader2, Package, Settings as SettingsIcon, Plug, Bell, CheckCircle2, Settings2, Power, Sparkles, BarChart3, CreditCard, MessageSquare, FileCheck2, Megaphone } from 'lucide-react';
+import { UserPlus, Truck, Gift, Search, Edit2, Save, X, Loader2, Package, Settings as SettingsIcon, Plug, Bell, CheckCircle2, Settings2, Power, Sparkles, BarChart3, CreditCard, MessageSquare, FileCheck2, Megaphone, Send } from 'lucide-react';
 import { useIntegrations, useSaveIntegrations, type IntegrationsConfig } from '@/hooks/useIntegrations';
 import { PaymentTab } from '@/components/admin/integrations/PaymentTab';
 import { WhatsAppTab } from '@/components/admin/integrations/WhatsAppTab';
