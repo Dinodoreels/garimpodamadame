@@ -70,6 +70,8 @@ export interface ShippingCalcResponse {
     amount_remaining: number;
   } | null;
   dropship_extra_days: number;
+  provider_error?: string | null;
+  reconnect_required?: boolean;
 }
 
 export interface CalculateShippingOptions {
