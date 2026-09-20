@@ -27,7 +27,9 @@ function requiredEnv(name: string) {
   return value;
 }
 
-async function authorize(req: Request, db: ReturnType<typeof createClient>, campaignId?: string) {
+type DbClient = ReturnType<typeof createClient<any>>;
+
+async function authorize(req: Request, db: DbClient, campaignId?: string) {
   const authorization = req.headers.get("Authorization") ?? "";
   const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
   if (serviceKey && authorization === `Bearer ${serviceKey}`) return "system";
@@ -72,7 +74,7 @@ async function sendToGroup(provider: string, groupIdentifier: string, message: s
   throw new Error("O provedor escolhido não permite disparos para grupos neste sistema.");
 }
 
-async function renderCampaign(db: ReturnType<typeof createClient>, campaign: Record<string, unknown>) {
+async function renderCampaign(db: DbClient, campaign: Record<string, any>) {
   const [{ data: productLinks }, { data: coupon }] = await Promise.all([
     db.from("whatsapp_campaign_products").select("products(id,title,handle,status,is_available,price,product_images(url,position),product_variants(price,inventory_quantity,is_available))").eq("campaign_id", campaign.id),
     campaign.discount_code_id
@@ -106,7 +108,7 @@ async function renderCampaign(db: ReturnType<typeof createClient>, campaign: Rec
   return parts.filter(Boolean).join("\n\n");
 }
 
-async function processCampaign(db: ReturnType<typeof createClient>, campaignId: string, preview: boolean) {
+async function processCampaign(db: DbClient, campaignId: string, preview: boolean) {
   const { data: campaign, error } = await db.from("whatsapp_campaigns").select("*").eq("id", campaignId).single();
   if (error || !campaign) throw new Error("Campanha não encontrada.");
   const message = await renderCampaign(db, campaign);
