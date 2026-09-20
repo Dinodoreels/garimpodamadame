@@ -62,6 +62,7 @@
 - [x] Recarregar o perfil salvo antes de validar a compra e informar somente os campos realmente pendentes
 - [x] Restaurar os cadastros ausentes e garantir que os dados pessoais sejam realmente salvos
 - [x] Corrigir o avanço do PIX, enviar os dados reais do comprador e manter erros visíveis
+- [x] Levar o cliente ao catálogo após exibir a confirmação do pagamento
 
 # Etiquetas de marketplaces e cadastro automático
 
