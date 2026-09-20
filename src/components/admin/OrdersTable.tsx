@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Eye, ImageOff, MoreHorizontal } from 'lucide-react';
+import { CreditCard, Eye, ImageOff, MoreHorizontal, Tag } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -31,6 +31,24 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   delivered: { label: 'Entregue', className: 'bg-green-100 text-green-800 border-green-200' },
   cancelled: { label: 'Cancelado', className: 'bg-red-100 text-red-800 border-red-200' },
   payment_failed: { label: 'Pagamento Falhou', className: 'bg-red-100 text-red-800 border-red-200' },
+};
+
+const paymentLabels: Record<string, string> = {
+  pix: 'PIX',
+  credit_card: 'Crédito',
+  debit_card: 'Débito',
+  'tiktok shop': 'TikTok Shop',
+};
+
+const labelStatus = (order: AdminOrder) => {
+  const label = order.marketplace_shipping_label;
+  if (label?.printed_at) return 'Impressa';
+  if (label?.status === 'ready') return 'Pronta';
+  if (label?.status === 'error') return 'Erro';
+  if (String(order.source ?? '').startsWith('bling:')) return 'Aguardando';
+  if (order.melhor_envio_shipment?.printed_at) return 'Impressa';
+  if (order.melhor_envio_shipment?.label_url) return 'Pronta';
+  return 'Não gerada';
 };
 
 interface OrdersTableProps {
@@ -68,6 +86,8 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
               <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap hidden sm:table-cell">Cliente e produtos</TableHead>
               <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap hidden md:table-cell">Data</TableHead>
               <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap hidden lg:table-cell">Origem</TableHead>
+              <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap hidden xl:table-cell">Cobrança</TableHead>
+              <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap hidden xl:table-cell">Etiqueta</TableHead>
               <TableHead className="font-light text-xs tracking-[0.1em] uppercase whitespace-nowrap">Status</TableHead>
               <TableHead className="font-light text-xs tracking-[0.1em] uppercase text-right whitespace-nowrap">Total</TableHead>
               <TableHead className="w-[50px]"></TableHead>
@@ -101,6 +121,19 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
                            </div>
                          ))}
                        </div>
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{paymentLabels[order.payment_method || ''] || order.payment_method || 'Não informado'}</span>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">{order.paid_at ? 'Confirmada' : order.status === 'payment_failed' ? 'Falhou' : 'Pendente'}</span>
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell">
+                      <div className="flex items-center gap-1.5 text-xs">
+                        <Tag className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span>{labelStatus(order)}</span>
+                      </div>
                     </TableCell>
                     <TableCell className="font-light text-muted-foreground hidden md:table-cell whitespace-nowrap">
                       {format(new Date(order.created_at), "dd MMM yyyy", { locale: ptBR })}

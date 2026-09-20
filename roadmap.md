@@ -169,3 +169,10 @@
 
 - [x] Entregar o SQL da estrutura pública sem registros
 - [x] Orientar a exportação segura dos dados atuais pelo Lovable Cloud
+
+# Central de pedidos, cobranças e etiquetas
+
+- [x] Reunir cobrança, origem e situação da etiqueta por pedido
+- [x] Mostrar e abrir o PDF oficial sem alterar o arquivo
+- [x] Consultar automaticamente etiquetas pendentes e avisar quando forem liberadas
+- [ ] Publicar e validar a rotina automática no ambiente online
