@@ -5,16 +5,20 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 
 type Consent = { id: string; document_key: string; document_version: string; accepted_at: string; source: string };
+type CookieChoice = { id: string; policy_version: string; analytics: boolean; marketing: boolean; action: string; created_at: string };
 
 const labels: Record<string, string> = { terms: 'Termos de Uso', privacy: 'Política de Privacidade' };
 
 export function UserConsentHistory() {
   const [items, setItems] = useState<Consent[]>([]);
+  const [cookies, setCookies] = useState<CookieChoice[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    supabase.from('user_legal_consents').select('id, document_key, document_version, accepted_at, source').order('accepted_at', { ascending: false })
-      .then(({ data }) => { setItems(data ?? []); setLoading(false); });
+    Promise.all([
+      supabase.from('user_legal_consents').select('id, document_key, document_version, accepted_at, source').order('accepted_at', { ascending: false }),
+      supabase.from('cookie_consent_log').select('id, policy_version, analytics, marketing, action, created_at').order('created_at', { ascending: false }).limit(10),
+    ]).then(([legal, cookie]) => { setItems(legal.data ?? []); setCookies(cookie.data ?? []); setLoading(false); });
   }, []);
 
   return (
@@ -32,6 +36,7 @@ export function UserConsentHistory() {
             <time className="text-xs text-muted-foreground">{new Date(item.accepted_at).toLocaleString('pt-BR')}</time>
           </div>
         ))}
+        {cookies.length > 0 && <div className="border-t pt-3"><p className="mb-2 text-sm font-medium">Escolhas de cookies recentes</p>{cookies.map(item => <div key={item.id} className="mb-2 text-xs text-muted-foreground">{new Date(item.created_at).toLocaleString('pt-BR')} · versão {item.policy_version} · analytics {item.analytics ? 'sim' : 'não'} · marketing {item.marketing ? 'sim' : 'não'}</div>)}</div>}
         <div className="flex flex-wrap gap-2 pt-2">
           <Button asChild variant="outline" size="sm"><a href="/termos">Ver Termos</a></Button>
           <Button asChild variant="outline" size="sm"><a href="/privacidade">Ver Privacidade</a></Button>
