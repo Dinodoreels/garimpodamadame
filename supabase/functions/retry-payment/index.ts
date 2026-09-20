@@ -1,8 +1,18 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+function splitName(fullName?: string | null) {
+  const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean)
+  return {
+    name: parts[0] || undefined,
+    surname: parts.slice(1).join(' ') || undefined,
+  }
+}
+
+function normalizePhone(phone?: string | null) {
+  const digits = String(phone || '').replace(/\D/g, '').replace(/^55(?=\d{10,11}$)/, '')
+  if (digits.length < 10 || digits.length > 11) return undefined
+  return { area_code: digits.slice(0, 2), number: digits.slice(2) }
 }
 
 Deno.serve(async (req) => {
@@ -63,6 +73,12 @@ Deno.serve(async (req) => {
       )
     }
 
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, phone, cpf')
+      .eq('id', userId)
+      .maybeSingle()
+
     // Check if order is in a retryable state
     if (!['pending', 'payment_failed'].includes(order.status)) {
       return new Response(
@@ -101,7 +117,22 @@ Deno.serve(async (req) => {
       })
     }
 
-    const projectUrl = req.headers.get('origin') || 'https://storenatalhapardal.lovable.app'
+    const requestOrigin = req.headers.get('origin') || ''
+    const allowedOrigins = ['https://ogarimpodigital.com.br', 'https://www.ogarimpodigital.com.br', 'https://garimpodamadame.lovable.app']
+    const projectUrl = allowedOrigins.includes(requestOrigin) || requestOrigin.endsWith('.lovable.app') ? requestOrigin : 'https://ogarimpodigital.com.br'
+    const payerName = splitName(profile?.full_name)
+    const payerPhone = normalizePhone(profile?.phone)
+    const payerCpf = String(profile?.cpf || '').replace(/\D/g, '')
+    const shippingAddress = order.shipping_address && typeof order.shipping_address === 'object'
+      ? order.shipping_address as Record<string, unknown>
+      : undefined
+    const payerAddress = shippingAddress
+      ? {
+          zip_code: String(shippingAddress.zip_code || '').replace(/\D/g, ''),
+          street_name: String(shippingAddress.street || ''),
+          street_number: String(shippingAddress.number || ''),
+        }
+      : undefined
 
     const preference = {
       items: preferenceItems,
@@ -113,13 +144,21 @@ Deno.serve(async (req) => {
         pending: `${projectUrl}/checkout/pending?order=${order.order_number}`,
       },
       auto_return: 'approved',
-      statement_descriptor: 'VANGUARD STORE',
+      statement_descriptor: 'GARIMPO MADAME',
+      payment_methods: {
+        excluded_payment_methods: [],
+        excluded_payment_types: [{ id: 'ticket' }],
+        installments: 12,
+      },
       payer: {
         email: claimsData.user.email,
+        ...(payerName.name && { name: payerName.name }),
+        ...(payerName.surname && { surname: payerName.surname }),
+        ...(payerPhone && { phone: payerPhone }),
+        ...(payerCpf.length === 11 && { identification: { type: 'CPF', number: payerCpf } }),
+        ...(payerAddress && { address: payerAddress }),
       },
     }
-
-    console.log('Creating retry payment preference:', JSON.stringify(preference, null, 2))
 
     const mpResponse = await fetch('https://api.mercadopago.com/checkout/preferences', {
       method: 'POST',
@@ -148,6 +187,7 @@ Deno.serve(async (req) => {
       .from('orders')
       .update({ 
         shopify_checkout_id: mpData.id,
+        mercadopago_preference_id: mpData.id,
         payment_attempts: (order.payment_attempts || 0) + 1,
         updated_at: new Date().toISOString(),
       })

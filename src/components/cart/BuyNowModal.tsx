@@ -236,14 +236,14 @@ export function BuyNowModal({ open, onOpenChange, item }: BuyNowModalProps) {
     try {
       const checkoutUrl = await createDirectCheckout(item);
       if (checkoutUrl) {
-        const opened = window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
-        if (!opened) window.location.href = checkoutUrl;
-        onOpenChange(false);
+        window.location.assign(checkoutUrl);
       } else {
         toast.error('Erro ao processar compra');
       }
-    } catch {
-      toast.error('Erro ao finalizar compra');
+    } catch (error) {
+      toast.error('Erro ao finalizar compra', {
+        description: error instanceof Error ? error.message : 'Não foi possível abrir o pagamento.',
+      });
     } finally {
       setProcessing(false);
     }

@@ -35,7 +35,7 @@ export default function CheckoutPending() {
           )}
           
           <p className="text-sm text-muted-foreground mb-8">
-            Pagamentos via boleto ou PIX podem levar alguns minutos para serem confirmados.
+            Pagamentos via PIX costumam ser confirmados em poucos segundos.
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

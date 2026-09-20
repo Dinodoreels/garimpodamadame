@@ -53,7 +53,6 @@ export function CartDrawer() {
     updateQuantity, 
     removeItem, 
     createCheckout,
-    clearCart,
     clearActiveItems,
     removeKit,
     toggleSavedForLater,
@@ -110,19 +109,18 @@ export function CartDrawer() {
     try {
       const checkoutUrl = await createCheckout();
       if (checkoutUrl) {
-        clearCart();
-        const opened = window.open(checkoutUrl, '_blank', 'noopener,noreferrer');
-        if (!opened) {
-          window.location.href = checkoutUrl;
-        }
+        window.location.assign(checkoutUrl);
       } else {
         toast.error("Erro ao criar checkout", { position: "top-center" });
       }
     } catch (error) {
       console.error('Checkout failed:', error);
-      toast.error("Erro ao finalizar compra", { position: "top-center" });
+      toast.error("Erro ao finalizar compra", {
+        position: "top-center",
+        description: error instanceof Error ? error.message : "Não foi possível abrir o pagamento.",
+      });
     }
-  }, [createCheckout, clearCart]);
+  }, [createCheckout]);
 
   const handleCheckout = async () => {
     // Check if user is logged in
