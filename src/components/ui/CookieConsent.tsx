@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Cookie, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,15 @@ export function CookieConsent() {
   const [showSettings, setShowSettings] = useState(false);
   const [tempPreferences, setTempPreferences] = useState<CookiePreferences>(preferences);
 
-  if (!showBanner) return null;
+  useEffect(() => {
+    if (showBanner) setTempPreferences(preferences);
+  }, [showBanner, preferences]);
+
+  if (!showBanner) return (
+    <Button variant="outline" size="sm" className="fixed bottom-4 left-4 z-40 bg-background/95 shadow-sm" onClick={() => window.dispatchEvent(new Event('open-cookie-settings'))}>
+      <Cookie className="mr-2 h-4 w-4" /> Preferências de cookies
+    </Button>
+  );
 
   const handleSavePreferences = () => {
     savePreferences(tempPreferences);

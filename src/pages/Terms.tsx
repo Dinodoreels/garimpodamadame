@@ -1,35 +1,10 @@
 import { LegalPageLayout } from '@/components/legal/LegalPageLayout';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
-import { MobileBottomNav } from '@/components/layout/MobileBottomNav';
+import { DEFAULT_TERMS } from '@/lib/legalContent';
 
-function TermsFallback() {
-  return (
-    <>
-      <h1 className="text-3xl font-display font-bold mb-4">Termos de Uso e Condições Gerais</h1>
-      <p className="text-lg text-chrome font-medium mb-2">VANGUARD STORE</p>
-      <p className="text-sm text-muted-foreground mb-8">
-        Documento oficial – versão jurídica blindada<br />
-        Última atualização: 30/01/2026
-      </p>
-      <div className="prose prose-neutral max-w-none space-y-8">
-        <section>
-          <h2 className="text-xl font-semibold mb-4">1. Aceitação Integral e Natureza Contratual</h2>
-          <p className="text-muted-foreground leading-relaxed mb-4">
-            Ao acessar, navegar, cadastrar-se ou realizar qualquer compra no site Vanguard Store,
-            o usuário declara, de forma livre, consciente e inequívoca, que leu integralmente estes Termos de Uso,
-            compreendeu todas as cláusulas, concorda com todas as condições e possui capacidade civil plena para contratar.
-          </p>
-        </section>
-        <section>
-          <h2 className="text-xl font-semibold mb-4">2. Definições</h2>
-          <p className="text-muted-foreground leading-relaxed">
-            Para fins deste documento, Site refere-se à plataforma digital acessível por meio do domínio oficial da Vanguard Store.
-          </p>
-        </section>
-      </div>
-    </>
-  );
+function TermsFallback() { return <LegalFallback document={DEFAULT_TERMS} />; }
+
+function LegalFallback({ document }: { document: typeof DEFAULT_TERMS }) {
+  return <><h1 className="text-3xl font-display font-bold mb-4">{document.page_title}</h1><p className="text-lg font-medium mb-2">{document.subtitle}</p><p className="text-sm text-muted-foreground mb-4">Versão {document.version} · Vigência: {document.effective_at}</p><p className="mb-8 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">{document.review_notice}</p><div className="space-y-8">{document.sections.map(section => <section key={section.title}><h2 className="text-xl font-semibold mb-4">{section.title}</h2>{section.content.split('\n\n').map(paragraph => <p key={paragraph} className="text-muted-foreground leading-relaxed mb-4">{paragraph}</p>)}</section>)}</div></>;
 }
 
 export default function Terms() {

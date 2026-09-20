@@ -64,6 +64,13 @@
       "when": 1789840081197,
       "tag": "0008_add_idempotent_order_stock_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789882764572,
+      "tag": "0009_create_legal_documents_and_consent_audit",
+      "breakpoints": true
     }
   ]
 }
