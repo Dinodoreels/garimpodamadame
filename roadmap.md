@@ -191,4 +191,4 @@
 - [x] Criar armazenamento privado para PDFs oficiais
 - [x] Permitir vincular, substituir e remover o PDF por pedido TikTok
 - [x] Usar os PDFs enviados na impressão individual e em massa
-- [ ] Validar o fluxo visual e funcional no painel
+- [x] Validar o fluxo visual e funcional no painel

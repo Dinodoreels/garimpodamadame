@@ -3,6 +3,7 @@ import { FileUp, Loader2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useUserRole } from '@/hooks/useUserRole';
 
 const BUCKET = 'shipping-labels';
 const MAX_FILE_SIZE = 20 * 1024 * 1024;
@@ -26,12 +27,13 @@ export function ManualTikTokLabelUpload({
   onChanged,
   compact = false,
 }: ManualTikTokLabelUploadProps) {
+  const { isAdmin, loading: roleLoading } = useUserRole();
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const isTikTok = /tiktok/i.test(String(source ?? '') + String(label?.platform ?? ''));
   const isManual = label?.upload_source === 'manual_tiktok';
 
-  if (!isTikTok) return null;
+  if (!isTikTok || roleLoading || !isAdmin) return null;
 
   const upload = async (file?: File) => {
     if (!file) return;
