@@ -131,10 +131,20 @@ export const useCartStore = create<CartStore>()(
               i.variant.id === item.variant.id
                 ? { ...i, quantity: i.quantity + item.quantity }
                 : i
-            )
+            ),
+            shippingCost: 0,
+            shippingOption: null,
+            shippingService: null,
+            shippingEstimate: null,
           });
         } else {
-          set({ items: [...items, item] });
+          set({
+            items: [...items, item],
+            shippingCost: 0,
+            shippingOption: null,
+            shippingService: null,
+            shippingEstimate: null,
+          });
         }
       },
 
@@ -147,18 +157,32 @@ export const useCartStore = create<CartStore>()(
         set({
           items: get().items.map(item =>
             item.variant.id === variantId ? { ...item, quantity } : item
-          )
+          ),
+          shippingCost: 0,
+          shippingOption: null,
+          shippingService: null,
+          shippingEstimate: null,
         });
       },
 
       removeItem: (variantId) => {
         set({
-          items: get().items.filter(item => item.variant.id !== variantId)
+          items: get().items.filter(item => item.variant.id !== variantId),
+          shippingCost: 0,
+          shippingOption: null,
+          shippingService: null,
+          shippingEstimate: null,
         });
       },
 
       removeKit: (kitId) => {
-        set({ items: get().items.filter(item => item.kitId !== kitId) });
+        set({
+          items: get().items.filter(item => item.kitId !== kitId),
+          shippingCost: 0,
+          shippingOption: null,
+          shippingService: null,
+          shippingEstimate: null,
+        });
       },
 
       toggleSavedForLater: (variantId) => {

@@ -151,8 +151,9 @@ export function BuyNowModal({ open, onOpenChange, item, mode, whatsappNumber }: 
       } else {
         toast.error('Não foi possível calcular o frete');
       }
-    } catch {
-      toast.error('Erro ao calcular frete');
+    } catch (error) {
+      setShippingResult(null);
+      toast.error(error instanceof Error ? error.message : 'Erro ao calcular frete');
     } finally {
       setCalculating(false);
     }

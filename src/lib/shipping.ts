@@ -125,6 +125,10 @@ export async function calculateShipping(
   options?: CalculateShippingOptions
 ): Promise<ShippingResult | null> {
   const result = await calculateShippingOptions(zipCode, options);
+
+  if (result?.provider_error) {
+    throw new Error(result.provider_error);
+  }
   
   if (!result || !result.address) return null;
 
