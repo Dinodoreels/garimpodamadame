@@ -60,6 +60,7 @@
 # Fluxo de compra
 
 - [x] Recarregar o perfil salvo antes de validar a compra e informar somente os campos realmente pendentes
+- [x] Restaurar os cadastros ausentes e garantir que os dados pessoais sejam realmente salvos
 
 # Etiquetas de marketplaces e cadastro automático
 

@@ -40,9 +40,37 @@ export function useProfile() {
       console.error('Error fetching profile:', error);
       setLoading(false);
       return null;
-    } else {
-      setProfile(data);
     }
+
+    if (!data) {
+      const metadataName = typeof user.user_metadata?.full_name === 'string'
+        ? user.user_metadata.full_name.trim()
+        : '';
+      const metadataPhone = typeof user.user_metadata?.phone === 'string'
+        ? user.user_metadata.phone.trim()
+        : '';
+      const { data: createdProfile, error: createError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          full_name: metadataName && !metadataName.includes('@') ? metadataName : null,
+          phone: metadataPhone || null,
+        }, { onConflict: 'id' })
+        .select('*')
+        .single();
+
+      if (createError) {
+        console.error('Error creating profile:', createError);
+        setLoading(false);
+        return null;
+      }
+
+      setProfile(createdProfile);
+      setLoading(false);
+      return createdProfile;
+    }
+
+    setProfile(data);
     setLoading(false);
     return data;
   };
@@ -50,16 +78,18 @@ export function useProfile() {
   const updateProfile = async (updates: Partial<Omit<Profile, 'id' | 'created_at' | 'updated_at'>>) => {
     if (!user) return { error: new Error('Not authenticated') };
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from('profiles')
-      .update(updates)
-      .eq('id', user.id);
+      .upsert({ id: user.id, ...updates }, { onConflict: 'id' })
+      .select('*')
+      .single();
 
-    if (!error) {
-      await fetchProfile();
+    if (error) {
+      return { error };
     }
 
-    return { error };
+    setProfile(data);
+    return { error: null };
   };
 
   return {
