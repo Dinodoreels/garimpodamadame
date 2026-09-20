@@ -96,7 +96,7 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12 text-muted-foreground font-light">
+                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground font-light">
                   Nenhum pedido encontrado
                 </TableCell>
               </TableRow>
@@ -122,6 +122,9 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
                          ))}
                        </div>
                     </TableCell>
+                    <TableCell className="font-light text-muted-foreground hidden md:table-cell whitespace-nowrap">
+                      {format(new Date(order.created_at), "dd MMM yyyy", { locale: ptBR })}
+                    </TableCell>
                     <TableCell className="hidden xl:table-cell">
                       <div className="flex items-center gap-1.5 text-xs">
                         <CreditCard className="h-3.5 w-3.5 text-muted-foreground" />
@@ -134,9 +137,6 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
                         <Tag className="h-3.5 w-3.5 text-muted-foreground" />
                         <span>{labelStatus(order)}</span>
                       </div>
-                    </TableCell>
-                    <TableCell className="font-light text-muted-foreground hidden md:table-cell whitespace-nowrap">
-                      {format(new Date(order.created_at), "dd MMM yyyy", { locale: ptBR })}
                     </TableCell>
                     <TableCell className="hidden lg:table-cell">
                       <div className="flex flex-col gap-0.5">

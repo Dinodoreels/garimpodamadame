@@ -59,6 +59,8 @@ export default function Orders() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [vendorFilter, setVendorFilter] = useState<string>('all');
+  const [paymentFilter, setPaymentFilter] = useState<string>('all');
+  const [labelFilter, setLabelFilter] = useState<string>('all');
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
@@ -122,14 +124,26 @@ export default function Orders() {
       }
 
       const matchesVendor = vendorFilter === 'all' || order.created_by === vendorFilter;
+      const paymentState = order.paid_at ? 'paid' : order.status === 'payment_failed' ? 'failed' : 'pending';
+      const matchesPayment = paymentFilter === 'all' || paymentState === paymentFilter || order.payment_method === paymentFilter;
+      const marketplaceLabel = order.marketplace_shipping_label;
+      const shipment = order.melhor_envio_shipment;
+      const currentLabelState = marketplaceLabel?.printed_at || shipment?.printed_at
+        ? 'printed'
+        : marketplaceLabel?.status === 'ready' || shipment?.label_url
+          ? 'ready'
+          : marketplaceLabel?.status === 'error'
+            ? 'error'
+            : 'pending';
+      const matchesLabel = labelFilter === 'all' || currentLabelState === labelFilter;
 
       const orderDate = new Date(order.created_at);
       const matchesDateFrom = !dateFrom || orderDate >= new Date(dateFrom.setHours(0, 0, 0, 0));
       const matchesDateTo = !dateTo || orderDate <= new Date(new Date(dateTo).setHours(23, 59, 59, 999));
 
-      return matchesSearch && matchesStatus && matchesSource && matchesVendor && matchesDateFrom && matchesDateTo;
+      return matchesSearch && matchesStatus && matchesSource && matchesVendor && matchesPayment && matchesLabel && matchesDateFrom && matchesDateTo;
     });
-  }, [orders, search, statusFilter, sourceFilter, vendorFilter, dateFrom, dateTo]);
+  }, [orders, search, statusFilter, sourceFilter, vendorFilter, paymentFilter, labelFilter, dateFrom, dateTo]);
 
   const handleFilterChange = () => setCurrentPage(1);
 
@@ -144,12 +158,14 @@ export default function Orders() {
     setStatusFilter('all');
     setSourceFilter('all');
     setVendorFilter('all');
+    setPaymentFilter('all');
+    setLabelFilter('all');
     setDateFrom(undefined);
     setDateTo(undefined);
     setCurrentPage(1);
   };
 
-  const hasActiveFilters = search || statusFilter !== 'all' || sourceFilter !== 'all' || vendorFilter !== 'all' || dateFrom || dateTo;
+  const hasActiveFilters = search || statusFilter !== 'all' || sourceFilter !== 'all' || vendorFilter !== 'all' || paymentFilter !== 'all' || labelFilter !== 'all' || dateFrom || dateTo;
 
   const handlePrintMarketplaceLabels = async () => {
     const orderIds = filteredOrders.filter(order => String(order.source ?? '').startsWith('bling:')).map(order => order.id).slice(0, 20);
@@ -195,9 +211,9 @@ export default function Orders() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl md:text-2xl font-light tracking-wide">Pedidos</h1>
+          <h1 className="text-xl md:text-2xl font-light tracking-wide">Pedidos, cobranças e etiquetas</h1>
           <p className="text-sm text-muted-foreground font-light mt-1">
-            Gerencie todos os pedidos da loja
+            Acompanhe a venda, o pagamento e a postagem em um só lugar
           </p>
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
@@ -306,6 +322,30 @@ export default function Orders() {
             <SelectItem value="whatsapp">WhatsApp</SelectItem>
             <SelectItem value="store">Loja Física</SelectItem>
             <SelectItem value="vendedor">Vendedor</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={paymentFilter} onValueChange={(v) => { setPaymentFilter(v); handleFilterChange(); }}>
+          <SelectTrigger className="w-full sm:w-44 font-light"><SelectValue placeholder="Cobrança" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas cobranças</SelectItem>
+            <SelectItem value="paid">Confirmadas</SelectItem>
+            <SelectItem value="pending">Pendentes</SelectItem>
+            <SelectItem value="failed">Com falha</SelectItem>
+            <SelectItem value="pix">PIX</SelectItem>
+            <SelectItem value="credit_card">Crédito</SelectItem>
+            <SelectItem value="debit_card">Débito</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select value={labelFilter} onValueChange={(v) => { setLabelFilter(v); handleFilterChange(); }}>
+          <SelectTrigger className="w-full sm:w-44 font-light"><SelectValue placeholder="Etiqueta" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todas etiquetas</SelectItem>
+            <SelectItem value="pending">Aguardando</SelectItem>
+            <SelectItem value="ready">Prontas</SelectItem>
+            <SelectItem value="printed">Impressas</SelectItem>
+            <SelectItem value="error">Com erro</SelectItem>
           </SelectContent>
         </Select>
 
