@@ -82,9 +82,9 @@ export function HeroBannerCarousel() {
           <p className="text-xs tracking-[0.3em] text-white/70 mb-6 font-light">
             {heroBadge}
           </p>
-          <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl font-light leading-tight mb-6 text-white tracking-wide drop-shadow-lg">
+          <h2 className="font-display text-4xl sm:text-5xl lg:text-7xl font-light leading-tight mb-6 text-white tracking-wide drop-shadow-lg">
             {heroTitle}
-          </h1>
+          </h2>
           <p className="text-sm text-white/70 max-w-lg mb-10 font-light tracking-wide">
             {heroSubtitle}
           </p>
@@ -176,9 +176,9 @@ export function HeroBannerCarousel() {
               {/* Content */}
               <div className="container relative z-10 flex flex-col items-center justify-center text-center min-h-[70vh] lg:min-h-[85vh]">
                 {banner.title && (
-                  <h1 className="font-display text-4xl sm:text-5xl lg:text-7xl font-light leading-tight mb-6 text-white tracking-wide drop-shadow-lg">
+                  <h2 className="font-display text-4xl sm:text-5xl lg:text-7xl font-light leading-tight mb-6 text-white tracking-wide drop-shadow-lg">
                     {banner.title}
-                  </h1>
+                  </h2>
                 )}
                 
                 {banner.subtitle && (

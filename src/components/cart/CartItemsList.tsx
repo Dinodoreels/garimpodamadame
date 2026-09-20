@@ -55,7 +55,7 @@ export function CartItemsList({ items, formatPrice, onUpdateQty, onRemove, onRem
                 </div>
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive">
+                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" aria-label={`Remover kit ${kitItems[0].kitTitle || ''}`.trim()}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </AlertDialogTrigger>
@@ -184,6 +184,7 @@ function ItemRow({
             className="h-7 w-7"
             onClick={() => onToggleSaved(item.variant.id)}
             title={item.savedForLater ? 'Mover para o carrinho' : 'Salvar para depois'}
+            aria-label={item.savedForLater ? `Mover ${item.product.title} para o carrinho` : `Salvar ${item.product.title} para depois`}
           >
             {item.savedForLater ? <BookmarkCheck className="h-3.5 w-3.5 text-chrome" /> : <Bookmark className="h-3.5 w-3.5" />}
           </Button>
@@ -192,6 +193,7 @@ function ItemRow({
             size="icon"
             className="h-7 w-7 text-destructive hover:text-destructive"
             onClick={() => onRemove(item.variant.id)}
+            aria-label={`Remover ${item.product.title} do carrinho`}
           >
             <Trash2 className="h-3.5 w-3.5" />
           </Button>
@@ -199,11 +201,11 @@ function ItemRow({
 
         {!item.kitId && !item.savedForLater && (
           <div className="flex items-center gap-1">
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onUpdateQty(item.variant.id, item.quantity - 1)}>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onUpdateQty(item.variant.id, item.quantity - 1)} aria-label={`Diminuir quantidade de ${item.product.title}`}>
               <Minus className="h-3.5 w-3.5" />
             </Button>
             <span className="w-7 text-center text-sm font-medium">{item.quantity}</span>
-            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onUpdateQty(item.variant.id, item.quantity + 1)}>
+            <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => onUpdateQty(item.variant.id, item.quantity + 1)} aria-label={`Aumentar quantidade de ${item.product.title}`}>
               <Plus className="h-3.5 w-3.5" />
             </Button>
           </div>

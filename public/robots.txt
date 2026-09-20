@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://storenataliapardal.com/sitemap.xml
+Sitemap: https://ogarimpodigital.com.br/sitemap.xml
