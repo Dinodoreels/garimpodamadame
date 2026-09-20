@@ -148,3 +148,11 @@
 - [x] Exibir histórico próprio na conta e histórico geral para administradores
 - [x] Validar cadastro, login, nova versão e preferências
 - [ ] Corrigir todos os alertas atuais de SEO e validar novamente (site corrigido; Search Console aguarda conexão e publicação)
+
+# Campanhas WhatsApp
+
+- [ ] Cadastrar grupos reais com acesso administrativo
+- [ ] Criar campanhas com texto, link, mídia, produtos e cupons
+- [ ] Permitir prévia, envio imediato, agendamento e cancelamento
+- [ ] Registrar envio idempotente e histórico por grupo
+- [ ] Validar banco, função, painel e visualização responsiva
