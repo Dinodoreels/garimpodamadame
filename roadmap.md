@@ -151,8 +151,9 @@
 
 # Campanhas WhatsApp
 
-- [ ] Cadastrar grupos reais com acesso administrativo
-- [ ] Criar campanhas com texto, link, mídia, produtos e cupons
-- [ ] Permitir prévia, envio imediato, agendamento e cancelamento
-- [ ] Registrar envio idempotente e histórico por grupo
-- [ ] Validar banco, função, painel e visualização responsiva
+- [x] Cadastrar grupos reais com acesso administrativo
+- [x] Criar campanhas com texto, link, mídia, produtos e cupons
+- [x] Permitir prévia, envio imediato, agendamento e cancelamento
+- [x] Registrar envio idempotente e histórico por grupo
+- [x] Validar banco, função e painel com checagem TypeScript/Deno
+- [ ] Publicar as funções quando a autorização de deploy do Supabase estiver disponível
