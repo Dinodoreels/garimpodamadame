@@ -50,6 +50,7 @@
 
 - [x] Conectar o Melhor Envio somente às vendas do site, mantendo fretes de marketplaces separados e estoque compartilhado
 - [x] Cotação real e persistência da opção escolhida no pedido
+- [x] Limpar cotações antigas quando o cálculo falhar, mostrar o motivo real e bloquear a compra sem frete válido
 - [x] Preparar compra manual de etiqueta, impressão, rastreio e histórico somente para pedidos do site
 - [x] Criar retorno público, autorização segura e renovação automática da conexão
 - [x] Guardar o Client ID e Client Secret recebidos no cofre seguro

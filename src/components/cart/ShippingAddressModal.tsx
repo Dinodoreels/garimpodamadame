@@ -102,7 +102,8 @@ export function ShippingAddressModal({
       }
     } catch (error) {
       console.error('Shipping calculation error:', error);
-      toast.error('Erro ao calcular frete', { position: 'top-center' });
+      toast.error(error instanceof Error ? error.message : 'Erro ao calcular frete', { position: 'top-center' });
+      setShippingResult(null);
     } finally {
       setCalculating(false);
     }

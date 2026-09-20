@@ -9,6 +9,7 @@ import { useAddresses, type Address } from '@/hooks/useAddresses';
 import { useProducts, type Product } from '@/hooks/useProducts';
 import {
   calculateShippingOptions,
+  getShippingErrorMessage,
   type ShippingCalcResponse,
   type ShippingOption,
 } from '@/lib/shipping';
@@ -60,7 +61,7 @@ export function SimulateShippingTab() {
       if (data && data.options.length > 0) {
         setResult(data);
       } else {
-        setError('Não foi possível calcular o frete para este CEP/produto.');
+        setError(getShippingErrorMessage(data));
       }
     } catch {
       setError('Erro ao calcular frete.');

@@ -83,6 +83,12 @@ export interface CalculateShippingOptions {
   }>;
 }
 
+export function getShippingErrorMessage(result: ShippingCalcResponse | null): string {
+  if (result?.provider_error) return result.provider_error;
+  if (result?.address) return 'Não há opções de entrega disponíveis para este CEP.';
+  return 'CEP não encontrado ou não foi possível calcular o frete.';
+}
+
 // Calcular frete via edge function (múltiplas opções)
 export async function calculateShippingOptions(
   zipCode: string,
@@ -119,6 +125,10 @@ export async function calculateShipping(
   options?: CalculateShippingOptions
 ): Promise<ShippingResult | null> {
   const result = await calculateShippingOptions(zipCode, options);
+
+  if (result?.provider_error) {
+    throw new Error(result.provider_error);
+  }
   
   if (!result || !result.address) return null;
 

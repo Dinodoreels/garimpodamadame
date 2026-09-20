@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import {
   calculateShippingOptions,
   formatZipCode,
+  getShippingErrorMessage,
   type ShippingCalcResponse,
   type ShippingOption,
 } from '@/lib/shipping';
@@ -73,7 +74,7 @@ export function ProductShippingEstimate({
         setResponse(result);
         persistCep(formatZipCode(cleanZip));
       } else {
-        setError('CEP não encontrado ou sem opções de frete');
+        setError(getShippingErrorMessage(result));
         setResponse(null);
       }
     } catch {

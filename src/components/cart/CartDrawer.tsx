@@ -66,7 +66,10 @@ export function CartDrawer() {
     getDiscountedPrice,
     getGrandTotal,
     shippingCost,
+    shippingOption,
+    deliveryType,
     setShipping,
+    clearShipping,
     appliedDiscount,
     setDiscount,
     loyaltyPointsUsed,
@@ -158,8 +161,8 @@ export function CartDrawer() {
       return;
     }
 
-    // If shipping already calculated, proceed to checkout
-    if (shippingCost > 0 || qualifiesForFreeShipping) {
+    // Only proceed when pickup is selected or the current shipping quote is valid.
+    if (deliveryType === 'pickup' || shippingOption) {
       await processCheckout();
       return;
     }
@@ -169,10 +172,12 @@ export function CartDrawer() {
     
     if (defaultAddress) {
       setIsCalculatingAuto(true);
+      clearShipping();
       try {
         const result = await calculateShipping(defaultAddress.zip_code, {
           subtotal,
           hasDropshipItems: false, // Could be enhanced to check items
+          items: items.map(item => ({ product_id: item.product.id, quantity: item.quantity })),
         });
 
         if (result) {
@@ -403,7 +408,7 @@ export function CartDrawer() {
                     onClick={handleCheckout}
                     className="w-full h-14 sm:h-12 text-base sm:text-sm bg-chrome hover:bg-chrome-dark text-white touch-manipulation transition-all duration-300 hover:shadow-lg group" 
                     size="lg"
-                    disabled={items.length === 0 || isLoading || isCalculatingAuto}
+                    disabled={items.length === 0 || isLoading || isCalculatingAuto || (deliveryType === 'shipping' && !shippingOption)}
                   >
                     {isLoading || isCalculatingAuto ? (
                       <>

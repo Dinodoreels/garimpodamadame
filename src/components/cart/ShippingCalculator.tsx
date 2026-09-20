@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, MapPin, Truck, Check, Gift, Package } from 'lucide-react';
-import { calculateShippingOptions, formatZipCode, type ShippingOption, type ShippingCalcResponse } from '@/lib/shipping';
+import { calculateShippingOptions, formatZipCode, getShippingErrorMessage, type ShippingOption, type ShippingCalcResponse } from '@/lib/shipping';
 import { useCartStore } from '@/stores/cartStore';
 import { useAddresses } from '@/hooks/useAddresses';
 import { useAuth } from '@/hooks/useAuth';
@@ -76,6 +76,10 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
 
     setIsCalculating(true);
     setError(null);
+    clearShipping();
+    setShippingOptions([]);
+    setSelectedService(null);
+    setCalcResponse(null);
 
     try {
       const cartItems = items.map(i => ({
@@ -106,9 +110,11 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
           cheapest
         );
       } else {
-        setError('CEP não encontrado ou sem opções de frete');
+        setCalcResponse(result);
+        setError(getShippingErrorMessage(result));
       }
     } catch {
+      clearShipping();
       setError('Erro ao calcular frete');
     } finally {
       setIsCalculating(false);
@@ -159,7 +165,17 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
           const current = result.options.find(o => o.service_code === selectedService);
           if (current) {
             setShipping(current.cost, result.address?.state || '', result.address?.city || '', shippingZipCode, current.estimated_text, undefined, current.service, current);
+          } else {
+            const cheapest = result.options[0];
+            setSelectedService(cheapest.service_code);
+            setShipping(cheapest.cost, result.address?.state || '', result.address?.city || '', shippingZipCode, cheapest.estimated_text, undefined, cheapest.service, cheapest);
           }
+        } else {
+          clearShipping();
+          setShippingOptions([]);
+          setSelectedService(null);
+          setCalcResponse(result);
+          setError(getShippingErrorMessage(result));
         }
       });
     }
