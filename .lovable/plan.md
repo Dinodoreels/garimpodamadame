@@ -7,8 +7,10 @@ Aprimorar o painel administrativo atual para reunir pedidos, situação das cobr
 - Adicionar em cada pedido a forma e a situação do pagamento, valor pago e eventual falha registrada.
 - Mostrar a origem da venda e separar claramente etiquetas de marketplaces das etiquetas do Melhor Envio.
 - Exibir o status individual da etiqueta: aguardando liberação, pronta, impressa ou com erro.
+- Mostrar a plataforma, o formato recebido e uma prévia/abertura do PDF oficial sem alterar o arquivo.
 - Permitir filtrar pedidos por pagamento, origem e situação da etiqueta.
 - Manter o detalhe do pedido com ações próprias para atualizar, abrir ou imprimir a etiqueta.
+- Informar que a etiqueta deve ser impressa no tamanho indicado no PDF original, sem recorte ou redimensionamento.
 
 ## Liberação automática das etiquetas
 - Criar uma rotina protegida que consulte periodicamente somente pedidos elegíveis com etiqueta pendente.
