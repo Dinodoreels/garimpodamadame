@@ -92,6 +92,13 @@
       "when": 1789935286252,
       "tag": "0012_restore_new_user_profile_trigger",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789946564749,
+      "tag": "0013_add_tiktok_shop_service_id",
+      "breakpoints": true
     }
   ]
 }

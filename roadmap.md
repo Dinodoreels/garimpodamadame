@@ -177,3 +177,11 @@
 - [x] Consultar automaticamente etiquetas pendentes e avisar quando forem liberadas
 - [x] Publicar e validar a rotina automática no ambiente online
 - [x] Gerar lista de separação com resumo total e páginas por pedido, usando foto, variação, SKU, quantidade e conferência
+
+# Conexão direta TikTok Shop
+
+- [x] Corrigir a autorização para exigir e enviar o Service ID do aplicativo privado
+- [x] Buscar e salvar automaticamente a loja autorizada e seu identificador seguro
+- [x] Atualizar a tela após a autorização e orientar a criação do aplicativo no Partner Center
+- [ ] Concluir a autorização com os códigos reais fornecidos pelo TikTok Shop
+- [ ] Validar a recuperação dos PDFs oficiais dos pedidos após a autorização

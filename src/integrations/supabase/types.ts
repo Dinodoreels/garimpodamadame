@@ -5027,6 +5027,7 @@ export type Database = {
           refresh_expires_at: string | null
           refresh_token: string | null
           region: string | null
+          service_id: string | null
           shop_cipher: string | null
           shop_id: string | null
           shop_name: string | null
@@ -5050,6 +5051,7 @@ export type Database = {
           refresh_expires_at?: string | null
           refresh_token?: string | null
           region?: string | null
+          service_id?: string | null
           shop_cipher?: string | null
           shop_id?: string | null
           shop_name?: string | null
@@ -5073,6 +5075,7 @@ export type Database = {
           refresh_expires_at?: string | null
           refresh_token?: string | null
           region?: string | null
+          service_id?: string | null
           shop_cipher?: string | null
           shop_id?: string | null
           shop_name?: string | null

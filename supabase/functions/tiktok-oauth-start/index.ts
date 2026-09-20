@@ -24,16 +24,16 @@ Deno.serve(async (req) => {
     const { data: roleData } = await admin.from("user_roles").select("role").eq("user_id", userData.user.id).eq("role", "admin").maybeSingle();
     if (!roleData) return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-    const { data: cfg } = await admin.from("tiktok_shop_config").select("app_key").limit(1).maybeSingle();
-    if (!cfg?.app_key) {
-      return new Response(JSON.stringify({ error: "App Key não configurada. Salve as credenciais primeiro." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+    const { data: cfg } = await admin.from("tiktok_shop_config").select("id, app_key, service_id").limit(1).maybeSingle();
+    if (!cfg?.app_key || !cfg?.service_id) {
+      return new Response(JSON.stringify({ error: "Service ID e App Key não configurados. Salve os três códigos primeiro." }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
 
     const state = crypto.randomUUID();
-    await admin.from("tiktok_shop_config").update({ oauth_state: state }).neq("id", "00000000-0000-0000-0000-000000000000");
+    await admin.from("tiktok_shop_config").update({ oauth_state: state }).eq("id", cfg.id);
 
     const callbackUrl = getCallbackUrl();
-    const authorizeUrl = `https://services.tiktokshop.com/open/authorize?service_id=&state=${encodeURIComponent(state)}&app_key=${encodeURIComponent(cfg.app_key)}`;
+    const authorizeUrl = `https://services.tiktokshop.com/open/authorize?service_id=${encodeURIComponent(cfg.service_id)}&state=${encodeURIComponent(state)}&app_key=${encodeURIComponent(cfg.app_key)}`;
 
     return new Response(JSON.stringify({ authorizeUrl, callbackUrl, state }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
