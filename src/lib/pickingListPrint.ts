@@ -70,7 +70,7 @@ const orderPage = (order: AdminOrder) => {
 
 export function openPickingListPrint(orders: AdminOrder[]) {
   const eligibleOrders = orders
-    .filter(order => !['cancelled', 'refunded', 'delivered', 'shipped', 'payment_failed'].includes(order.status))
+    .filter(order => Boolean(order.paid_at) || ['paid', 'processing'].includes(order.status))
     .filter(order => (order.order_items ?? []).some(item => Number(item.quantity) > 0))
     .slice(0, 50);
 
