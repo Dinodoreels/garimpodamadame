@@ -1,5 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { getEmailBranding } from '../_shared/email-branding.ts'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -153,7 +154,7 @@ Deno.serve(async (req) => {
         link_rastreio: '',
         codigo_rastreio: '',
         itens: '',
-        link_loja: 'https://storenataliapardal.com',
+        link_loja: 'https://ogarimpodigital.com.br',
         tempo_cliente: tempoCliente,
         dias_inativo: diasInativo,
         ultimo_produto: ultimoProduto,
@@ -306,7 +307,7 @@ Deno.serve(async (req) => {
       try {
         // Branding (logo, colors, store name, campaign coupon footer)
         const branding = await getEmailBranding(supabase)
-        const storeUrl = branding.siteUrl || 'https://storenataliapardal.com'
+        const storeUrl = branding.siteUrl || 'https://ogarimpodigital.com.br'
 
         // Pick CTA based on event type
         let ctaLabel: string | undefined
@@ -333,32 +334,20 @@ Deno.serve(async (req) => {
           ? `${type}-${userId}-${stepIndex}-${Date.now()}`
           : `${type}-${Date.now()}`
 
-        const { data: emailData, error: emailError } = await supabase.functions.invoke(
-          'send-transactional-email',
-          {
-            body: {
-              templateName: 'customer-notification',
-              recipientEmail: customerEmail,
-              idempotencyKey,
-              templateData: {
-                subject,
-                title: subject,
-                bodyText: message,
-                ctaLabel,
-                ctaUrl,
-                coupon: couponCode || undefined,
-                preheader: subject,
-                branding,
-              },
-            },
+        const emailResult = await sendTemplateEmail('customer-notification', customerEmail, {
+          idempotencyKey,
+          templateData: {
+            subject,
+            title: subject,
+            bodyText: message,
+            ctaLabel,
+            ctaUrl,
+            coupon: couponCode || undefined,
+            preheader: subject,
+            branding,
           },
-        )
-        if (emailError) {
-          console.error('send-transactional-email error:', emailError)
-          results.push(`Email:failed`)
-        } else {
-          results.push(`Email:${emailData?.success ? 'queued' : (emailData?.reason || 'unknown')}`)
-        }
+        })
+        results.push(`Email:${emailResult.sent ? 'sent' : emailResult.reason}`)
       } catch (e) {
         console.error('Email send error:', e)
         results.push(`Email:error`)

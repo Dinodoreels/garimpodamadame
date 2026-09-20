@@ -46,8 +46,8 @@ export const template = {
   component: AdminReportEmail,
   subject: (data: Record<string, any>) =>
     data?.title
-      ? `[${data?.branding?.storeName || 'Loja'}] ${data.title}`
-      : `[${data?.branding?.storeName || 'Loja'}] Relatório`,
+      ? `[${data?.branding?.storeName || 'O Garimpo Digital'}] ${data.title}`
+      : `[${data?.branding?.storeName || 'O Garimpo Digital'}] Relatório`,
   displayName: 'Relatório administrativo',
   previewData: {
     title: 'Resumo Diário — 22/05/2026',

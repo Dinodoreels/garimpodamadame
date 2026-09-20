@@ -131,3 +131,8 @@
 - [x] Impedir novas duplicações por código Bling, GTIN, SKU e correspondência exata segura
 - [x] Baixar uma única vez o estoque central em vendas TikTok importadas pelo Bling e devolver no cancelamento
 - [x] Registrar cada baixa e devolução por pedido, item e variante, sem reprocessar pedidos históricos às cegas
+# Identidade dos emails
+
+- [x] Aplicar O Garimpo Digital, domínio oficial e logo enviada em todos os emails
+- [x] Publicar e conferir a prévia dos emails atualizados
+

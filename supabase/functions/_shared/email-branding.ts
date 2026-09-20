@@ -24,10 +24,14 @@ export interface EmailBranding {
 }
 
 const DEFAULT_COLORS: EmailBrandColors = {
-  primary: '#0a0a0a',
+  primary: '#d10078',
   primaryFg: '#ffffff',
-  accent: '#6b6660',
+  accent: '#b77900',
 }
+
+const OFFICIAL_STORE_NAME = 'O Garimpo Digital'
+const OFFICIAL_SITE_URL = 'https://ogarimpodigital.com.br'
+const OFFICIAL_LOGO_URL = 'https://ogarimpodigital.com.br/__l5e/assets-v1/f92206c5-3e2c-438c-9a85-78016eff682a/logo-o-garimpo-digital.png'
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n))
@@ -102,12 +106,9 @@ export async function getEmailBranding(supabase: any): Promise<EmailBranding> {
   ])
 
   const integValue = (integ?.value || {}) as Record<string, any>
-  const storeName: string =
-    (theme?.name && String(theme.name).trim()) ||
-    integValue.store_name ||
-    'Loja'
+  const storeName = OFFICIAL_STORE_NAME
 
-  const logoUrl: string = (theme?.logo_url && String(theme.logo_url).trim()) || ''
+  const logoUrl = OFFICIAL_LOGO_URL
 
   const themeColors = (theme?.colors || {}) as Record<string, string>
   const primary = hslStringToHex(themeColors.primary, DEFAULT_COLORS.primary)
@@ -119,10 +120,7 @@ export async function getEmailBranding(supabase: any): Promise<EmailBranding> {
   }
 
   // Derive site URL from sender domain (root) or fallback to integrations
-  const siteUrl: string =
-    integValue.site_url ||
-    (typeof integValue.store_url === 'string' ? integValue.store_url : '') ||
-    'https://storenataliapardal.com'
+  const siteUrl = OFFICIAL_SITE_URL
 
   // Manual campaign coupon (overrides automatic)
   const campaignValue = (campaign?.value || {}) as Record<string, any>
@@ -158,11 +156,11 @@ export async function getEmailBranding(supabase: any): Promise<EmailBranding> {
   return { storeName, logoUrl, siteUrl, colors, activeCoupon }
 }
 
-export function brandingFallback(siteName = 'Loja'): EmailBranding {
+export function brandingFallback(_siteName = OFFICIAL_STORE_NAME): EmailBranding {
   return {
-    storeName: siteName,
-    logoUrl: '',
-    siteUrl: 'https://storenataliapardal.com',
+    storeName: OFFICIAL_STORE_NAME,
+    logoUrl: OFFICIAL_LOGO_URL,
+    siteUrl: OFFICIAL_SITE_URL,
     colors: { ...DEFAULT_COLORS },
     activeCoupon: null,
   }

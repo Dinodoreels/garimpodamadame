@@ -1,4 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { getEmailBranding } from '../_shared/email-branding.ts'
+import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -64,19 +66,16 @@ async function broadcastToAdmins(supabase: any, whatsappConfig: any, msg: string
 
 async function broadcastEmail(supabase: any, recipients: string[], title: string, msg: string, key: string) {
   let sent = 0
+  const branding = await getEmailBranding(supabase)
   for (const r of recipients) {
     const clean = String(r).trim()
     if (!clean) continue
     try {
-      const { error } = await supabase.functions.invoke('send-transactional-email', {
-        body: {
-          templateName: 'admin-report',
-          recipientEmail: clean,
-          idempotencyKey: `${key}-${clean}`,
-          templateData: { title, bodyText: msg.replace(/\*/g, '') },
-        },
+      const result = await sendTemplateEmail('admin-report', clean, {
+        idempotencyKey: `${key}-${clean}`,
+        templateData: { title, bodyText: msg.replace(/\*/g, ''), branding },
       })
-      if (!error) sent++
+      if (result.sent) sent++
     } catch (e) { console.error('email dispatch error', e) }
   }
   return { email_sent: sent }
