@@ -1,5 +1,6 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
+import { z } from 'npm:zod@3.25.76'
 
 interface CheckoutItem {
   product_id: string
@@ -24,6 +25,7 @@ interface CheckoutRequest {
     state: string
     zip_code: string
   }
+  shipping_address_id?: string
   discount_code?: string
   discount_amount?: number
   loyalty_points_used?: number
@@ -37,6 +39,25 @@ interface CheckoutRequest {
     quote_source?: 'melhor_envio' | 'correios' | 'local'
   }
 }
+
+const CheckoutSchema = z.object({
+  items: z.array(z.object({
+    product_id: z.string().uuid(), variant_id: z.string().uuid(), quantity: z.number().int().min(1).max(100),
+    title: z.string().max(255), variant_title: z.string().max(255).optional(), price: z.number().nonnegative(), image_url: z.string().url().optional(),
+  })).min(1).max(100),
+  shipping_cost: z.number().nonnegative().finite(),
+  shipping_address_id: z.string().uuid(),
+  shipping_address: z.object({
+    id: z.string().uuid().optional(), recipient_name: z.string().trim().min(3).max(120), street: z.string().trim().min(2).max(160),
+    number: z.string().trim().min(1).max(20), complement: z.string().trim().max(120).nullable().optional(), neighborhood: z.string().trim().min(2).max(100),
+    city: z.string().trim().min(2).max(100), state: z.string().length(2), zip_code: z.string().regex(/^\d{5}-?\d{3}$/),
+  }),
+  shipping_option: z.object({
+    carrier: z.string().trim().min(1).max(100), service: z.string().trim().min(1).max(100), service_code: z.string().trim().min(1).max(50),
+    estimated_days: z.number().int().positive(), original_cost: z.number().nonnegative().finite(), quote_source: z.enum(['melhor_envio', 'correios', 'local']).optional(),
+  }),
+  discount_code: z.string().trim().max(50).optional(), loyalty_points_used: z.number().int().nonnegative().optional(),
+})
 
 function splitName(fullName?: string | null) {
   const parts = String(fullName || '').trim().split(/\s+/).filter(Boolean)
@@ -91,12 +112,30 @@ Deno.serve(async (req) => {
 
     const { data: profile } = await admin
       .from('profiles')
-      .select('full_name, phone, cpf')
+      .select('full_name, phone, cpf, birth_date')
       .eq('id', userId)
       .maybeSingle()
 
-    const body: CheckoutRequest = await req.json()
-    const { items, shipping_cost, shipping_address, discount_code, loyalty_points_used, shipping_option } = body
+    const parsedBody = CheckoutSchema.safeParse(await req.json())
+    if (!parsedBody.success) {
+      return new Response(JSON.stringify({ success: false, error: 'Complete e confirme seus dados, endereço e frete antes de pagar.', detail: parsedBody.error.issues[0]?.message }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
+    const body: CheckoutRequest = parsedBody.data
+    const { items, shipping_cost, shipping_address, shipping_address_id, discount_code, loyalty_points_used, shipping_option } = body
+
+    const missingProfile = [
+      !profile?.full_name && 'nome completo', !profile?.phone && 'telefone', !profile?.cpf && 'CPF', !profile?.birth_date && 'data de nascimento', !claimsData.user.email && 'e-mail',
+    ].filter(Boolean)
+    const cpf = String(profile?.cpf || '').replace(/\D/g, '')
+    const phone = String(profile?.phone || '').replace(/\D/g, '')
+    if (cpf.length !== 11 || phone.length < 10 || phone.length > 13) missingProfile.push('CPF ou telefone válido')
+    if (missingProfile.length) return new Response(JSON.stringify({ success: false, error: `Complete seu cadastro: ${[...new Set(missingProfile)].join(', ')}` }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
+    const { data: savedAddress } = await admin.from('addresses').select('*').eq('id', shipping_address_id).eq('user_id', userId).maybeSingle()
+    if (!savedAddress) return new Response(JSON.stringify({ success: false, error: 'Selecione um endereço salvo no seu cadastro.' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    const addressFields = ['recipient_name', 'street', 'number', 'neighborhood', 'city', 'state', 'zip_code'] as const
+    const changedAddress = addressFields.some((field) => String(savedAddress[field] ?? '').replace(/\s/g, '').toLowerCase() !== String(shipping_address?.[field] ?? '').replace(/\s/g, '').toLowerCase())
+    if (changedAddress) return new Response(JSON.stringify({ success: false, error: 'O endereço mudou. Calcule o frete novamente antes de pagar.' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
     if (!items || items.length === 0) {
       return new Response(
@@ -109,7 +148,7 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ success: false, error: 'Itens do pedido inválidos' }), { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
     const variantIds = [...new Set(items.map((item) => item.variant_id))]
-    const { data: variants, error: variantsError } = await supabase.from('product_variants').select('id, product_id, title, price, inventory_quantity, is_available, products(title, product_images(url, position))').in('id', variantIds)
+    const { data: variants, error: variantsError } = await supabase.from('product_variants').select('id, product_id, title, price, inventory_quantity, is_available, products(title, weight_grams, length_cm, width_cm, height_cm, product_images(url, position))').in('id', variantIds)
     if (variantsError || !variants || variants.length !== variantIds.length) throw new Error('Não foi possível conferir os produtos')
     const variantsById = new Map(variants.map((variant: any) => [variant.id, variant]))
     const verifiedItems = items.map((item) => {
@@ -117,6 +156,11 @@ Deno.serve(async (req) => {
       if (!variant || !variant.is_available || Number(variant.inventory_quantity) < item.quantity) throw new Error('Um produto está indisponível ou sem estoque')
       return { ...item, product_id: variant.product_id, title: variant.products?.title ?? item.title, variant_title: variant.title, price: Number(variant.price), image_url: variant.products?.product_images?.sort((a: any, b: any) => a.position - b.position)?.[0]?.url ?? item.image_url }
     })
+    const productsWithoutPackage = verifiedItems.filter((item) => {
+      const variant: any = variantsById.get(item.variant_id)
+      return !variant?.products?.weight_grams || !variant.products.length_cm || !variant.products.width_cm || !variant.products.height_cm
+    })
+    if (productsWithoutPackage.length) throw new Error(`Complete peso e dimensões de: ${productsWithoutPackage.map((item) => item.title).join(', ')}`)
     // Calculate totals from prices stored by the shop, never from browser values
     const subtotal = verifiedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
     let couponDiscountValue = 0
@@ -185,6 +229,7 @@ Deno.serve(async (req) => {
         shipping_cost: shippingValue,
         total,
         shipping_address,
+        shipping_address_id,
         discount_code: verifiedDiscountCode,
         discount_amount: discountValue,
         loyalty_points_used: requestedPoints,

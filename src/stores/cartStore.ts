@@ -29,6 +29,7 @@ export interface CartItem {
 }
 
 export interface SelectedAddress {
+  id?: string;
   recipient_name: string;
   street: string;
   number: string;
@@ -352,6 +353,7 @@ export const useCartStore = create<CartStore>()(
               shipping_cost: shippingCost,
               shipping_option: shippingOption || undefined,
               shipping_address: selectedAddress || undefined,
+              shipping_address_id: selectedAddress?.id,
               discount_code: appliedDiscount?.code || undefined,
               loyalty_points_used: loyaltyPointsUsed,
             },
@@ -401,6 +403,7 @@ export const useCartStore = create<CartStore>()(
               items: checkoutItems,
               shipping_cost: shippingCost,
               shipping_address: selectedAddress || undefined,
+              shipping_address_id: selectedAddress?.id,
               shipping_option: shippingOption || undefined,
             },
           });

@@ -17,6 +17,7 @@ import { useCartStore } from '@/stores/cartStore';
 import { useActiveStores } from '@/hooks/useStores';
 import { toast } from 'sonner';
 import { PaymentTermsNotice } from './PaymentTermsNotice';
+import { AddressDialog } from '@/components/account/AddressDialog';
 
 interface ShippingAddressModalProps {
   open: boolean;
@@ -46,6 +47,7 @@ export function ShippingAddressModal({
   const [calculating, setCalculating] = useState(false);
   const [shippingResult, setShippingResult] = useState<ShippingResult | null>(null);
   const [selectedAddress, setSelectedAddress] = useState<Address | null>(null);
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -136,6 +138,7 @@ export function ShippingAddressModal({
 
     const addressToSave = selectedAddress
       ? {
+          id: selectedAddress.id,
           recipient_name: selectedAddress.recipient_name,
           street: selectedAddress.street,
           number: selectedAddress.number,
@@ -319,6 +322,9 @@ export function ShippingAddressModal({
 
               {/* Manual ZIP Code */}
               <div className="space-y-3">
+                <Button type="button" variant="outline" className="w-full" onClick={() => setAddressDialogOpen(true)}>
+                  <Plus className="h-4 w-4" /> Adicionar endereço de entrega
+                </Button>
                 {addresses.length > 0 && (
                   <div className="flex items-center gap-2">
                     <div className="flex-1 h-px bg-border" />
@@ -405,6 +411,7 @@ export function ShippingAddressModal({
             </>
           )}
         </div>
+        <AddressDialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen} />
 
         <PaymentTermsNotice />
 

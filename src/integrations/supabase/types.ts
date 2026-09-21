@@ -2992,6 +2992,7 @@ export type Database = {
       }
       melhor_envio_shipments: {
         Row: {
+          automation_mode: string
           cancelled_at: string | null
           carrier: string | null
           created_at: string
@@ -3010,6 +3011,7 @@ export type Database = {
           package_data: Json
           posted_at: string | null
           price: number | null
+          processing_started_at: string | null
           provider_payload: Json
           purchased_at: string | null
           recipient_data: Json
@@ -3021,8 +3023,12 @@ export type Database = {
           tracking_code: string | null
           tracking_url: string | null
           updated_at: string
+          validated_at: string | null
+          validation_errors: Json
+          validation_status: string
         }
         Insert: {
+          automation_mode?: string
           cancelled_at?: string | null
           carrier?: string | null
           created_at?: string
@@ -3041,6 +3047,7 @@ export type Database = {
           package_data?: Json
           posted_at?: string | null
           price?: number | null
+          processing_started_at?: string | null
           provider_payload?: Json
           purchased_at?: string | null
           recipient_data?: Json
@@ -3052,8 +3059,12 @@ export type Database = {
           tracking_code?: string | null
           tracking_url?: string | null
           updated_at?: string
+          validated_at?: string | null
+          validation_errors?: Json
+          validation_status?: string
         }
         Update: {
+          automation_mode?: string
           cancelled_at?: string | null
           carrier?: string | null
           created_at?: string
@@ -3072,6 +3083,7 @@ export type Database = {
           package_data?: Json
           posted_at?: string | null
           price?: number | null
+          processing_started_at?: string | null
           provider_payload?: Json
           purchased_at?: string | null
           recipient_data?: Json
@@ -3083,6 +3095,9 @@ export type Database = {
           tracking_code?: string | null
           tracking_url?: string | null
           updated_at?: string
+          validated_at?: string | null
+          validation_errors?: Json
+          validation_status?: string
         }
         Relationships: [
           {
@@ -3416,6 +3431,7 @@ export type Database = {
           payment_status_detail: string | null
           shipped_at: string | null
           shipping_address: Json | null
+          shipping_address_id: string | null
           shipping_carrier: string | null
           shipping_cost: number | null
           shipping_estimated_days: number | null
@@ -3460,6 +3476,7 @@ export type Database = {
           payment_status_detail?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
+          shipping_address_id?: string | null
           shipping_carrier?: string | null
           shipping_cost?: number | null
           shipping_estimated_days?: number | null
@@ -3504,6 +3521,7 @@ export type Database = {
           payment_status_detail?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
+          shipping_address_id?: string | null
           shipping_carrier?: string | null
           shipping_cost?: number | null
           shipping_estimated_days?: number | null
@@ -3525,6 +3543,13 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "orders_shipping_address_id_fkey"
+            columns: ["shipping_address_id"]
+            isOneToOne: false
+            referencedRelation: "addresses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "orders_store_id_fkey"
             columns: ["store_id"]
@@ -5868,6 +5893,51 @@ export type Database = {
       }
       can_view_inbound: { Args: { _user_id: string }; Returns: boolean }
       claim_bling_catalog_sync: { Args: never; Returns: boolean }
+      claim_melhor_envio_shipment: {
+        Args: { p_order_id: string }
+        Returns: {
+          automation_mode: string
+          cancelled_at: string | null
+          carrier: string | null
+          created_at: string
+          created_by: string | null
+          delivered_at: string | null
+          external_cart_id: string | null
+          external_order_id: string | null
+          external_protocol: string | null
+          id: string
+          insurance_value: number | null
+          label_format: string | null
+          label_generated_at: string | null
+          label_url: string | null
+          last_error: string | null
+          order_id: string
+          package_data: Json
+          posted_at: string | null
+          price: number | null
+          processing_started_at: string | null
+          provider_payload: Json
+          purchased_at: string | null
+          recipient_data: Json
+          sender_data: Json
+          service: string | null
+          service_code: string
+          source: string
+          status: string
+          tracking_code: string | null
+          tracking_url: string | null
+          updated_at: string
+          validated_at: string | null
+          validation_errors: Json
+          validation_status: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "melhor_envio_shipments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       claim_refund_processing: {
         Args: { p_actor_id: string; p_refund_id: string }
         Returns: {

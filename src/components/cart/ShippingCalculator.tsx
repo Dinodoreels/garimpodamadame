@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Loader2, MapPin, Truck, Check, Gift, Package } from 'lucide-react';
+import { Loader2, MapPin, Truck, Check, Gift, Package, Plus } from 'lucide-react';
 import { calculateShippingOptions, formatZipCode, getShippingErrorMessage, type ShippingOption, type ShippingCalcResponse } from '@/lib/shipping';
 import { useCartStore } from '@/stores/cartStore';
 import { useAddresses } from '@/hooks/useAddresses';
@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from '@/lib/utils';
+import { AddressDialog } from '@/components/account/AddressDialog';
 
 interface ShippingCalculatorProps {
   hasDropshipItems?: boolean;
@@ -24,7 +25,7 @@ interface ShippingCalculatorProps {
 
 export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalculatorProps) {
   const { user } = useAuth();
-  const { addresses } = useAddresses();
+  const { addresses, refetch } = useAddresses();
   const { data: freeShippingSettings } = useFreeShippingSettings();
   const { 
     shippingCost, 
@@ -44,6 +45,8 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
   const [shippingOptions, setShippingOptions] = useState<ShippingOption[]>([]);
   const [selectedService, setSelectedService] = useState<string | null>(null);
   const [calcResponse, setCalcResponse] = useState<ShippingCalcResponse | null>(null);
+  const [addressDialogOpen, setAddressDialogOpen] = useState(false);
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
 
   const subtotal = getTotalPrice();
   const freeShippingEnabled = freeShippingSettings?.enabled ?? false;
@@ -67,7 +70,7 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
     }
   };
 
-  const doCalculate = async (zip: string) => {
+  const doCalculate = async (zip: string, addressId?: string) => {
     const cleanZip = zip.replace(/\D/g, '');
     if (cleanZip.length !== 8) {
       setError('CEP inválido');
@@ -99,13 +102,14 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
         // Auto-select cheapest
         const cheapest = result.options[0];
         setSelectedService(cheapest.service_code);
+        const address = addresses.find((item) => item.id === addressId);
         setShipping(
           cheapest.cost, 
           result.address?.state || '', 
           result.address?.city || '', 
           formatZipCode(cleanZip), 
           cheapest.estimated_text,
-          undefined,
+          address ? { id: address.id, recipient_name: address.recipient_name, street: address.street, number: address.number, complement: address.complement, neighborhood: address.neighborhood, city: address.city, state: address.state, zip_code: address.zip_code } : undefined,
           cheapest.service,
           cheapest
         );
@@ -127,8 +131,9 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
     const address = addresses?.find(a => a.id === addressId);
     if (!address) return;
     const formatted = formatZipCode(address.zip_code);
+    setSelectedAddressId(address.id);
     setZipInput(formatted);
-    await doCalculate(address.zip_code);
+    await doCalculate(address.zip_code, address.id);
   };
 
   const handleSelectService = (serviceCode: string) => {
@@ -142,7 +147,7 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
       calcResponse.address?.city || '',
       zipInput,
       option.estimated_text,
-      undefined,
+      (() => { const address = addresses.find((item) => item.id === selectedAddressId); return address ? { id: address.id, recipient_name: address.recipient_name, street: address.street, number: address.number, complement: address.complement, neighborhood: address.neighborhood, city: address.city, state: address.state, zip_code: address.zip_code } : undefined; })(),
       option.service,
       option
     );
@@ -224,7 +229,7 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
       {user && addresses && addresses.length > 0 && (
         <div className="space-y-2">
           <Label className="text-xs text-muted-foreground">Usar endereço salvo</Label>
-          <Select onValueChange={handleAddressSelect}>
+          <Select value={selectedAddressId} onValueChange={handleAddressSelect}>
             <SelectTrigger className="h-10">
               <SelectValue placeholder="Selecione um endereço" />
             </SelectTrigger>
@@ -236,8 +241,15 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
               ))}
             </SelectContent>
           </Select>
-          <div className="text-xs text-muted-foreground text-center">ou digite o CEP</div>
+          <Button type="button" variant="outline" size="sm" className="w-full" onClick={() => setAddressDialogOpen(true)}>
+            <Plus className="h-4 w-4" /> Adicionar endereço
+          </Button>
         </div>
+      )}
+      {user && addresses.length === 0 && (
+        <Button type="button" variant="outline" className="w-full" onClick={() => setAddressDialogOpen(true)}>
+          <Plus className="h-4 w-4" /> Adicionar endereço de entrega
+        </Button>
       )}
 
       {/* ZIP Input */}
@@ -322,6 +334,7 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
           )}
         </div>
       )}
+      <AddressDialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen} onSuccess={refetch} />
     </div>
   );
 }

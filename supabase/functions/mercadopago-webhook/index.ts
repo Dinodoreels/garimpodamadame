@@ -161,6 +161,13 @@ Deno.serve(async (req) => {
             })
             const fiscalResult = await fiscalResponse.json().catch(() => ({}))
             if (!fiscalResponse.ok) console.log('Automatic invoice stayed pending:', fiscalResult?.error ?? fiscalResponse.status)
+            const shippingUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/melhor-envio-auto`
+            const shippingResponse = await fetch(shippingUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+              body: JSON.stringify({ order_id: orderId }),
+            })
+            if (!shippingResponse.ok) console.log('Hybrid shipping stayed pending:', shippingResponse.status)
           } catch (fiscalErr) {
             console.error('Failed to start automatic invoice:', fiscalErr)
           }

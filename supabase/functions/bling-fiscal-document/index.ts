@@ -200,6 +200,13 @@ Deno.serve(async (req) => {
     const updated = await supa.from('fiscal_documents').update({ ...fields, error_message: null }).eq('id', doc.id).select().single();
     await supa.from('fiscal_document_events').insert({ fiscal_document_id: doc.id, event_type: 'sync', status: fields.status, message: fields.status === 'authorized' ? 'Nota autorizada pela SEFAZ' : 'Situação consultada no Bling', provider_payload: fetched.data, created_by: actor });
     await logSync({ entity_type: 'fiscal_document', entity_id: order_id, action, status: fields.status, response: fetched.data });
+    if (fields.status === 'authorized') {
+      fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/melhor-envio-auto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}` },
+        body: JSON.stringify({ order_id }),
+      }).catch((shippingError) => console.error('Falha ao iniciar etiqueta híbrida:', shippingError));
+    }
     return jsonResponse({ ok: true, document: updated.data });
   } catch (error) {
     if (error instanceof Response) return new Response(await error.text(), { status: error.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
