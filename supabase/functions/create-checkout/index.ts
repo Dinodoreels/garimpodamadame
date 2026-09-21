@@ -156,7 +156,10 @@ Deno.serve(async (req) => {
       if (!variant || !variant.is_available || Number(variant.inventory_quantity) < item.quantity) throw new Error('Um produto está indisponível ou sem estoque')
       return { ...item, product_id: variant.product_id, title: variant.products?.title ?? item.title, variant_title: variant.title, price: Number(variant.price), image_url: variant.products?.product_images?.sort((a: any, b: any) => a.position - b.position)?.[0]?.url ?? item.image_url }
     })
-    const productsWithoutPackage = verifiedItems.filter((item: any) => !item.products?.weight_grams || !item.products?.length_cm || !item.products?.width_cm || !item.products?.height_cm)
+    const productsWithoutPackage = verifiedItems.filter((item) => {
+      const variant: any = variantsById.get(item.variant_id)
+      return !variant?.products?.weight_grams || !variant.products.length_cm || !variant.products.width_cm || !variant.products.height_cm
+    })
     if (productsWithoutPackage.length) throw new Error(`Complete peso e dimensões de: ${productsWithoutPackage.map((item) => item.title).join(', ')}`)
     // Calculate totals from prices stored by the shop, never from browser values
     const subtotal = verifiedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)

@@ -123,7 +123,7 @@ function ShippingProviderCards({
       updated.shipping = {
         ...shipping,
         active_provider: 'melhor_envio',
-        melhor_envio: { origin_zip: formOriginZip, credential_configured: shipping.melhor_envio.credential_configured },
+        melhor_envio: { ...shipping.melhor_envio, origin_zip: formOriginZip, credential_configured: shipping.melhor_envio.credential_configured },
       };
     }
     onSave(updated);
@@ -431,6 +431,16 @@ export default function ShippingSettings() {
               ? integrationsConfig.shipping.correios.origin_zip
               : integrationsConfig.shipping.melhor_envio.origin_zip}
           />
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg font-medium"><Package className="h-5 w-5" />Compra híbrida de etiquetas</CardTitle>
+              <CardDescription>Pedidos pagos e completos seguem automaticamente. Divergências ficam aguardando sua revisão, sem cobrança.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between gap-4">
+              <div><Label>Modo híbrido</Label><p className="text-sm text-muted-foreground">Exige cadastro, endereço confirmado, pacote completo e nota fiscal autorizada.</p></div>
+              <Switch checked={integrationsConfig.shipping.melhor_envio.hybrid_enabled !== false} onCheckedChange={(checked) => saveIntegrations.mutate({ ...integrationsConfig, shipping: { ...integrationsConfig.shipping, melhor_envio: { ...integrationsConfig.shipping.melhor_envio, hybrid_enabled: checked } } })} />
+            </CardContent>
+          </Card>
         </>
       )}
 

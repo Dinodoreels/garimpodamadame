@@ -7,7 +7,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 
-const statusLabels: Record<string, string> = { draft: 'Rascunho', cart: 'No carrinho', purchased: 'Comprada', label_generated: 'Etiqueta pronta', posted: 'Postado', in_transit: 'Em trânsito', delivered: 'Entregue', cancelled: 'Cancelado', error: 'Erro' };
+const statusLabels: Record<string, string> = { draft: 'Aguardando conferência', pending_review: 'Aguardando revisão', awaiting_data: 'Aguardando dados', awaiting_invoice: 'Aguardando nota fiscal', ready: 'Pronto para compra', processing: 'Comprando', cart: 'No carrinho', purchased: 'Comprada', label_ready: 'Etiqueta pronta', label_generated: 'Etiqueta pronta', posted: 'Postado', in_transit: 'Em trânsito', delivered: 'Entregue', cancelled: 'Cancelado', error: 'Erro' };
 
 export function MelhorEnvioSection({ orderId, source, service, carrier, estimate }: { orderId: string; source?: string | null; service?: string | null; carrier?: string | null; estimate?: number | null }) {
   const [shipment, setShipment] = useState<any>(null);
@@ -29,14 +29,16 @@ export function MelhorEnvioSection({ orderId, source, service, carrier, estimate
 
   if (!isWebsite) return <Alert><Truck className="h-4 w-4" /><AlertTitle>Frete gerenciado pela plataforma</AlertTitle><AlertDescription>Este pedido veio do Bling ou de um marketplace. O Melhor Envio não fará alterações nele.</AlertDescription></Alert>;
 
-  const action = async (name: 'prepare' | 'purchase' | 'generate' | 'print' | 'sync' | 'cancel') => {
+  const action = async (name: 'auto_check' | 'prepare' | 'purchase' | 'generate' | 'print' | 'sync' | 'cancel') => {
     const printWindow = name === 'print' ? window.open('', '_blank') : null;
     if (name === 'print' && !printWindow) {
       toast({ variant: 'destructive', title: 'Impressão bloqueada', description: 'Permita novas abas para este site e tente novamente.' });
       return;
     }
     setLoading(name);
-    const { data, error } = await supabase.functions.invoke('melhor-envio', { body: { action: name, order_id: orderId } });
+    const { data, error } = name === 'auto_check'
+      ? await supabase.functions.invoke('melhor-envio-auto', { body: { order_id: orderId } })
+      : await supabase.functions.invoke('melhor-envio', { body: { action: name, order_id: orderId } });
     setLoading(null);
     if (error || !data?.ok) {
       if (printWindow && !printWindow.closed) printWindow.close();
@@ -49,11 +51,13 @@ export function MelhorEnvioSection({ orderId, source, service, carrier, estimate
   };
 
   return <div className="space-y-4">
-    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Truck className="h-5 w-5" /><h3 className="font-medium">Melhor Envio</h3></div>{shipment && <Badge variant="outline">{statusLabels[shipment.status] ?? shipment.status}</Badge>}</div>
+    <div className="flex items-center justify-between gap-3"><div className="flex items-center gap-2"><Truck className="h-5 w-5" /><h3 className="font-medium">Melhor Envio</h3></div>{shipment && <Badge variant="outline">{statusLabels[shipment.validation_status] ?? statusLabels[shipment.status] ?? shipment.status}</Badge>}</div>
     {(service || carrier) && <div className="grid gap-2 text-sm sm:grid-cols-2"><p><span className="text-muted-foreground">Serviço:</span> {[carrier, service].filter(Boolean).join(' — ')}</p><p><span className="text-muted-foreground">Prazo:</span> {estimate ? `${estimate} dias úteis` : '—'}</p></div>}
     {!shipment && <Alert><AlertTitle>Postagem ainda não preparada</AlertTitle><AlertDescription>Confira os dados do pedido antes de adicioná-lo ao carrinho do Melhor Envio.</AlertDescription></Alert>}
     {shipment?.last_error && <Alert variant="destructive"><AlertTitle>Último erro</AlertTitle><AlertDescription>{shipment.last_error}</AlertDescription></Alert>}
+    {Array.isArray(shipment?.validation_errors) && shipment.validation_errors.length > 0 && <Alert><AlertTitle>Pendências para liberar a etiqueta</AlertTitle><AlertDescription><ul className="list-disc pl-5">{shipment.validation_errors.map((item: string) => <li key={item}>{item}</li>)}</ul></AlertDescription></Alert>}
     <div className="flex flex-wrap gap-2">
+      {(!shipment || ['awaiting_data', 'awaiting_invoice', 'error', 'pending_review'].includes(shipment.validation_status)) && <Button size="sm" onClick={() => action('auto_check')} disabled={!!loading}>{loading === 'auto_check' ? <Loader2 className="h-4 w-4 animate-spin" /> : <RefreshCw className="h-4 w-4" />}Conferir novamente</Button>}
       {!shipment && <Button size="sm" variant="outline" onClick={() => action('prepare')} disabled={!!loading}>{loading === 'prepare' ? <Loader2 className="h-4 w-4 animate-spin" /> : <ShoppingCart className="h-4 w-4" />}Preparar postagem</Button>}
       {shipment?.status === 'cart' && <AlertDialog><AlertDialogTrigger asChild><Button size="sm" disabled={!!loading}><PackageCheck className="h-4 w-4" />Comprar etiqueta</Button></AlertDialogTrigger><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Confirmar compra da etiqueta?</AlertDialogTitle><AlertDialogDescription>Esta ação consumirá o saldo da sua conta Melhor Envio. Confira serviço, endereço, peso e dimensões antes de continuar.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel>Voltar</AlertDialogCancel><AlertDialogAction onClick={() => action('purchase')}>Confirmar compra</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>}
       {shipment?.status === 'purchased' && <Button size="sm" onClick={() => action('generate')} disabled={!!loading}><PackageCheck className="h-4 w-4" />Gerar etiqueta</Button>}

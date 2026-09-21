@@ -45,6 +45,7 @@ export interface ShippingCorreiosConfig {
 export interface ShippingMelhorEnvioConfig {
   origin_zip: string;
   credential_configured?: boolean;
+  hybrid_enabled?: boolean;
 }
 
 export interface ShippingIntegrationConfig {
@@ -355,7 +356,7 @@ const DEFAULT_CONFIG: IntegrationsConfig = {
   shipping: {
     active_provider: '',
     correios: { origin_zip: '' },
-    melhor_envio: { origin_zip: '', credential_configured: false },
+    melhor_envio: { origin_zip: '', credential_configured: false, hybrid_enabled: true },
   },
   throttling: {
     enabled: true,

@@ -254,9 +254,9 @@
 
 
 # Checkout cadastrado e etiquetas híbridas do Melhor Envio
-- [ ] Exigir cadastro completo e endereço confirmado antes do pagamento
-- [ ] Criar endereço completo com CEP automático, nome, padrão e opção sem número
-- [ ] Vincular a cotação ao endereço escolhido e recalcular quando ele mudar
-- [ ] Automatizar conferência, compra única e geração da etiqueta para pedidos completos
-- [ ] Enviar divergências para revisão e exibir pendências no painel
+- [x] Exigir cadastro completo e endereço confirmado antes do pagamento
+- [x] Criar endereço completo com CEP automático, nome, padrão e opção sem número
+- [x] Vincular a cotação ao endereço escolhido e recalcular quando ele mudar
+- [x] Automatizar conferência, compra única e geração da etiqueta para pedidos completos
+- [x] Enviar divergências para revisão e exibir pendências no painel
 - [ ] Validar sem executar compra real de etiqueta
