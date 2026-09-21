@@ -80,7 +80,7 @@ export function OrderDetailsDialog({ order, onClose, onStatusChange }: OrderDeta
     (sum, refund) => sum + (['completed', 'partial'].includes(refund.status) ? Number(refund.confirmed_amount || 0) : 0),
     0,
   );
-  const refundableBalance = Math.max(0, Number(order?.paid_amount ?? order?.total ?? 0) - confirmedRefundTotal);
+  const refundableBalance = Math.max(0, Number((order as any)?.paid_amount ?? order?.total ?? 0) - confirmedRefundTotal);
 
   // Fetch status history with profile names
   useEffect(() => {
