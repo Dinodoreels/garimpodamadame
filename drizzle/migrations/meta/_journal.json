@@ -120,6 +120,13 @@
       "when": 1789956563396,
       "tag": "0016_schedule_daily_email_automations",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789956604467,
+      "tag": "0017_schedule_notification_queue_hourly",
+      "breakpoints": true
     }
   ]
 }
