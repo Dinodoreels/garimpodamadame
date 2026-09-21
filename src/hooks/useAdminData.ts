@@ -36,6 +36,8 @@ export interface AdminOrder {
   shipping_original_cost?: number | null;
   melhor_envio_shipment?: any;
   marketplace_shipping_label?: any;
+  tracking_code?: string | null;
+  tracking_url?: string | null;
   payment_method?: string | null;
   payment_status_detail?: string | null;
   last_payment_error?: string | null;

@@ -18,7 +18,7 @@ export function MarketplaceLabelSection({ orderId, orderNumber, source, label: i
   const [loading, setLoading] = useState(false);
   const normalizedSource = String(source ?? '').toLowerCase();
   const isMarketplace = normalizedSource.startsWith('bling:') || normalizedSource.includes('tiktok');
-  const isManual = label?.upload_source === 'manual_tiktok';
+  const isManual = String(label?.upload_source ?? '').startsWith('manual_tiktok');
 
   const load = useCallback(async (showToast = false) => {
     if (!isMarketplace) return;

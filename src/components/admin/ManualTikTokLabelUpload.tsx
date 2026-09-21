@@ -31,7 +31,7 @@ export function ManualTikTokLabelUpload({
   const inputRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const isTikTok = /tiktok/i.test(String(source ?? '') + String(label?.platform ?? ''));
-  const isManual = label?.upload_source === 'manual_tiktok';
+  const isManual = String(label?.upload_source ?? '').startsWith('manual_tiktok');
 
   if (!isTikTok || roleLoading || !isAdmin) return null;
 

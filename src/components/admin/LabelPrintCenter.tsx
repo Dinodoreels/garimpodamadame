@@ -8,6 +8,7 @@ import type { AdminOrder } from '@/hooks/useAdminData';
 import { openPickingListPrint } from '@/lib/pickingListPrint';
 import { toast } from 'sonner';
 import { ManualTikTokLabelUpload } from './ManualTikTokLabelUpload';
+import { TikTokDocumentBatchUpload } from './TikTokDocumentBatchUpload';
 
 interface LabelPrintCenterProps {
   orders: AdminOrder[];
@@ -192,6 +193,12 @@ export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
             </Button>
           </section>
         </div>
+        {!!tikTokOrders.length && (
+          <TikTokDocumentBatchUpload
+            orders={tikTokOrders}
+            onCompleted={(labels) => setManualLabels(current => ({ ...current, ...labels }))}
+          />
+        )}
         <section className="flex flex-col gap-3 border p-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">
             <ClipboardCheck className="mt-0.5 h-5 w-5" />
