@@ -8,6 +8,8 @@ Exigir cadastro completo antes da compra e gerar automaticamente a etiqueta ofic
 ### 1. Regras de segurança e validação
 - Exigir que a pessoa esteja cadastrada e autenticada para iniciar o checkout.
 - Bloquear o avanço do checkout enquanto nome completo, CPF/CNPJ válido, telefone, e-mail e endereço completo não estiverem salvos no cadastro.
+- Permitir escolher um endereço salvo, conferir CEP, rua, número, bairro, cidade e estado, e confirmar qual endereço será usado neste pedido.
+- Calcular o frete novamente quando o endereço escolhido mudar e impedir o pagamento com uma cotação feita para outro endereço.
 - Mostrar exatamente quais dados faltam e oferecer acesso direto para completá-los, sem apagar o carrinho.
 - Considerar somente pedidos do site com pagamento confirmado.
 - Validar destinatário, CPF/CNPJ, telefone, e-mail, endereço, serviço escolhido, itens, peso e dimensões.
@@ -36,6 +38,7 @@ Exigir cadastro completo antes da compra e gerar automaticamente a etiqueta ofic
 
 ## Validação
 - Testar pessoa sem cadastro, cadastro incompleto e cadastro completo, confirmando que apenas o último consegue avançar ao pagamento.
+- Testar troca de endereço salvo, recálculo do frete e bloqueio de uma cotação vinculada ao endereço anterior.
 - Testar pedido incompleto e confirmar que nenhuma compra acontece.
 - Testar repetição da confirmação de pagamento e confirmar que não duplica a operação.
 - Validar os tipos, o painel e os retornos de erro.
