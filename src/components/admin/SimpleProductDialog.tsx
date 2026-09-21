@@ -101,6 +101,24 @@ type TikTokPublicationStatus = {
   events?: Array<{ event_type: string; status: string; details?: unknown; created_at: string }>;
 };
 
+async function getFunctionErrorMessage(error: unknown, fallback: string) {
+  if (error && typeof error === 'object' && 'context' in error) {
+    const context = (error as { context?: Response }).context;
+    if (context) {
+      try {
+        const payload = await context.clone().json() as { error?: string; message?: string; detail?: string };
+        return payload.error || payload.message || payload.detail || fallback;
+      } catch {
+        const detail = await context.clone().text().catch(() => '');
+        if (detail.trim()) return detail;
+      }
+    }
+  }
+  return error instanceof Error && error.message !== 'Edge Function returned a non-2xx status code'
+    ? error.message
+    : fallback;
+}
+
 interface SimpleProductDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -200,6 +218,7 @@ export function SimpleProductDialog({
   const [publishingTikTok, setPublishingTikTok] = useState(false);
   const [tiktokStatus, setTikTokStatus] = useState<'idle' | 'pending' | 'published' | 'error'>('idle');
   const [tiktokMessage, setTikTokMessage] = useState('');
+  const [tiktokCategoriesBlocked, setTikTokCategoriesBlocked] = useState(false);
   const [marketplaceAttributes, setMarketplaceAttributes] = useState<Record<string, string>>({});
   const [tiktokPublication, setTikTokPublication] = useState<TikTokPublicationStatus | null>(null);
   
@@ -277,6 +296,7 @@ export function SimpleProductDialog({
     setTikTokCategoryOpen(false);
     setTikTokStatus('idle');
     setTikTokMessage('');
+    setTikTokCategoriesBlocked(false);
     setMarketplaceAttributes({});
     setTikTokPublication(null);
   }, []);
@@ -407,18 +427,23 @@ export function SimpleProductDialog({
   const loadTikTokCategories = async () => {
     setLoadingTikTokCategories(true);
     setTikTokMessage('');
+    setTikTokCategoriesBlocked(false);
     try {
       const { data, error } = await supabase.functions.invoke('bling-tiktok-categories', { body: { action: 'list', product_type: productType } });
-      if (error) throw error;
+      if (error) throw new Error(await getFunctionErrorMessage(error, 'Não foi possível consultar as categorias do TikTok no Bling.'));
       if (data?.error) throw new Error(data.error);
       const categories = (data?.categories ?? []) as TikTokCategory[];
       setTikTokCategories(categories);
-       if (!categories.length) setTikTokMessage(data?.message ?? 'O Bling não liberou a lista oficial do TikTok. A categoria ampla do produto continuará sendo enviada automaticamente ao Bling.');
+      const blocked = data?.availability === 'blocked_by_bling';
+      setTikTokCategoriesBlocked(blocked);
+      if (!categories.length) setTikTokMessage(data?.message ?? 'O Bling não liberou a lista oficial do TikTok. A publicação ficará pausada até o canal voltar a disponibilizá-la.');
     } catch (error) {
-      const detail = error instanceof Error ? error.message : '';
+      const detail = await getFunctionErrorMessage(error, 'Não foi possível buscar as categorias do TikTok.');
+      const blocked = detail.includes('Grpc client not found') || detail.includes('não liberou');
+      setTikTokCategoriesBlocked(blocked);
       setTikTokMessage(detail.includes('Grpc client not found')
-        ? 'O Bling não liberou a lista oficial do TikTok para esta loja. A categoria ampla do produto continuará sendo enviada automaticamente ao Bling.'
-        : detail || 'Não foi possível buscar as categorias do TikTok. A categoria ampla continuará sendo enviada ao Bling.');
+        ? 'O Bling não liberou as categorias do TikTok para esta loja. A publicação está pausada; reconecte o TikTok no Bling com permissão para gerenciar anúncios.'
+        : detail);
       setTikTokStatus('error');
     } finally {
       setLoadingTikTokCategories(false);
@@ -435,6 +460,7 @@ export function SimpleProductDialog({
     setTikTokPublication(status);
     const savedAttributes = status.category?.attribute_mappings;
     if (savedAttributes) setMarketplaceAttributes((current) => ({ ...current, ...savedAttributes }));
+    if (status.category?.marketplace_category_id) setTikTokCategoryId(status.category.marketplace_category_id);
     if (status.publication?.status === 'published') setTikTokStatus('published');
     else if (status.publication?.status === 'error') setTikTokStatus('error');
     else if (status.publication) setTikTokStatus('pending');
@@ -480,12 +506,12 @@ export function SimpleProductDialog({
           attributes: marketplaceAttributes,
         },
       });
-      if (confirmationError) throw confirmationError;
+      if (confirmationError) throw new Error(await getFunctionErrorMessage(confirmationError, 'Não foi possível confirmar a categoria no TikTok.'));
       if (confirmation?.error) throw new Error(confirmation.error);
       const { data: publication, error: publicationError } = await supabase.functions.invoke('bling-publish-product', {
         body: { product_id: initialData.id },
       });
-      if (publicationError) throw publicationError;
+      if (publicationError) throw new Error(await getFunctionErrorMessage(publicationError, 'Não foi possível publicar o produto no TikTok.'));
       if (publication?.error) throw new Error(publication.error);
       setTikTokStatus(publication?.status === 'published' || publication?.ok ? 'published' : 'pending');
       setTikTokMessage(publication?.status === 'published' || publication?.ok ? `Produto publicado no TikTok Shop. Anúncio ${publication?.listing_id ?? ''}`.trim() : 'Produto enviado e aguardando retorno do TikTok Shop.');
@@ -1627,6 +1653,12 @@ export function SimpleProductDialog({
                           {tiktokStatus === 'published' && <Badge variant="secondary"><CheckCircle2 className="mr-1 h-3 w-3" />Publicado</Badge>}
                         </div>
 
+                        <div className="grid grid-cols-3 divide-x rounded-md border bg-muted/20 text-xs">
+                          <div className="p-2.5"><span className="text-muted-foreground">Loja</span><p className="mt-1 font-medium">{initialData.store_status === 'active' ? 'Visível' : 'Inativo'}</p></div>
+                          <div className="p-2.5"><span className="text-muted-foreground">Bling</span><p className="mt-1 font-medium">{initialData.bling_status === 'synced' || initialData.bling_status === 'partial' ? 'Sincronizado' : 'Pendente'}</p></div>
+                          <div className="p-2.5"><span className="text-muted-foreground">TikTok</span><p className="mt-1 font-medium">{tiktokCategoriesBlocked ? 'Pausado' : tiktokStatus === 'published' ? 'Publicado' : tiktokStatus === 'error' ? 'Com erro' : 'Pendente'}</p></div>
+                        </div>
+
                         {!suggestionsConfirmed && (
                           <div className="flex items-start gap-2 text-xs text-muted-foreground">
                             <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -1638,7 +1670,7 @@ export function SimpleProductDialog({
                           <Label className="text-xs">Categoria real no TikTok</Label>
                           <Popover open={tiktokCategoryOpen} onOpenChange={setTikTokCategoryOpen}>
                             <PopoverTrigger asChild>
-                              <Button type="button" variant="outline" className="w-full justify-between font-normal" onClick={() => !tiktokCategories.length && loadTikTokCategories()}>
+                              <Button type="button" variant="outline" className="w-full justify-between font-normal" disabled={tiktokCategoriesBlocked} onClick={() => !tiktokCategories.length && loadTikTokCategories()}>
                                 <span className="truncate">{selectedTikTokCategory?.path_name || selectedTikTokCategory?.name || 'Buscar categoria do TikTok'}</span>
                                 {loadingTikTokCategories ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4 text-muted-foreground" />}
                               </Button>
@@ -1678,7 +1710,12 @@ export function SimpleProductDialog({
                           );
                         })}
 
-                        {tiktokMessage && <p className={cn('text-xs', tiktokStatus === 'error' ? 'text-destructive' : 'text-muted-foreground')}>{tiktokMessage}</p>}
+                        {tiktokMessage && (
+                          <div className={cn('flex items-start gap-2 border-l-2 px-3 py-2 text-xs', tiktokCategoriesBlocked || tiktokStatus === 'error' ? 'border-destructive bg-destructive/5 text-destructive' : 'border-border bg-muted/40 text-muted-foreground')}>
+                            <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            <span>{tiktokMessage}</span>
+                          </div>
+                        )}
                         {tiktokPublication?.publication?.pending_fields?.length ? (
                           <div className="rounded-md border border-border bg-muted/40 p-3 text-xs">
                             <p className="font-medium">Falta preencher antes de publicar:</p>
@@ -1689,10 +1726,11 @@ export function SimpleProductDialog({
                             </ul>
                           </div>
                         ) : null}
-                        <Button type="button" className="w-full" disabled={!suggestionsConfirmed || !selectedTikTokCategory || publishingTikTok} onClick={handleConfirmAndPublishTikTok}>
+                        <Button type="button" className="w-full" disabled={tiktokCategoriesBlocked || !suggestionsConfirmed || !selectedTikTokCategory || publishingTikTok} onClick={handleConfirmAndPublishTikTok}>
                           {publishingTikTok ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Send className="mr-2 h-4 w-4" />}
                           Confirmar e publicar no TikTok
                         </Button>
+                        {tiktokCategoriesBlocked && <p className="text-center text-xs text-muted-foreground">Publicação pausada para evitar tentativas repetidas e anúncios duplicados.</p>}
                         {tiktokPublication?.publication && (
                           <div className="space-y-2 border-t pt-3 text-xs">
                             <div className="grid grid-cols-2 gap-2">

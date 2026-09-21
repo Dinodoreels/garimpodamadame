@@ -213,6 +213,9 @@
 - [x] Atualizar a tela após a autorização e orientar a criação do aplicativo no Partner Center
 - [ ] Concluir a autorização com os códigos reais fornecidos pelo TikTok Shop
 - [ ] Validar a recuperação dos PDFs oficiais dos pedidos após a autorização
+- [x] Mostrar o bloqueio real de categorias do Bling e impedir tentativas inválidas ou anúncios duplicados
+- [x] Substituir o erro genérico da função pela mensagem específica do canal
+- [x] Ressincronizar o Body Splash real no vínculo existente e confirmar fotos e estoque no Bling
 
 # Envio manual de etiquetas TikTok
 

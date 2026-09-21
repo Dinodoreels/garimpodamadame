@@ -596,6 +596,12 @@ export default function Products() {
     
     return {
       id: selectedProduct.id,
+      store_status: selectedProduct.status,
+      bling_status: selectedProduct.bling_links?.some((link) => link.status === 'synced')
+        ? 'synced'
+        : selectedProduct.bling_links?.some((link) => link.status === 'partial')
+          ? 'partial'
+          : selectedProduct.bling_links?.[0]?.status,
       title: selectedProduct.title || '',
       body: selectedProduct.description || '',
       product_type: selectedProduct.product_type || '',
