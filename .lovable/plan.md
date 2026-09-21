@@ -1,11 +1,14 @@
 # Compra híbrida de etiquetas do Melhor Envio
 
 ## Objetivo
-Comprar e gerar automaticamente a etiqueta oficial dos pedidos pagos e completos do site. Pedidos com qualquer divergência ficam bloqueados para revisão, sem cobrança.
+Exigir cadastro completo antes da compra e gerar automaticamente a etiqueta oficial dos pedidos pagos e completos do site. Pedidos com qualquer divergência ficam bloqueados para revisão, sem cobrança.
 
 ## Implementação
 
 ### 1. Regras de segurança e validação
+- Exigir que a pessoa esteja cadastrada e autenticada para iniciar o checkout.
+- Bloquear o avanço do checkout enquanto nome completo, CPF/CNPJ válido, telefone, e-mail e endereço completo não estiverem salvos no cadastro.
+- Mostrar exatamente quais dados faltam e oferecer acesso direto para completá-los, sem apagar o carrinho.
 - Considerar somente pedidos do site com pagamento confirmado.
 - Validar destinatário, CPF/CNPJ, telefone, e-mail, endereço, serviço escolhido, itens, peso e dimensões.
 - Exigir documento fiscal válido antes da compra quando o envio for comercial.
@@ -32,6 +35,7 @@ Comprar e gerar automaticamente a etiqueta oficial dos pedidos pagos e completos
 - Não realizar compras reais durante validação técnica.
 
 ## Validação
+- Testar pessoa sem cadastro, cadastro incompleto e cadastro completo, confirmando que apenas o último consegue avançar ao pagamento.
 - Testar pedido incompleto e confirmar que nenhuma compra acontece.
 - Testar repetição da confirmação de pagamento e confirmar que não duplica a operação.
 - Validar os tipos, o painel e os retornos de erro.
