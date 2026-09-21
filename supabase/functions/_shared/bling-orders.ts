@@ -160,6 +160,36 @@ export async function pushOrderToBling(orderId: string) {
   return { bling_order_id: blingOrderId };
 }
 
+/** Mark a linked sales order as cancelled after a confirmed full refund. */
+export async function markRefundedOrderInBling(orderId: string) {
+  const supa = getSupabaseAdmin();
+  const cfg = await getConfig();
+  if (!cfg?.is_active) return { ok: true, skipped: true, reason: "integration_inactive" };
+  const { data: link, error } = await supa
+    .from("bling_order_links")
+    .select("id, bling_order_id")
+    .eq("order_id", orderId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!link?.bling_order_id) return { ok: true, skipped: true, reason: "order_not_linked" };
+
+  const payload = { situacao: { id: 6 } };
+  const { status, data } = await callBling({
+    path: `/pedidos/vendas/${encodeURIComponent(link.bling_order_id)}`,
+    method: "PUT",
+    body: payload,
+    config: cfg,
+  });
+  if (status >= 400) {
+    const message = blingError(status, data);
+    await logSync({ entity_type: "order", entity_id: orderId, action: "refund_cancel", status: "error", payload, response: data, error_message: message });
+    throw new Error(message);
+  }
+  await supa.from("bling_order_links").update({ bling_status: 6, raw_payload: data, last_synced_at: new Date().toISOString() }).eq("id", link.id);
+  await logSync({ entity_type: "order", entity_id: orderId, action: "refund_cancel", status: "success", payload, response: data });
+  return { ok: true, status, bling_order_id: link.bling_order_id };
+}
+
 const STATUS_MAP: Record<string, string> = {
   "6": "cancelled",
   "9": "paid",

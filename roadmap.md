@@ -239,5 +239,5 @@
 - [x] Publicar sitemap principal, sitemap de produtos ativos e regras de rastreamento
 - [x] Mostrar no painel a situação e o motivo de indexação informado pelo Google
 - [x] Enviar aviso ao aprovar o reembolso e confirmação após o retorno do dinheiro
-- [ ] Validar reposição única de estoque, atualização do Bling e avisos sem executar estorno real
+- [x] Validar reposição única de estoque, atualização do Bling e avisos sem executar estorno real
 
