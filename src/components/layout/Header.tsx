@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Cookie, FileText, Heart, Menu, Moon, Settings, ShieldCheck, Store, Sun, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
@@ -18,7 +18,6 @@ import { ProductSearchBox } from '@/components/search/ProductSearchBox';
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const { isAdmin } = useAdmin();

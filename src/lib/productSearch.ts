@@ -39,13 +39,13 @@ function parseMoney(value: string) {
 export function parseSearchIntent(query: string): ProductSearchIntent {
   const normalized = normalizeSearchText(query);
   const between = normalized.match(/(?:entre|de)\s+(\d+(?:[.,]\d+)?)\s+(?:e|a|ate)\s+(\d+(?:[.,]\d+)?)/);
-  const maxMatch = normalized.match(/(?:ate|menos de|abaixo de|no maximo)\s+(?:r\$\s*)?(\d+(?:[.,]\d+)?)/);
-  const minMatch = normalized.match(/(?:acima de|mais de|a partir de|no minimo)\s+(?:r\$\s*)?(\d+(?:[.,]\d+)?)/);
+  const maxMatch = normalized.match(/(?:ate|menos de|abaixo de|no maximo)\s+(?:r\s*)?(\d+(?:[.,]\d+)?)/);
+  const minMatch = normalized.match(/(?:acima de|mais de|a partir de|no minimo)\s+(?:r\s*)?(\d+(?:[.,]\d+)?)/);
   const minPrice = between ? parseMoney(between[1]) : minMatch ? parseMoney(minMatch[1]) : null;
   const maxPrice = between ? parseMoney(between[2]) : maxMatch ? parseMoney(maxMatch[1]) : null;
   const cleaned = normalized
     .replace(/(?:entre|de)\s+\d+(?:[.,]\d+)?\s+(?:e|a|ate)\s+\d+(?:[.,]\d+)?/g, ' ')
-    .replace(/(?:ate|menos de|abaixo de|no maximo|acima de|mais de|a partir de|no minimo)\s+(?:r\$\s*)?\d+(?:[.,]\d+)?/g, ' ')
+    .replace(/(?:ate|menos de|abaixo de|no maximo|acima de|mais de|a partir de|no minimo)\s+(?:r\s*)?\d+(?:[.,]\d+)?/g, ' ')
     .replace(/\b(?:disponivel|disponiveis|em estoque|com estoque)\b/g, ' ');
   const terms = cleaned.split(/\s+/).filter((term) => term.length > 1 && !STOP_WORDS.has(term));
 
