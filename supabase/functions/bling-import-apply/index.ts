@@ -39,9 +39,7 @@ const imageExtension = (contentType: string | null, sourceUrl: string) => {
 };
 
 async function persistBlingImages(supa: any, productId: string, remoteId: string, urls: string[]) {
-  const persisted: string[] = [];
-  for (let index = 0; index < urls.length; index++) {
-    const sourceUrl = urls[index];
+  const persisted = await Promise.all(urls.map(async (sourceUrl, index): Promise<string | null> => {
     try {
       const response = await fetch(sourceUrl, { signal: AbortSignal.timeout(IMAGE_DOWNLOAD_TIMEOUT_MS) });
       if (!response.ok) throw new Error(`download ${response.status}`);
@@ -55,7 +53,7 @@ async function persistBlingImages(supa: any, productId: string, remoteId: string
       });
       if (error) throw error;
       const { data } = supa.storage.from('product-images').getPublicUrl(path);
-      if (data?.publicUrl) persisted.push(data.publicUrl);
+      return data?.publicUrl ?? null;
     } catch (error) {
       await logSync({
         entity_type: 'product',
@@ -65,9 +63,10 @@ async function persistBlingImages(supa: any, productId: string, remoteId: string
         payload: { source_url: sourceUrl },
         error_message: errorMessage(error),
       });
+      return null;
     }
-  }
-  return persisted;
+  }));
+  return persisted.filter((url): url is string => Boolean(url));
 }
 
 Deno.serve(async (req) => {

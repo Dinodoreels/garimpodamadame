@@ -208,6 +208,7 @@ async function validToken(cfg: BlingConfig): Promise<string> {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const BLING_REQUEST_TIMEOUT_MS = 30_000;
 
 /**
  * Call the Bling API v3. Handles token refresh, 401 retry and rate limit (3 req/s).
@@ -236,6 +237,7 @@ export async function callBling(opts: {
   const doFetch = async (bearer: string) =>
     await fetch(url, {
       method: opts.method ?? "GET",
+      signal: AbortSignal.timeout(BLING_REQUEST_TIMEOUT_MS),
       headers: {
         Authorization: `Bearer ${bearer}`,
         Accept: "application/json",
