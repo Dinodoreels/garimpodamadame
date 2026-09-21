@@ -68,6 +68,7 @@ export async function finalizeConfirmedRefund(
   const cumulativeRefunded = previouslyRefunded + confirmedAmount
   const isFullRefund = cumulativeRefunded >= paidAmount - 0.01
   const results: Record<string, any> = {
+    ...((refund.workflow_results ?? {}) as Record<string, any>),
     payment: { ok: true, provider_status: providerRefund.status ?? 'approved' },
     stock: { ok: false, skipped: !isFullRefund },
     bling: { ok: false, skipped: !isFullRefund },

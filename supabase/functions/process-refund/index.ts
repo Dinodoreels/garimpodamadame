@@ -97,7 +97,8 @@ Deno.serve(async (req) => {
     }
 
     if (!['approved', 'refunded'].includes(String(providerData.status ?? '').toLowerCase())) {
-      await admin.from('refunds').update({ provider_refund_id: String(providerData.id ?? ''), provider_status: String(providerData.status ?? 'pending'), workflow_results: { payment: { ok: true, pending: true } }, updated_at: new Date().toISOString() }).eq('id', refund.id)
+      const { data: currentRefund } = await admin.from('refunds').select('workflow_results').eq('id', refund.id).maybeSingle()
+      await admin.from('refunds').update({ provider_refund_id: String(providerData.id ?? ''), provider_status: String(providerData.status ?? 'pending'), workflow_results: { ...(currentRefund?.workflow_results ?? {}), payment: { ok: true, pending: true } }, updated_at: new Date().toISOString() }).eq('id', refund.id)
       return response({ ok: true, status: 'processing', message: 'O Mercado Pago recebeu o pedido de estorno e ainda está processando.' })
     }
 

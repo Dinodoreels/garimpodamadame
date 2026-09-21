@@ -235,9 +235,9 @@
 - [x] Tentar cancelar o Melhor Envio quando a postagem ainda permitir
 - [x] Registrar resultados e enviar confirmação por e-mail ao cliente
 # SEO administrável e reembolso confirmado
-- [ ] Criar gestão visual de títulos, descrições e imagens sociais para produtos e páginas
-- [ ] Publicar sitemap principal, sitemap de produtos ativos e regras de rastreamento
-- [ ] Mostrar no painel a situação e o motivo de indexação informado pelo Google
-- [ ] Enviar aviso ao aprovar o reembolso e confirmação após o retorno do dinheiro
+- [x] Criar gestão visual de títulos, descrições e imagens sociais para produtos e páginas
+- [x] Publicar sitemap principal, sitemap de produtos ativos e regras de rastreamento
+- [x] Mostrar no painel a situação e o motivo de indexação informado pelo Google
+- [x] Enviar aviso ao aprovar o reembolso e confirmação após o retorno do dinheiro
 - [ ] Validar reposição única de estoque, atualização do Bling e avisos sem executar estorno real
 
