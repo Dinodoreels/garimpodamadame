@@ -111,11 +111,11 @@ const queryClient = new QueryClient({
   },
 });
 
-function StorefrontOverlays() {
+const StorefrontOverlays = React.forwardRef<HTMLDivElement>(function StorefrontOverlays(_, ref) {
   const { pathname } = useLocation();
   if (pathname === '/galpao' || pathname.startsWith('/galpao/') || pathname.startsWith('/admin')) return null;
-  return <><CookieConsent /><BackToTop /><CustomerSupportChat /></>;
-}
+  return <div ref={ref} className="contents"><CookieConsent /><BackToTop /><CustomerSupportChat /></div>;
+});
 
 function ScrollToTopOnNavigation() {
   const { pathname } = useLocation();
