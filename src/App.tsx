@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { forwardRef, lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -111,7 +111,7 @@ const queryClient = new QueryClient({
   },
 });
 
-const StorefrontOverlays = React.forwardRef<HTMLDivElement>(function StorefrontOverlays(_, ref) {
+const StorefrontOverlays = forwardRef<HTMLDivElement>(function StorefrontOverlays(_, ref) {
   const { pathname } = useLocation();
   if (pathname === '/galpao' || pathname.startsWith('/galpao/') || pathname.startsWith('/admin')) return null;
   return <div ref={ref} className="contents"><CookieConsent /><BackToTop /><CustomerSupportChat /></div>;
