@@ -37,12 +37,16 @@ export function ProductSearchBox({
   const visible = showSuggestions && focused && value.trim().length >= 2;
   const suggestions = results.slice(0, 6);
 
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
+  const openCatalog = () => {
     if (!value.trim()) return;
     onSubmit?.();
     navigate(`/catalog?search=${encodeURIComponent(value.trim())}`);
     setFocused(false);
+  };
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+    openCatalog();
   };
 
   const close = () => {
@@ -60,7 +64,6 @@ export function ProductSearchBox({
           type="search"
           aria-label="Pesquisar produtos"
           aria-expanded={visible}
-          aria-controls="product-search-suggestions"
           autoComplete="off"
           placeholder={placeholder}
           value={value}
@@ -72,7 +75,7 @@ export function ProductSearchBox({
       </form>
 
       {visible && (
-        <div id="product-search-suggestions" className="absolute left-0 right-0 top-full z-[70] mt-2 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-xl">
+        <div className="absolute left-0 right-0 top-full z-[70] mt-2 overflow-hidden rounded-md border border-border bg-popover text-popover-foreground shadow-xl">
           <div className="flex items-center gap-2 border-b border-border px-4 py-2 text-xs text-muted-foreground">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Pesquisa inteligente</span>
@@ -106,7 +109,7 @@ export function ProductSearchBox({
             <p className="px-4 py-8 text-center text-sm text-muted-foreground">Nenhum produto real encontrado para esta pesquisa.</p>
           )}
           <div className="border-t border-border p-2">
-            <Button type="button" variant="ghost" className="w-full justify-between" onClick={() => { submit({ preventDefault: () => undefined } as React.FormEvent); }}>
+            <Button type="button" variant="ghost" className="w-full justify-between" onClick={openCatalog}>
               Ver todos os resultados
               <ArrowRight className="h-4 w-4" />
             </Button>
