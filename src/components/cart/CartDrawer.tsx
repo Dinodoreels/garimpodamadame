@@ -168,8 +168,18 @@ export function CartDrawer() {
       return;
     }
 
+    if (addresses.length === 0) {
+      toast.error('Adicione um endereço de entrega', {
+        position: 'top-center',
+        description: 'Cadastre e confirme o endereço que será usado neste pedido.',
+        action: { label: 'Adicionar', onClick: () => setShowAddressModal(true) },
+      });
+      setShowAddressModal(true);
+      return;
+    }
+
     // Only proceed when pickup is selected or the current shipping quote is valid.
-    if (deliveryType === 'pickup' || shippingOption) {
+    if (deliveryType === 'pickup' || (shippingOption && useCartStore.getState().selectedAddress)) {
       await processCheckout();
       return;
     }

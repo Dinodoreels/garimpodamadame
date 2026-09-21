@@ -19,6 +19,8 @@ export interface Address {
   updated_at: string;
 }
 
+export type AddressInput = Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>;
+
 export function useAddresses() {
   const { user } = useAuth();
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -52,12 +54,12 @@ export function useAddresses() {
     fetchAddresses();
   }, [fetchAddresses]);
 
-  const addAddress = async (address: Omit<Address, 'id' | 'user_id' | 'created_at' | 'updated_at'>) => {
+  const addAddress = async (address: AddressInput) => {
     if (!user) return { error: new Error('User not authenticated') };
 
     try {
-      // If this is the first address or is_default, unset other defaults
-      if (address.is_default) {
+      const shouldBeDefault = address.is_default || addresses.length === 0;
+      if (shouldBeDefault) {
         await supabase
           .from('addresses')
           .update({ is_default: false })
@@ -68,6 +70,7 @@ export function useAddresses() {
         .from('addresses')
         .insert({
           ...address,
+          is_default: shouldBeDefault,
           user_id: user.id
         })
         .select()
