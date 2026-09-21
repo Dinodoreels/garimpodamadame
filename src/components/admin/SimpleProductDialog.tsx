@@ -107,6 +107,7 @@ interface SimpleProductDialogProps {
   onSubmit: (data: ProductFormData) => Promise<void>;
   mode?: 'create' | 'edit';
   initialData?: ProductFormData;
+  focusPackaging?: boolean;
 }
 
 export function SimpleProductDialog({ 
@@ -115,7 +116,9 @@ export function SimpleProductDialog({
   onSubmit,
   mode = 'create',
   initialData,
+  focusPackaging = false,
 }: SimpleProductDialogProps) {
+  const packagingSectionRef = useRef<HTMLDivElement>(null);
   const { data: categories = [], isError: categoriesError } = useProductCategories();
   const createCategoryMutation = useCreateCategory();
   const deleteCategoryMutation = useDeleteCategory();
@@ -133,6 +136,12 @@ export function SimpleProductDialog({
   const [newColorName, setNewColorName] = useState('');
   const [newColorHex, setNewColorHex] = useState('#000000');
   const [supplierId, setSupplierId] = useState('');
+
+  useEffect(() => {
+    if (!open || !focusPackaging) return;
+    const timer = window.setTimeout(() => packagingSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 200);
+    return () => window.clearTimeout(timer);
+  }, [focusPackaging, open]);
   const [newSupplierDialogOpen, setNewSupplierDialogOpen] = useState(false);
   const [newSupplierName, setNewSupplierName] = useState('');
   const [newSupplierType, setNewSupplierType] = useState<'own' | 'consignment'>('own');
@@ -1513,7 +1522,7 @@ export function SimpleProductDialog({
                 )}
 
                 {/* Weight & Dimensions */}
-                <div className="space-y-2 md:space-y-3 pt-1 md:pt-2 border-t">
+                <div ref={packagingSectionRef} className="space-y-2 md:space-y-3 pt-1 md:pt-2 border-t">
                   <Label className="text-xs font-medium text-muted-foreground uppercase tracking-wider flex items-center gap-1">
                     <Package className="h-3 w-3" />
                     Peso e Dimensões

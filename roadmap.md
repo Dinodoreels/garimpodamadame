@@ -19,6 +19,9 @@
 - [x] Recolocar devoluções e quarentenas na fila de triagem com histórico da movimentação
 - [x] Exigir separação e conferência antes de liberar etiqueta e postagem
 - [x] Bloquear reenvio automático de pedidos antigos entregues ou cancelados ao Bling
+- [x] Preparar cadastro individual de posições com capacidade, descrição, edição, ativação e ocupação real
+- [x] Mostrar a fila de produtos ativos sem peso ou dimensões e abrir a seção correta para ajuste
+- [x] Bloquear cotação, publicação e liberação Inbound quando faltarem medidas reais
 # Fase 3
 
 - [x] Criar base de dados, permissões e fluxo seguro de SKU/QC/preço/endereço/liberação

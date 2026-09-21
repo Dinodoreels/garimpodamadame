@@ -6097,6 +6097,21 @@ export type Database = {
         }
         Returns: Json
       }
+      release_inbound_item_with_package: {
+        Args: {
+          p_actor_id: string
+          p_height_cm: number
+          p_item_id: string
+          p_length_cm: number
+          p_notes?: string
+          p_price: number
+          p_sku: string
+          p_title: string
+          p_weight_grams: number
+          p_width_cm: number
+        }
+        Returns: Json
+      }
       shopify_is_enabled: { Args: never; Returns: boolean }
       validate_discount_code: {
         Args: { p_code: string }

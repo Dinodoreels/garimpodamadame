@@ -11,7 +11,7 @@ export interface InboundItem {
 
 export interface WarehouseLocation {
   id: string; code: string; zone: string | null; aisle: string | null; rack: string | null;
-  shelf: string | null; bin: string | null; description: string | null; capacity: number | null; is_active: boolean;
+  shelf: string | null; bin: string | null; description: string | null; capacity: number | null; is_active: boolean; occupancy: number;
 }
 
 export interface InboundUser { id: string; email: string | null; full_name: string | null; role: string }
@@ -34,12 +34,14 @@ export const workflowService = {
   detail: (item_id: string) => call<Record<string, unknown> & { item: InboundItem }>({ action: 'detail', item_id }),
   locations: () => call<{ locations: WarehouseLocation[] }>({ action: 'locations' }).then(r => r.locations),
   createLocation: (input: Record<string, unknown>) => call({ action: 'create_location', ...input }),
+  updateLocation: (location_id: string, input: Record<string, unknown>) => call({ action: 'update_location', location_id, ...input }),
+  toggleLocation: (location_id: string, is_active: boolean) => call({ action: 'toggle_location', location_id, is_active }),
   triage: (item_id: string, notes?: string) => call({ action: 'triage', item_id, notes }),
   qc: (item_id: string, decision: string, notes?: string, checklist?: Record<string, boolean>) => call({ action: 'qc', item_id, decision, notes, checklist }),
   price: (item_id: string, price: number, reason?: string) => call({ action: 'price', item_id, price, reason }),
   address: (item_id: string, location_id: string) => call({ action: 'address', item_id, location_id }),
   stock: (item_id: string) => call({ action: 'stock', item_id }),
-  release: (item_id: string, title: string, sku: string, price: number, notes?: string) => call({ action: 'release', item_id, title, sku, price, notes }),
+  release: (item_id: string, title: string, sku: string, price: number, packageData: { weight_grams: number; length_cm: number; width_cm: number; height_cm: number }, notes?: string) => call({ action: 'release', item_id, title, sku, price, ...packageData, notes }),
   resolvePending: (pending_id: string, item_id: string, title: string, sku: string) => call({ action: 'resolve_pending', pending_id, item_id, title, sku }),
   users: () => call<{ users: InboundUser[] }>({ action: 'users' }).then(r => r.users),
   assignRole: (user_id: string, role: string) => call({ action: 'assign_role', user_id, role }),

@@ -217,6 +217,8 @@ export default function Products() {
   const [filterSupplier, setFilterSupplier] = useState<string>('');
   const [filterConsignment, setFilterConsignment] = useState<string>('');
   const [filterLote, setFilterLote] = useState<string>('');
+  const [packagingOnly, setPackagingOnly] = useState(false);
+  const [focusPackaging, setFocusPackaging] = useState(false);
   
   // Product management state
   const [simpleDialogOpen, setSimpleDialogOpen] = useState(false);
@@ -287,10 +289,18 @@ export default function Products() {
     () => products.filter((p) => !p.product_type || !categoryValues.has(p.product_type)),
     [products, categoryValues]
   );
+  const productsWithoutPackaging = useMemo(
+    () => products.filter((product) => {
+      const packageFields = product as Product & { weight_grams?: number | null; length_cm?: number | null; width_cm?: number | null; height_cm?: number | null };
+      return product.status === 'active' && [packageFields.weight_grams, packageFields.length_cm, packageFields.width_cm, packageFields.height_cm].some(value => Number(value) <= 0);
+    }),
+    [products],
+  );
 
   const filteredProducts = useMemo(() => {
     return searchProducts(products, search).filter((product) => {
       if (focusedProductId && product.id !== focusedProductId) return false;
+      if (packagingOnly && !productsWithoutPackaging.some(item => item.id === product.id)) return false;
       let matchesType = true;
       if (filterType === '__none__') {
         matchesType = !product.product_type || !categoryValues.has(product.product_type);
@@ -305,9 +315,9 @@ export default function Products() {
         (filterLote === 'lote' ? (product as any).is_lote === true : (product as any).is_lote !== true);
       return matchesType && matchesVendor && matchesSupplier && matchesConsignment && matchesLote;
     });
-  }, [products, search, filterType, filterVendor, filterSupplier, filterConsignment, filterLote, categoryValues, focusedProductId]);
+  }, [products, search, filterType, filterVendor, filterSupplier, filterConsignment, filterLote, categoryValues, focusedProductId, packagingOnly, productsWithoutPackaging]);
 
-  const hasActiveFilters = filterType || filterVendor || filterSupplier || filterConsignment || filterLote;
+  const hasActiveFilters = filterType || filterVendor || filterSupplier || filterConsignment || filterLote || packagingOnly;
 
   const clearFilters = () => {
     setFilterType('');
@@ -315,6 +325,7 @@ export default function Products() {
     setFilterSupplier('');
     setFilterConsignment('');
     setFilterLote('');
+    setPackagingOnly(false);
   };
 
   const formatCurrency = (amount: number) => {
@@ -329,6 +340,13 @@ export default function Products() {
   };
 
   const handleEdit = (product: Product) => {
+    setFocusPackaging(false);
+    setSelectedProduct(product);
+    setEditDialogOpen(true);
+  };
+
+  const handlePackagingEdit = (product: Product) => {
+    setFocusPackaging(true);
     setSelectedProduct(product);
     setEditDialogOpen(true);
   };
@@ -681,6 +699,18 @@ export default function Products() {
               >
                 Filtrar
               </Button>
+            </div>
+          )}
+
+          {productsWithoutPackaging.length > 0 && !packagingOnly && (
+            <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-3 sm:flex-row sm:items-center">
+              <Package className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{productsWithoutPackaging.length} produto{productsWithoutPackaging.length === 1 ? '' : 's'} sem peso ou dimensões</p>
+                <p className="text-xs text-muted-foreground">Frete, etiqueta e publicação ficam bloqueados até informar as medidas reais.</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={()=>setPackagingOnly(true)}>Ver pendências</Button>
+              {productsWithoutPackaging.slice(0,1).map(product=><Button key={product.id} size="sm" onClick={()=>handlePackagingEdit(product)}>Corrigir agora</Button>)}
             </div>
           )}
 
@@ -1184,6 +1214,7 @@ export default function Products() {
         onSubmit={handleEditSubmit}
         mode="edit"
         initialData={getInitialFormData()}
+        focusPackaging={focusPackaging}
       />
 
       {/* Delete Confirmation Dialog */}

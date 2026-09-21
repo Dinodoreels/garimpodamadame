@@ -8,6 +8,8 @@ const roleFor: Record<string, string[]> = {
   qc: ['admin','gestor_cd','qc'],
   price: ['admin','gestor_cd','commerce'],
   create_location: ['admin','gestor_cd','estoque'],
+  update_location: ['admin','gestor_cd','estoque'],
+  toggle_location: ['admin','gestor_cd','estoque'],
   address: ['admin','gestor_cd','estoque'],
   stock: ['admin','gestor_cd','estoque'],
   release: ['admin','gestor_cd','commerce'],
@@ -56,14 +58,50 @@ Deno.serve(async (req) => {
     if (action === 'locations') {
       const { data, error } = await db.from('warehouse_locations').select('*').order('code');
       if (error) throw error;
-      return jsonResponse({ ok: true, locations: data ?? [] });
+      const ids = (data ?? []).map(location => location.id);
+      const { data: items, error: occupancyError } = ids.length
+        ? await db.from('inbound_items').select('location_id,quantity').in('location_id', ids).in('state', ['ADDRESS_PENDING','STOCKED','AVAILABLE'])
+        : { data: [], error: null };
+      if (occupancyError) throw occupancyError;
+      const occupancy = new Map<string, number>();
+      for (const item of items ?? []) occupancy.set(item.location_id, (occupancy.get(item.location_id) ?? 0) + Number(item.quantity ?? 0));
+      return jsonResponse({ ok: true, locations: (data ?? []).map(location => ({ ...location, occupancy: occupancy.get(location.id) ?? 0 })) });
     }
     if (action === 'create_location') {
       const code = String(body.code ?? '').trim().toUpperCase();
       if (!code) return jsonResponse({ ok: false, error: 'Informe o código do endereço.' }, 400);
-      const { data, error } = await db.from('warehouse_locations').insert({ code, zone: body.zone || null, aisle: body.aisle || null, rack: body.rack || null, shelf: body.shelf || null, bin: body.bin || null, description: body.description || null, capacity: body.capacity || null, created_by: user.id }).select().single();
+      const capacity = body.capacity === null || body.capacity === undefined || body.capacity === '' ? null : Number(body.capacity);
+      if (capacity !== null && (!Number.isInteger(capacity) || capacity <= 0)) return jsonResponse({ ok: false, error: 'A capacidade deve ser um número inteiro maior que zero.' }, 400);
+      const { data, error } = await db.from('warehouse_locations').insert({ code, zone: body.zone || null, aisle: body.aisle || null, rack: body.rack || null, shelf: body.shelf || null, bin: body.bin || null, description: body.description || null, capacity, created_by: user.id }).select().single();
       if (error) throw error;
       await event(db, data.id, 'location_created', null, data, user.id);
+      return jsonResponse({ ok: true, location: data });
+    }
+    if (action === 'update_location') {
+      const locationId = String(body.location_id ?? '');
+      const code = String(body.code ?? '').trim().toUpperCase();
+      const capacity = body.capacity === null || body.capacity === undefined || body.capacity === '' ? null : Number(body.capacity);
+      if (!locationId || !code) return jsonResponse({ ok: false, error: 'Informe a posição e o código.' }, 400);
+      if (capacity !== null && (!Number.isInteger(capacity) || capacity <= 0)) return jsonResponse({ ok: false, error: 'A capacidade deve ser um número inteiro maior que zero.' }, 400);
+      const { data: before } = await db.from('warehouse_locations').select('*').eq('id', locationId).maybeSingle();
+      if (!before) return jsonResponse({ ok: false, error: 'Posição não encontrada.' }, 404);
+      const { data, error } = await db.from('warehouse_locations').update({ code, zone: body.zone || null, aisle: body.aisle || null, rack: body.rack || null, shelf: body.shelf || null, bin: body.bin || null, description: body.description || null, capacity }).eq('id', locationId).select().single();
+      if (error) throw error;
+      await event(db, data.id, 'location_updated', before, data, user.id);
+      return jsonResponse({ ok: true, location: data });
+    }
+    if (action === 'toggle_location') {
+      const locationId = String(body.location_id ?? '');
+      const isActive = body.is_active === true;
+      const { data: before } = await db.from('warehouse_locations').select('*').eq('id', locationId).maybeSingle();
+      if (!before) return jsonResponse({ ok: false, error: 'Posição não encontrada.' }, 404);
+      if (!isActive) {
+        const { count } = await db.from('inbound_items').select('*', { count: 'exact', head: true }).eq('location_id', locationId).in('state', ['ADDRESS_PENDING','STOCKED','AVAILABLE']);
+        if ((count ?? 0) > 0) return jsonResponse({ ok: false, error: 'Transfira os itens desta posição antes de desativá-la.' }, 409);
+      }
+      const { data, error } = await db.from('warehouse_locations').update({ is_active: isActive }).eq('id', locationId).select().single();
+      if (error) throw error;
+      await event(db, data.id, isActive ? 'location_activated' : 'location_deactivated', before, data, user.id);
       return jsonResponse({ ok: true, location: data });
     }
     const itemId = String(body.item_id ?? '');
@@ -133,8 +171,14 @@ Deno.serve(async (req) => {
     }
     if (action === 'address') {
       if (!['PRICED','ADDRESS_PENDING'].includes(before.state)) return jsonResponse({ ok: false, error: 'Aprove o preço antes de definir o endereço.' }, 409);
-      const { data: location } = await db.from('warehouse_locations').select('id,code,is_active').eq('id', body.location_id).maybeSingle();
+      const { data: location } = await db.from('warehouse_locations').select('id,code,is_active,capacity').eq('id', body.location_id).maybeSingle();
       if (!location?.is_active) return jsonResponse({ ok: false, error: 'Endereço inválido ou inativo.' }, 400);
+      if (location.capacity) {
+        const { data: occupiedItems, error: occupiedError } = await db.from('inbound_items').select('id,quantity').eq('location_id', location.id).in('state', ['ADDRESS_PENDING','STOCKED','AVAILABLE']);
+        if (occupiedError) throw occupiedError;
+        const occupied = (occupiedItems ?? []).filter(item => item.id !== itemId).reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
+        if (occupied + Number(before.quantity ?? 0) > Number(location.capacity)) return jsonResponse({ ok: false, error: `A posição ${location.code} não tem capacidade para este item.` }, 409);
+      }
       await db.from('inbound_items').update({ location_id: location.id, state: 'ADDRESS_PENDING' }).eq('id', itemId);
       await movement(db, before, 'ADDRESS_PENDING', 'addressed', user.id, location.code, location.id);
       await event(db, itemId, 'addressed', before, { state: 'ADDRESS_PENDING', location_id: location.id, code: location.code }, user.id);
@@ -148,7 +192,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, state: 'STOCKED' });
     }
     if (action === 'release') {
-      const { data, error } = await db.rpc('release_inbound_item', { p_item_id: itemId, p_actor_id: user.id, p_title: body.title, p_sku: body.sku, p_price: Number(body.price), p_notes: body.notes ?? null });
+      const packageData = ['weight_grams','length_cm','width_cm','height_cm'].map(field => Number(body[field]));
+      if (packageData.some(value => !Number.isInteger(value) || value <= 0)) return jsonResponse({ ok: false, error: 'Informe o peso e todas as dimensões reais do produto embalado.' }, 400);
+      const { data, error } = await db.rpc('release_inbound_item_with_package', { p_item_id: itemId, p_actor_id: user.id, p_title: body.title, p_sku: body.sku, p_price: Number(body.price), p_weight_grams: packageData[0], p_length_cm: packageData[1], p_width_cm: packageData[2], p_height_cm: packageData[3], p_notes: body.notes ?? null });
       if (error) throw error;
       return jsonResponse({ ok: true, release: data });
     }
