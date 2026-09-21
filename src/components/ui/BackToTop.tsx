@@ -1,9 +1,9 @@
-import { forwardRef, useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-export const BackToTop = forwardRef<HTMLButtonElement, Record<string, never>>(function BackToTop(_, ref) {
+export function BackToTop() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
@@ -32,7 +32,6 @@ export const BackToTop = forwardRef<HTMLButtonElement, Record<string, never>>(fu
 
   return (
     <Button
-      ref={ref}
       variant="outline"
       size="icon"
       className={cn(
@@ -48,4 +47,4 @@ export const BackToTop = forwardRef<HTMLButtonElement, Record<string, never>>(fu
       <ArrowUp className="h-4 w-4" />
     </Button>
   );
-});
+}
