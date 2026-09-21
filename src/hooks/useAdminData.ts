@@ -12,6 +12,7 @@ export interface AdminOrder {
   shipping_cost: number;
   total: number;
   shipping_address: any;
+  shipping_address_id?: string | null;
   created_at: string;
   updated_at: string;
   order_items?: any[];

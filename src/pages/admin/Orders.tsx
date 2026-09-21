@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useMemo } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Plus, CalendarIcon, X, Globe, MessageCircle, Store, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -53,9 +53,12 @@ const formatCurrency = (v: number) =>
 
 export default function Orders() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get('status') ?? 'all';
+  const operationFilter = searchParams.get('operation');
   const { orders, loading, updateOrderStatus } = useAdminData();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [vendorFilter, setVendorFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
@@ -63,6 +66,30 @@ export default function Orders() {
   const [dateFrom, setDateFrom] = useState<Date | undefined>();
   const [dateTo, setDateTo] = useState<Date | undefined>();
   const [currentPage, setCurrentPage] = useState(1);
+
+  useEffect(() => {
+    setStatusFilter(searchParams.get('status') ?? 'all');
+    setCurrentPage(1);
+  }, [searchParams]);
+
+  const queueCounts = useMemo(() => {
+    const counts = { separation: 0, awaiting_data: 0, awaiting_invoice: 0, label_ready: 0, posting: 0, transit: 0, reconciliation: 0 };
+    orders.forEach(order => {
+      const source = String(order.source ?? '').toLowerCase();
+      const marketplace = source.startsWith('bling:') || source.includes('marketplace') || source.includes('tiktok') || source.includes('shopify');
+      const actionable = Boolean(order.paid_at) && ['paid', 'processing'].includes(order.status);
+      const shipmentStatus = String(order.melhor_envio_shipment?.status ?? '');
+      const validationStatus = String(order.melhor_envio_shipment?.validation_status ?? '');
+      if (actionable) counts.separation += 1;
+      if (!marketplace && actionable && (validationStatus === 'awaiting_data' || shipmentStatus === 'awaiting_data')) counts.awaiting_data += 1;
+      if (!marketplace && actionable && (validationStatus === 'awaiting_invoice' || shipmentStatus === 'awaiting_invoice')) counts.awaiting_invoice += 1;
+      if ((marketplace && order.marketplace_shipping_label?.status === 'ready') || (!marketplace && Boolean(order.melhor_envio_shipment?.label_url))) counts.label_ready += 1;
+      if (actionable && ((marketplace && order.marketplace_shipping_label?.printed_at) || (!marketplace && order.melhor_envio_shipment?.printed_at))) counts.posting += 1;
+      if (order.status === 'shipped') counts.transit += 1;
+      if (order.paid_at && !order.shipping_address_id) counts.reconciliation += 1;
+    });
+    return counts;
+  }, [orders]);
 
   // Status counts from ALL orders
   const statusCounts = useMemo(() => {
@@ -134,14 +161,27 @@ export default function Orders() {
             ? 'error'
             : 'pending';
       const matchesLabel = labelFilter === 'all' || currentLabelState === labelFilter;
+      const source = String(order.source ?? '').toLowerCase();
+      const isMarketplace = source.startsWith('bling:') || source.includes('marketplace') || source.includes('tiktok') || source.includes('shopify');
+      const isActionable = Boolean(order.paid_at) && ['paid', 'processing'].includes(order.status);
+      const matchesOperation = !operationFilter
+        || (operationFilter === 'separation' && isActionable)
+        || (operationFilter === 'shipping' && isActionable && (isMarketplace ? currentLabelState === 'pending' || currentLabelState === 'error' : !order.melhor_envio_shipment))
+        || (operationFilter === 'awaiting_data' && !isMarketplace && isActionable && ['awaiting_data'].includes(String(order.melhor_envio_shipment?.validation_status ?? order.melhor_envio_shipment?.status ?? '')))
+        || (operationFilter === 'awaiting_invoice' && !isMarketplace && isActionable && ['awaiting_invoice'].includes(String(order.melhor_envio_shipment?.validation_status ?? order.melhor_envio_shipment?.status ?? '')))
+        || (operationFilter === 'label_ready' && (isMarketplace ? currentLabelState === 'ready' : Boolean(order.melhor_envio_shipment?.label_url)))
+        || (operationFilter === 'posting' && isActionable && (isMarketplace ? Boolean(order.marketplace_shipping_label?.printed_at) : Boolean(order.melhor_envio_shipment?.printed_at)))
+        || (operationFilter === 'transit' && order.status === 'shipped')
+        || (operationFilter === 'reconciliation' && Boolean(order.paid_at) && !order.shipping_address_id)
+        || (operationFilter === 'after-sales' && ['delivered', 'refunded'].includes(order.status));
 
       const orderDate = new Date(order.created_at);
       const matchesDateFrom = !dateFrom || orderDate >= new Date(dateFrom.setHours(0, 0, 0, 0));
       const matchesDateTo = !dateTo || orderDate <= new Date(new Date(dateTo).setHours(23, 59, 59, 999));
 
-      return matchesSearch && matchesStatus && matchesSource && matchesVendor && matchesPayment && matchesLabel && matchesDateFrom && matchesDateTo;
+      return matchesSearch && matchesStatus && matchesSource && matchesVendor && matchesPayment && matchesLabel && matchesOperation && matchesDateFrom && matchesDateTo;
     });
-  }, [orders, search, statusFilter, sourceFilter, vendorFilter, paymentFilter, labelFilter, dateFrom, dateTo]);
+  }, [orders, search, statusFilter, sourceFilter, vendorFilter, paymentFilter, labelFilter, operationFilter, dateFrom, dateTo]);
 
   const handleFilterChange = () => setCurrentPage(1);
 
@@ -191,6 +231,12 @@ export default function Orders() {
             Novo Pedido
           </Button>
         </div>
+      </div>
+      {operationFilter && <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2 text-sm"><span>{operationFilter === 'separation' ? 'Fila operacional: pedidos pagos aguardando separação' : operationFilter === 'shipping' ? 'Fila operacional: fiscal, etiqueta e envio' : operationFilter === 'reconciliation' ? 'Conciliação: pedidos antigos sem endereço vinculado' : 'Fila operacional: pós-compra'}</span><Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders')}>Ver todos</Button></div>}
+      <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
+        {[
+          ['separation', 'Separar'], ['awaiting_data', 'Aguardando dados'], ['awaiting_invoice', 'Aguardando nota'], ['label_ready', 'Etiqueta pronta'], ['posting', 'Postar'], ['transit', 'Em trânsito'], ['reconciliation', 'Conciliação'],
+        ].map(([key, label]) => <Button key={key} variant={operationFilter === key ? 'default' : 'outline'} className="h-auto min-h-14 justify-between px-3 py-2" onClick={() => navigate(`/admin/orders?operation=${key}`)}><span className="text-left text-xs">{label}</span><span className="text-base font-semibold">{queueCounts[key as keyof typeof queueCounts]}</span></Button>)}
       </div>
 
       {/* Source Summary Cards */}

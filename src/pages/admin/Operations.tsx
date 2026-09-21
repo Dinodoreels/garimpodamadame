@@ -23,12 +23,15 @@ export default function Operations() {
         <Badge variant="destructive">{data?.blocked ?? 0} bloqueios</Badge>
         <Badge variant="secondary">{data?.attention ?? 0} etapas pedindo atenção</Badge>
         <Badge variant="outline">Estoque Vanguard Store é a fonte central</Badge>
+        {data?.updatedAt && <Badge variant="outline">Atualizado às {new Date(data.updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Badge>}
       </div>
+      {data?.warnings.map(warning => <div key={warning} className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-warning-foreground"><AlertTriangle className="h-4 w-4 shrink-0" />{warning} Os demais números continuam disponíveis.</div>)}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {data?.stages.map(stage => {
           const visual = visuals[stage.status]; const Icon = visual.icon;
           return <Card key={stage.key} className={cn('border-l-4', visual.className)}><CardContent className="flex h-full flex-col gap-4 pt-5">
             <div className="flex items-start justify-between gap-3"><div><h2 className="font-medium text-foreground">{stage.title}</h2><p className="mt-1 text-sm text-muted-foreground">{stage.description}</p></div><Icon className="h-5 w-5 shrink-0" /></div>
+            {stage.details?.length ? <div className="space-y-1 border-l pl-3">{stage.details.slice(0, 5).map(detail => <p key={detail} className="line-clamp-2 text-xs text-muted-foreground" title={detail}>{detail}</p>)}</div> : null}
             <div className="mt-auto flex items-end justify-between gap-3"><div><p className="text-2xl font-semibold text-foreground">{stage.count}</p><p className="text-xs text-muted-foreground">{visual.label}</p></div><Button asChild variant={stage.status === 'blocked' ? 'default' : 'outline'} size="sm"><Link to={stage.path}>{stage.action}<ArrowRight className="ml-2 h-4 w-4" /></Link></Button></div>
           </CardContent></Card>;
         })}

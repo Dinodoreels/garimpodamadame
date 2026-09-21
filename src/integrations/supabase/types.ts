@@ -3415,6 +3415,8 @@ export type Database = {
           discount_amount: number | null
           discount_code: string | null
           external_order_key: string | null
+          fulfillment_status: string
+          fulfillment_updated_by: string | null
           guest_info: Json | null
           id: string
           last_payment_error: string | null
@@ -3423,12 +3425,16 @@ export type Database = {
           mercadopago_payment_id: string | null
           mercadopago_preference_id: string | null
           order_number: string
+          packed_at: string | null
           paid_amount: number | null
           paid_at: string | null
           payment_attempts: number | null
           payment_method: string | null
           payment_receipt_url: string | null
           payment_status_detail: string | null
+          posted_at: string | null
+          separated_at: string | null
+          separation_started_at: string | null
           shipped_at: string | null
           shipping_address: Json | null
           shipping_address_id: string | null
@@ -3460,6 +3466,8 @@ export type Database = {
           discount_amount?: number | null
           discount_code?: string | null
           external_order_key?: string | null
+          fulfillment_status?: string
+          fulfillment_updated_by?: string | null
           guest_info?: Json | null
           id?: string
           last_payment_error?: string | null
@@ -3468,12 +3476,16 @@ export type Database = {
           mercadopago_payment_id?: string | null
           mercadopago_preference_id?: string | null
           order_number: string
+          packed_at?: string | null
           paid_amount?: number | null
           paid_at?: string | null
           payment_attempts?: number | null
           payment_method?: string | null
           payment_receipt_url?: string | null
           payment_status_detail?: string | null
+          posted_at?: string | null
+          separated_at?: string | null
+          separation_started_at?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_address_id?: string | null
@@ -3505,6 +3517,8 @@ export type Database = {
           discount_amount?: number | null
           discount_code?: string | null
           external_order_key?: string | null
+          fulfillment_status?: string
+          fulfillment_updated_by?: string | null
           guest_info?: Json | null
           id?: string
           last_payment_error?: string | null
@@ -3513,12 +3527,16 @@ export type Database = {
           mercadopago_payment_id?: string | null
           mercadopago_preference_id?: string | null
           order_number?: string
+          packed_at?: string | null
           paid_amount?: number | null
           paid_at?: string | null
           payment_attempts?: number | null
           payment_method?: string | null
           payment_receipt_url?: string | null
           payment_status_detail?: string | null
+          posted_at?: string | null
+          separated_at?: string | null
+          separation_started_at?: string | null
           shipped_at?: string | null
           shipping_address?: Json | null
           shipping_address_id?: string | null

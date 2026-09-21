@@ -4,6 +4,7 @@ const roleFor: Record<string, string[]> = {
   detail: ['admin','gestor_cd','inbound','qc','estoque','commerce','viewer'],
   list: ['admin','gestor_cd','inbound','qc','estoque','commerce','viewer'],
   locations: ['admin','gestor_cd','inbound','qc','estoque','commerce','viewer'],
+  triage: ['admin','gestor_cd','inbound','qc'],
   qc: ['admin','gestor_cd','qc'],
   price: ['admin','gestor_cd','commerce'],
   create_location: ['admin','gestor_cd','estoque'],
@@ -66,7 +67,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, location: data });
     }
     const itemId = String(body.item_id ?? '');
-    const { data: before, error: itemError } = await db.from('inbound_items').select('*').eq('id', itemId).maybeSingle();
+    const { data: before, error: itemError } = await db.from('inbound_items').select('*,lots(code),warehouse_locations(code)').eq('id', itemId).maybeSingle();
     if (itemError || !before) return jsonResponse({ ok: false, error: 'SKU não encontrado.' }, 404);
 
     if (action === 'detail') {
@@ -101,11 +102,21 @@ Deno.serve(async (req) => {
       await event(db, itemId, 'photo_added', null, { photo_id: photo.id, kind, caption: photo.caption }, user.id);
       return jsonResponse({ ok: true, photo });
     }
+    if (action === 'triage') {
+      if (!['RETURNED','QUARANTINE'].includes(before.state)) return jsonResponse({ ok: false, error: 'Somente devoluções e itens em quarentena podem voltar para triagem.' }, 409);
+      await db.from('inbound_items').update({ state: 'TRIAGE' }).eq('id', itemId);
+      await movement(db, before, 'TRIAGE', 'returned_to_triage', user.id, body.notes);
+      await event(db, itemId, 'returned_to_triage', before, { state: 'TRIAGE' }, user.id);
+      return jsonResponse({ ok: true, state: 'TRIAGE' });
+    }
     if (action === 'qc') {
       if (!['IDENTIFIED','QC_PENDING'].includes(before.state)) return jsonResponse({ ok: false, error: 'Este item não está aguardando qualidade.' }, 409);
       const decision = String(body.decision ?? '');
+      if (!['approved','quarantine','rejected'].includes(decision)) return jsonResponse({ ok: false, error: 'Decisão de qualidade inválida.' }, 400);
+      const checklist = body.checklist && typeof body.checklist === 'object' ? body.checklist as Record<string, unknown> : {};
+      if (decision === 'approved' && !['identity','condition','quantity','evidence'].every(field => checklist[field] === true)) return jsonResponse({ ok: false, error: 'Conclua toda a conferência de qualidade antes de aprovar.' }, 400);
       const next = decision === 'approved' ? 'QC_APPROVED' : decision === 'quarantine' ? 'QUARANTINE' : 'REJECTED';
-      await db.from('inbound_qc_checks').insert({ item_id: itemId, decision, checklist: body.checklist ?? {}, notes: body.notes ?? null, created_by: user.id });
+      await db.from('inbound_qc_checks').insert({ item_id: itemId, decision, checklist, notes: body.notes ?? null, created_by: user.id });
       await db.from('inbound_items').update({ state: next, qc_by: user.id, qc_at: new Date().toISOString() }).eq('id', itemId);
       await movement(db, before, next, decision === 'approved' ? 'qc_approved' : decision, user.id, body.notes);
       await event(db, itemId, `qc_${decision}`, before, { state: next, checklist: body.checklist ?? {} }, user.id);
@@ -121,7 +132,7 @@ Deno.serve(async (req) => {
       return jsonResponse({ ok: true, state: 'PRICED' });
     }
     if (action === 'address') {
-      if (!['QC_APPROVED','PRICED','ADDRESS_PENDING'].includes(before.state)) return jsonResponse({ ok: false, error: 'Item ainda não pode ser endereçado.' }, 409);
+      if (!['PRICED','ADDRESS_PENDING'].includes(before.state)) return jsonResponse({ ok: false, error: 'Aprove o preço antes de definir o endereço.' }, 409);
       const { data: location } = await db.from('warehouse_locations').select('id,code,is_active').eq('id', body.location_id).maybeSingle();
       if (!location?.is_active) return jsonResponse({ ok: false, error: 'Endereço inválido ou inativo.' }, 400);
       await db.from('inbound_items').update({ location_id: location.id, state: 'ADDRESS_PENDING' }).eq('id', itemId);
