@@ -12,6 +12,9 @@ export interface Banner {
   overlay_opacity: number;
   is_active: boolean;
   show_button: boolean;
+  show_title: boolean;
+  show_subtitle: boolean;
+  show_overlay: boolean;
   click_url: string | null;
   position: number;
   media_type: string;

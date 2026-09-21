@@ -168,20 +168,22 @@ export function HeroBannerCarousel({ compact = false }: { compact?: boolean }) {
               </div>
               )}
               {/* Overlay */}
-              <div 
-                className="absolute inset-0 bg-gradient-to-br from-black via-black/80 to-black"
-                style={{ opacity: banner.overlay_opacity / 100 }}
-              />
+              {banner.show_overlay !== false && (
+                <div 
+                  className="absolute inset-0 bg-gradient-to-br from-black via-black/80 to-black"
+                  style={{ opacity: banner.overlay_opacity / 100 }}
+                />
+              )}
               
               {/* Content */}
                <div className={cn("container relative z-10 flex flex-col items-center justify-center overflow-hidden text-center", compact ? "h-full px-8" : "min-h-[70vh] lg:min-h-[85vh]")}>
-                {banner.title && (
+                 {banner.show_title !== false && banner.title && (
                    <h2 className={cn("font-display font-light leading-tight text-white drop-shadow-lg", compact ? "mb-3 text-3xl sm:text-4xl lg:text-5xl" : "mb-6 text-4xl sm:text-5xl lg:text-7xl")}>
                     {banner.title}
                   </h2>
                 )}
                 
-                {banner.subtitle && (
+                 {banner.show_subtitle !== false && banner.subtitle && (
                    <p className={cn("max-w-lg text-sm font-light text-white/70", compact ? "mb-5" : "mb-10")}>
                     {banner.subtitle}
                   </p>

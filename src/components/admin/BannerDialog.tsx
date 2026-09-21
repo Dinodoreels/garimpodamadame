@@ -48,6 +48,9 @@ export function BannerDialog({ open, onOpenChange, banner }: BannerDialogProps) 
     button_text: 'VER MAIS',
     button_link: '/catalog',
     show_button: true,
+    show_title: true,
+    show_subtitle: true,
+    show_overlay: true,
     click_url: '',
     overlay_opacity: 50,
     is_active: true,
@@ -75,6 +78,9 @@ export function BannerDialog({ open, onOpenChange, banner }: BannerDialogProps) 
         button_text: banner.button_text,
         button_link: banner.button_link,
         show_button: banner.show_button ?? true,
+        show_title: banner.show_title ?? true,
+        show_subtitle: banner.show_subtitle ?? true,
+        show_overlay: banner.show_overlay ?? true,
         click_url: banner.click_url || '',
         overlay_opacity: banner.overlay_opacity,
         is_active: banner.is_active,
@@ -97,6 +103,9 @@ export function BannerDialog({ open, onOpenChange, banner }: BannerDialogProps) 
         button_text: 'VER MAIS',
         button_link: '/catalog',
         show_button: true,
+        show_title: true,
+        show_subtitle: true,
+        show_overlay: true,
         click_url: '',
         overlay_opacity: 50,
         is_active: true,
@@ -279,10 +288,12 @@ export function BannerDialog({ open, onOpenChange, banner }: BannerDialogProps) 
                         className="w-full h-full object-cover"
                       />
                       {/* Overlay Preview */}
-                      <div 
-                        className="absolute inset-0 bg-gradient-to-br from-black via-black/80 to-black pointer-events-none"
-                        style={{ opacity: form.overlay_opacity / 100 }}
-                      />
+                      {form.show_overlay && (
+                        <div 
+                          className="absolute inset-0 bg-gradient-to-br from-black via-black/80 to-black pointer-events-none"
+                          style={{ opacity: form.overlay_opacity / 100 }}
+                        />
+                      )}
                       <button
                         type="button"
                         onClick={() => {
@@ -329,15 +340,17 @@ export function BannerDialog({ open, onOpenChange, banner }: BannerDialogProps) 
                       className="w-full h-full object-cover"
                       style={{ objectPosition: form.desktop_object_position }}
                     />
-                    <div 
-                      className="absolute inset-0 bg-gradient-to-br from-black via-black/80 to-black"
-                      style={{ opacity: form.overlay_opacity / 100 }}
-                    />
+                    {form.show_overlay && (
+                      <div 
+                        className="absolute inset-0 bg-gradient-to-br from-black via-black/80 to-black"
+                        style={{ opacity: form.overlay_opacity / 100 }}
+                      />
+                    )}
                     <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-                      {form.title && (
+                      {form.show_title && form.title && (
                         <h3 className="text-xl lg:text-2xl font-light text-white mb-2">{form.title}</h3>
                       )}
-                      {form.subtitle && (
+                      {form.show_subtitle && form.subtitle && (
                         <p className="text-sm text-white/70 mb-4">{form.subtitle}</p>
                       )}
                       {form.show_button && form.button_text && (
@@ -445,15 +458,31 @@ export function BannerDialog({ open, onOpenChange, banner }: BannerDialogProps) 
           )}
 
           {/* Title */}
-          <div className="space-y-2">
-            <Label htmlFor="title">Título (opcional)</Label>
-            <Input id="title" value={form.title} onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Ex: PROMOÇÃO DE VERÃO" />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="show-title">Mostrar título</Label>
+                <p className="text-xs text-muted-foreground">Você pode ocultar sem apagar o texto salvo.</p>
+              </div>
+              <Switch id="show-title" checked={form.show_title} onCheckedChange={(checked) => setForm(f => ({ ...f, show_title: checked }))} />
+            </div>
+            {form.show_title && (
+              <Input id="title" value={form.title} onChange={(e) => setForm(f => ({ ...f, title: e.target.value }))} placeholder="Ex: PROMOÇÃO DE VERÃO" />
+            )}
           </div>
 
           {/* Subtitle */}
-          <div className="space-y-2">
-            <Label htmlFor="subtitle">Subtítulo (opcional)</Label>
-            <Input id="subtitle" value={form.subtitle} onChange={(e) => setForm(f => ({ ...f, subtitle: e.target.value }))} placeholder="Ex: Até 50% de desconto em produtos selecionados" />
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="show-subtitle">Mostrar subtítulo</Label>
+                <p className="text-xs text-muted-foreground">Você pode ocultar sem apagar o texto salvo.</p>
+              </div>
+              <Switch id="show-subtitle" checked={form.show_subtitle} onCheckedChange={(checked) => setForm(f => ({ ...f, show_subtitle: checked }))} />
+            </div>
+            {form.show_subtitle && (
+              <Input id="subtitle" value={form.subtitle} onChange={(e) => setForm(f => ({ ...f, subtitle: e.target.value }))} placeholder="Ex: Até 50% de desconto em produtos selecionados" />
+            )}
           </div>
 
           {/* Click URL */}
@@ -486,13 +515,24 @@ export function BannerDialog({ open, onOpenChange, banner }: BannerDialogProps) 
             </div>
           )}
 
-          {/* Overlay Opacity */}
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <Label>Opacidade do Overlay</Label>
-              <span className="text-sm text-muted-foreground">{form.overlay_opacity}%</span>
+          {/* Overlay */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <Label htmlFor="show-overlay">Aplicar cor sobre a imagem</Label>
+                <p className="text-xs text-muted-foreground">Desative para mostrar a imagem com suas cores originais.</p>
+              </div>
+              <Switch id="show-overlay" checked={form.show_overlay} onCheckedChange={(checked) => setForm(f => ({ ...f, show_overlay: checked }))} />
             </div>
-            <Slider value={[form.overlay_opacity]} onValueChange={([value]) => setForm(f => ({ ...f, overlay_opacity: value }))} min={0} max={100} step={5} />
+            {form.show_overlay && (
+              <div className="space-y-3">
+                <div className="flex justify-between">
+                  <Label>Intensidade da cor</Label>
+                  <span className="text-sm text-muted-foreground">{form.overlay_opacity}%</span>
+                </div>
+                <Slider value={[form.overlay_opacity]} onValueChange={([value]) => setForm(f => ({ ...f, overlay_opacity: value }))} min={0} max={100} step={5} />
+              </div>
+            )}
           </div>
 
           {/* Active Toggle */}
