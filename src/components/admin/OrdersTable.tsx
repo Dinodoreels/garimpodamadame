@@ -185,12 +185,6 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
                           <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'paid')}>
                             Marcar como Pago
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'processing')}>
-                            Marcar como Processando
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'shipped')}>
-                            Marcar como Enviado
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleStatusChange(order.id, 'delivered')}>
                             Marcar como Entregue
                           </DropdownMenuItem>

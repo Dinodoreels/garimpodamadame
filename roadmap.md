@@ -17,6 +17,8 @@
 +- [ ] Homologar uma devolução real retornando obrigatoriamente para triagem
 - [x] Exigir checklist completo no QC e impedir endereçamento antes do preço aprovado
 - [x] Recolocar devoluções e quarentenas na fila de triagem com histórico da movimentação
++- [x] Exigir separação e conferência antes de liberar etiqueta e postagem
++- [x] Bloquear reenvio automático de pedidos antigos entregues ou cancelados ao Bling
 # Fase 3
 
 - [x] Criar base de dados, permissões e fluxo seguro de SKU/QC/preço/endereço/liberação

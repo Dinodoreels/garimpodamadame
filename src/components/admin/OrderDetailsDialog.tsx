@@ -30,6 +30,7 @@ import { FiscalOrderSection } from './FiscalOrderSection';
 import { resolveOrderSource } from '@/lib/orderSource';
 import { MelhorEnvioSection } from './MelhorEnvioSection';
 import { MarketplaceLabelSection } from './MarketplaceLabelSection';
+import { FulfillmentActions } from './FulfillmentActions';
 
 const statusConfig: Record<string, { label: string; className: string }> = {
   pending: { label: 'Pendente', className: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
@@ -300,15 +301,10 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
                 Marcar como Pago
               </Button>
             )}
-            {['pending', 'paid'].includes(order.status) && (
-              <Button size="sm" variant="outline" onClick={() => handleQuickStatusChange('processing')}>
-                Processando
-              </Button>
-            )}
             {['paid', 'processing'].includes(order.status) && (
               <Button size="sm" variant="outline" onClick={() => setActiveTab('tracking')}>
                 <Truck className="h-4 w-4 mr-1" />
-                Marcar Enviado
+                Separar e enviar
               </Button>
             )}
             {order.status === 'shipped' && (
@@ -513,6 +509,8 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
           </TabsContent>
 
           <TabsContent value="tracking" className="space-y-6 mt-4">
+            <FulfillmentActions order={order} onChanged={() => onStatusChange?.(order.id, order.status)} />
+
             <MarketplaceLabelSection
               orderId={order.id}
               orderNumber={order.order_number}
@@ -535,20 +533,17 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
               currentTrackingUrl={(order as any).tracking_url}
               currentNotes={(order as any).admin_notes}
               onSave={async (data) => {
-                const { error } = await supabase
-                  .from('orders')
-                  .update({
+                const { data: result, error } = await supabase.functions.invoke('order-fulfillment', {
+                  body: {
+                    order_id: order.id,
+                    action: 'confirm_posted',
                     tracking_code: data.tracking_code,
                     tracking_url: data.tracking_url,
-                    admin_notes: data.admin_notes,
-                    status: data.status || order.status,
-                    shipped_at: data.status === 'shipped' ? new Date().toISOString() : undefined,
-                  })
-                  .eq('id', order.id);
-                if (error) throw error;
-                if (onStatusChange && data.status) {
-                  onStatusChange(order.id, data.status);
-                }
+                    notes: data.admin_notes,
+                  },
+                });
+                if (error || !result?.ok) throw new Error(result?.error || error?.message || 'Não foi possível confirmar a postagem.');
+                onStatusChange?.(order.id, 'shipped');
               }}
             />
 

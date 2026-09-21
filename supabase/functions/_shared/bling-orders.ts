@@ -101,10 +101,16 @@ export async function pushOrderToBling(orderId: string) {
     .maybeSingle();
   if (error) throw error;
   if (!order) throw new Error("Pedido não encontrado");
+  if (["delivered", "cancelled"].includes(String(order.status))) {
+    return { skipped: true, reason: `status_${order.status}` };
+  }
 
   const guest = (order.guest_info ?? {}) as any;
   const profile = (order.profiles ?? {}) as any;
   const address = (order.shipping_address ?? {}) as any;
+  if (!address.street || !address.city || !address.zip_code) {
+    throw new Error("Pedido sem endereço de entrega completo para enviar ao Bling.");
+  }
   const contatoId = await ensureContact(
     profile.full_name ?? guest.name ?? address.recipient_name ?? "Cliente da loja",
     profile.cpf ?? guest.cpf ?? null,
