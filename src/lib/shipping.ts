@@ -73,6 +73,10 @@ export interface ShippingCalcResponse {
   dropship_extra_days: number;
   provider_error?: string | null;
   reconnect_required?: boolean;
+  blocking_error?: {
+    code: 'PACKAGE_DATA_REQUIRED' | string;
+    message: string;
+  } | null;
 }
 
 export interface CalculateShippingOptions {
@@ -85,6 +89,7 @@ export interface CalculateShippingOptions {
 }
 
 export function getShippingErrorMessage(result: ShippingCalcResponse | null): string {
+  if (result?.blocking_error?.message) return result.blocking_error.message;
   if (result?.provider_error) return result.provider_error;
   if (result?.address) return 'Não há opções de entrega disponíveis para este CEP.';
   return 'CEP não encontrado ou não foi possível calcular o frete.';
@@ -126,6 +131,10 @@ export async function calculateShipping(
   options?: CalculateShippingOptions
 ): Promise<ShippingResult | null> {
   const result = await calculateShippingOptions(zipCode, options);
+
+  if (result?.blocking_error?.message) {
+    throw new Error(result.blocking_error.message);
+  }
 
   if (result?.provider_error) {
     throw new Error(result.provider_error);
