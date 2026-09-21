@@ -9,6 +9,7 @@ export interface OperationalStage {
   status: 'ok' | 'attention' | 'blocked';
   action: string;
   path: string;
+  details?: string[];
 }
 
 interface OperationalFlowData {
@@ -34,8 +35,8 @@ export function useOperationalFlow() {
         ['produtos', supabase.from('products').select('id,status,weight_grams,length_cm,width_cm,height_cm')],
         ['pedidos', supabase.from('orders').select('id,status,paid_at,shipping_address_id,source')],
         ['envios do site', supabase.from('melhor_envio_shipments').select('id,order_id,status,validation_status')],
-        ['fila do Bling', supabase.from('bling_sync_queue').select('id,status,action')],
-        ['publicações', supabase.from('marketplace_product_publications').select('id,status')],
+        ['fila do Bling', supabase.from('bling_sync_queue').select('id,status,action,last_error,order_id,orders(order_number)')],
+        ['publicações', supabase.from('marketplace_product_publications').select('id,status,pending_fields,last_error,products(title)')],
         ['reembolsos', supabase.from('refunds').select('id,status')],
         ['etiquetas de marketplace', supabase.from('marketplace_shipping_labels').select('id,order_id,status')],
       ] as const;
@@ -77,7 +78,17 @@ export function useOperationalFlow() {
         { key: 'qc', title: '4. Controle de qualidade', description: 'Itens identificados aguardando aprovação.', count: qc.length, status: qc.length ? 'attention' : 'ok', action: 'Conferir qualidade', path: '/admin/inbound/qc' },
         { key: 'address', title: '5. Endereçamento e estoque', description: locations.length ? 'Itens aguardando preço, posição ou guarda.' : 'Nenhuma posição física cadastrada.', count: stock.length, status: locations.length === 0 ? 'blocked' : stock.length ? 'attention' : 'ok', action: locations.length ? 'Organizar estoque' : 'Cadastrar posições', path: '/admin/inbound/locations' },
         { key: 'catalog', title: '6. Catálogo e embalagem', description: 'Produtos ativos sem peso ou medidas completas.', count: incompleteShipping.length, status: incompleteShipping.length ? 'blocked' : 'ok', action: 'Revisar produtos', path: '/admin/products' },
-        { key: 'publish', title: '7. Bling e canais', description: `${blingFailed.length} falha(s) no Bling e ${publicationPending.length} publicação(ões) pendente(s).`, count: blingFailed.length + publicationPending.length, status: blingFailed.length ? 'blocked' : publicationPending.length ? 'attention' : 'ok', action: 'Abrir integrações', path: '/admin/settings?tab=bling' },
+        { key: 'publish', title: '7. Bling e canais', description: `${blingFailed.length} falha(s) no Bling e ${publicationPending.length} publicação(ões) pendente(s).`, count: blingFailed.length + publicationPending.length, status: blingFailed.length ? 'blocked' : publicationPending.length ? 'attention' : 'ok', action: 'Abrir integrações', path: '/admin/settings?tab=bling', details: [
+          ...blingFailed.map(row => {
+            const order = row.orders as { order_number?: string } | null;
+            return `${order?.order_number ?? 'Pedido'}: ${String(row.last_error ?? 'Falha sem detalhe')}`;
+          }),
+          ...publicationPending.map(row => {
+            const product = row.products as { title?: string } | null;
+            const pending = Array.isArray(row.pending_fields) && row.pending_fields.length ? `Faltam: ${row.pending_fields.join(', ')}` : String(row.last_error ?? 'Aguardando confirmação do canal');
+            return `${product?.title ?? 'Produto'}: ${pending}`;
+          }),
+        ] },
         { key: 'orders', title: '8. Venda e separação', description: `${siteActionable.length} do site e ${marketplaceActionable.length} de marketplaces aguardam ação.`, count: actionable.length, status: actionable.length ? 'attention' : 'ok', action: 'Abrir fila de separação', path: '/admin/orders?operation=separation' },
         { key: 'shipping', title: '9. Fiscal, etiqueta e envio', description: `${siteWithoutShipment.length} envio(s) do site e ${marketplaceWithoutLabel.length} etiqueta(s) de marketplace pendentes.`, count: siteWithoutShipment.length + marketplaceWithoutLabel.length, status: siteWithoutShipment.length || marketplaceWithoutLabel.length ? 'blocked' : 'ok', action: 'Revisar expedição', path: '/admin/orders?operation=shipping' },
         { key: 'after-sales', title: '11. Pós-compra', description: 'Solicitações de reembolso aguardando conclusão.', count: refundPending.length, status: refundPending.length ? 'attention' : 'ok', action: 'Abrir pós-compra', path: '/admin/orders?operation=after-sales' },
