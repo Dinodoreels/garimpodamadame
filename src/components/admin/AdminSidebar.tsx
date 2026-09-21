@@ -302,7 +302,7 @@ function SidebarContent({ onItemClick, collapsed, inboundOnly }: { onItemClick?:
                 </button>
                 <div className={cn(
                   "overflow-hidden transition-all duration-200",
-                  isExpanded ? "max-h-40" : "max-h-0"
+                  isExpanded ? "max-h-[44rem]" : "max-h-0"
                 )}>
                   {item.children!.map(child => {
                     const childActive = isChildActive(child.path, location.pathname, location.search);
