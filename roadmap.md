@@ -295,3 +295,16 @@
 - [x] Corrigir avisos de interface ao abrir o carrinho e o endereço
 - [x] Restaurar avaliações sem depender de uma relação indisponível
 - [x] Repetir a jornada autenticada até antes do pagamento
+
+# Ciclo operacional profissional
+- [x] Criar central única com etapas, pendências e próxima ação
+- [x] Disponibilizar fila real de triagem e seleção resiliente de lote no Scan
+- [x] Corrigir indicadores separando site, marketplaces e pedidos antigos
+- [x] Fazer atalhos da central abrirem filas reais de pedidos
+- [ ] Homologar entrada, lote e Scan com uma peça física real
+- [ ] Cadastrar posições físicas reais e homologar QC até estoque
+- [ ] Completar peso e dimensões dos produtos bloqueados
+- [ ] Corrigir falhas do Bling e revisar publicações pendentes
+- [ ] Criar fila completa de separação, fiscal, etiqueta e envio
+- [ ] Conciliar pedidos legados sem movimentação automática
+- [ ] Homologar pós-compra e retorno para triagem

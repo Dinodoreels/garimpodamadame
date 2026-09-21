@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, Plus, CalendarIcon, X, Globe, MessageCircle, Store, User } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -53,9 +53,12 @@ const formatCurrency = (v: number) =>
 
 export default function Orders() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const initialStatus = searchParams.get('status') ?? 'all';
+  const operationFilter = searchParams.get('operation');
   const { orders, loading, updateOrderStatus } = useAdminData();
   const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
   const [sourceFilter, setSourceFilter] = useState<string>('all');
   const [vendorFilter, setVendorFilter] = useState<string>('all');
   const [paymentFilter, setPaymentFilter] = useState<string>('all');
@@ -134,14 +137,22 @@ export default function Orders() {
             ? 'error'
             : 'pending';
       const matchesLabel = labelFilter === 'all' || currentLabelState === labelFilter;
+      const source = String(order.source ?? '').toLowerCase();
+      const isMarketplace = source.startsWith('bling:') || source.includes('marketplace') || source.includes('tiktok') || source.includes('shopify');
+      const isActionable = Boolean(order.paid_at) && ['paid', 'processing'].includes(order.status);
+      const matchesOperation = !operationFilter
+        || (operationFilter === 'separation' && isActionable)
+        || (operationFilter === 'shipping' && isActionable && (isMarketplace ? currentLabelState === 'pending' || currentLabelState === 'error' : !order.melhor_envio_shipment))
+        || (operationFilter === 'reconciliation' && Boolean(order.paid_at) && !order.shipping_address_id)
+        || (operationFilter === 'after-sales' && ['delivered', 'refunded'].includes(order.status));
 
       const orderDate = new Date(order.created_at);
       const matchesDateFrom = !dateFrom || orderDate >= new Date(dateFrom.setHours(0, 0, 0, 0));
       const matchesDateTo = !dateTo || orderDate <= new Date(new Date(dateTo).setHours(23, 59, 59, 999));
 
-      return matchesSearch && matchesStatus && matchesSource && matchesVendor && matchesPayment && matchesLabel && matchesDateFrom && matchesDateTo;
+      return matchesSearch && matchesStatus && matchesSource && matchesVendor && matchesPayment && matchesLabel && matchesOperation && matchesDateFrom && matchesDateTo;
     });
-  }, [orders, search, statusFilter, sourceFilter, vendorFilter, paymentFilter, labelFilter, dateFrom, dateTo]);
+  }, [orders, search, statusFilter, sourceFilter, vendorFilter, paymentFilter, labelFilter, operationFilter, dateFrom, dateTo]);
 
   const handleFilterChange = () => setCurrentPage(1);
 
@@ -192,6 +203,7 @@ export default function Orders() {
           </Button>
         </div>
       </div>
+      {operationFilter && <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2 text-sm"><span>{operationFilter === 'separation' ? 'Fila operacional: pedidos pagos aguardando separação' : operationFilter === 'shipping' ? 'Fila operacional: fiscal, etiqueta e envio' : operationFilter === 'reconciliation' ? 'Conciliação: pedidos antigos sem endereço vinculado' : 'Fila operacional: pós-compra'}</span><Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders')}>Ver todos</Button></div>}
 
       {/* Source Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-2">

@@ -23,7 +23,9 @@ export default function Operations() {
         <Badge variant="destructive">{data?.blocked ?? 0} bloqueios</Badge>
         <Badge variant="secondary">{data?.attention ?? 0} etapas pedindo atenção</Badge>
         <Badge variant="outline">Estoque Vanguard Store é a fonte central</Badge>
+        {data?.updatedAt && <Badge variant="outline">Atualizado às {new Date(data.updatedAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</Badge>}
       </div>
+      {data?.warnings.map(warning => <div key={warning} className="flex items-center gap-2 rounded-md border border-warning/30 bg-warning/5 px-3 py-2 text-sm text-warning-foreground"><AlertTriangle className="h-4 w-4 shrink-0" />{warning} Os demais números continuam disponíveis.</div>)}
       <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {data?.stages.map(stage => {
           const visual = visuals[stage.status]; const Icon = visual.icon;
