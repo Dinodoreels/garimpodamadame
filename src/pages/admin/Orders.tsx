@@ -30,20 +30,20 @@ import {
 } from '@/components/ui/pagination';
 
 const STATUS_CARDS = [
-  { key: 'pending', label: 'Pendentes', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  { key: 'paid', label: 'Pagos', color: 'bg-green-100 text-green-800 border-green-200' },
-  { key: 'processing', label: 'Processando', color: 'bg-blue-100 text-blue-800 border-blue-200' },
-  { key: 'shipped', label: 'Enviados', color: 'bg-purple-100 text-purple-800 border-purple-200' },
-  { key: 'delivered', label: 'Entregues', color: 'bg-green-100 text-green-800 border-green-200' },
-  { key: 'refunded', label: 'Reembolsados', color: 'bg-orange-100 text-orange-800 border-orange-200' },
-  { key: 'cancelled', label: 'Cancelados', color: 'bg-red-100 text-red-800 border-red-200' },
+  { key: 'pending', label: 'Pendentes' },
+  { key: 'paid', label: 'Pagos' },
+  { key: 'processing', label: 'Processando' },
+  { key: 'shipped', label: 'Enviados' },
+  { key: 'delivered', label: 'Entregues' },
+  { key: 'refunded', label: 'Reembolsados' },
+  { key: 'cancelled', label: 'Cancelados' },
 ];
 
 const SOURCE_CARDS = [
-  { key: 'website', label: 'Site', icon: Globe, color: 'bg-blue-50 text-blue-700 border-blue-200' },
-  { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle, color: 'bg-green-50 text-green-700 border-green-200' },
-  { key: 'store', label: 'Loja Física', icon: Store, color: 'bg-orange-50 text-orange-700 border-orange-200' },
-  { key: 'vendedor', label: 'Vendedor', icon: User, color: 'bg-violet-50 text-violet-700 border-violet-200' },
+  { key: 'website', label: 'Site', icon: Globe },
+  { key: 'whatsapp', label: 'WhatsApp', icon: MessageCircle },
+  { key: 'store', label: 'Loja Física', icon: Store },
+  { key: 'vendedor', label: 'Vendedor', icon: User },
 ];
 
 const PAGE_SIZE = 20;
@@ -214,16 +214,16 @@ export default function Orders() {
   }
 
   return (
-    <div className="space-y-6 md:space-y-8">
+    <div className="space-y-5 md:space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <h1 className="text-xl md:text-2xl font-light tracking-wide">Pedidos, cobranças e etiquetas</h1>
           <p className="text-sm text-muted-foreground font-light mt-1">
             Acompanhe a venda, o pagamento e a postagem em um só lugar
           </p>
         </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+        <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto">
           <LabelPrintCenter orders={filteredOrders} />
           <ExportButton orders={filteredOrders} />
           <Button onClick={() => navigate('/admin/orders/new')} className="flex-1 sm:flex-none">
@@ -239,71 +239,93 @@ export default function Orders() {
           <Button variant="outline" size="sm" onClick={() => void refetch()}>Tentar novamente</Button>
         </div>
       )}
-      {operationFilter && <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2 text-sm"><span>{operationFilter === 'separation' ? 'Fila operacional: pedidos pagos aguardando separação' : operationFilter === 'shipping' ? 'Fila operacional: fiscal, etiqueta e envio' : operationFilter === 'reconciliation' ? 'Conciliação: pedidos antigos sem endereço vinculado' : 'Fila operacional: pós-compra'}</span><Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders')}>Ver todos</Button></div>}
-      <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
+      {operationFilter && <div className="flex items-center justify-between gap-3 border-l-2 border-primary bg-muted/30 px-3 py-2 text-sm"><span>{operationFilter === 'separation' ? 'Pedidos pagos aguardando separação' : operationFilter === 'shipping' ? 'Fiscal, etiqueta e envio' : operationFilter === 'reconciliation' ? 'Pedidos antigos sem endereço vinculado' : 'Fila operacional selecionada'}</span><Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders')}>Limpar fila</Button></div>}
+
+      <section className="overflow-hidden rounded-md border bg-card" aria-label="Etapas operacionais">
+        <div className="grid grid-cols-2 divide-x divide-y sm:grid-cols-4 xl:grid-cols-7 xl:divide-y-0">
         {[
           ['separation', 'Separar'], ['awaiting_data', 'Aguardando dados'], ['awaiting_invoice', 'Aguardando nota'], ['label_ready', 'Etiqueta pronta'], ['posting', 'Postar'], ['transit', 'Em trânsito'], ['reconciliation', 'Conciliação'],
-        ].map(([key, label]) => <Button key={key} variant={operationFilter === key ? 'default' : 'outline'} className="h-auto min-h-14 justify-between px-3 py-2" onClick={() => navigate(`/admin/orders?operation=${key}`)}><span className="text-left text-xs">{label}</span><span className="text-base font-semibold">{queueCounts[key as keyof typeof queueCounts]}</span></Button>)}
-      </div>
+        ].map(([key, label]) => (
+          <Button
+            key={key}
+            variant="ghost"
+            className={cn(
+              'h-16 rounded-none px-4 transition-colors hover:bg-muted/50',
+              operationFilter === key && 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground',
+            )}
+            onClick={() => navigate(operationFilter === key ? '/admin/orders' : `/admin/orders?operation=${key}`)}
+          >
+            <span className="flex w-full items-center justify-between gap-3">
+              <span className="text-left text-xs font-medium">{label}</span>
+              <span className="text-xl font-semibold tabular-nums">{queueCounts[key as keyof typeof queueCounts]}</span>
+            </span>
+          </Button>
+        ))}
+        </div>
+      </section>
 
       {/* Source Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+      <section className="grid grid-cols-2 overflow-hidden rounded-md border bg-card md:grid-cols-4" aria-label="Pedidos por origem">
         {SOURCE_CARDS.map((sc) => {
           const stat = sourceStats[sc.key];
           const Icon = sc.icon;
           const isActive = sourceFilter === sc.key;
           return (
-            <button
+            <Button
+              variant="ghost"
               key={sc.key}
               onClick={() => {
                 setSourceFilter(isActive ? 'all' : sc.key);
                 handleFilterChange();
               }}
               className={cn(
-                'rounded-lg border p-3 text-left transition-all hover:shadow-sm',
-                isActive
-                  ? cn(sc.color, 'ring-2 ring-offset-1 ring-primary/30')
-                  : 'bg-card border-border'
+                'h-auto min-h-20 rounded-none border-b border-r p-4 text-left transition-colors hover:bg-muted/40 md:border-b-0',
+                isActive && 'bg-muted ring-1 ring-inset ring-primary'
               )}
             >
-              <div className="flex items-center gap-2 mb-1">
-                <Icon className="h-4 w-4" strokeWidth={1.5} />
-                <span className="text-xs font-medium">{sc.label}</span>
+              <div className="flex w-full items-start justify-between gap-3">
+                <div>
+                  <span className="text-xs font-medium text-muted-foreground">{sc.label}</span>
+                  <p className="mt-1 text-xl font-semibold tabular-nums">{stat?.count || 0}</p>
+                  <p className="text-[11px] font-normal text-muted-foreground">{formatCurrency(stat?.revenue || 0)}</p>
+                </div>
+                <Icon className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
               </div>
-              <p className="text-lg font-semibold">{stat?.count || 0}</p>
-              <p className="text-[10px] text-muted-foreground font-light">
-                {formatCurrency(stat?.revenue || 0)}
-              </p>
-            </button>
+            </Button>
           );
         })}
-      </div>
+      </section>
 
       {/* Status Cards */}
-      <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
+      <div className="flex flex-wrap items-center gap-2" aria-label="Filtrar por situação">
+        <Button
+          variant={statusFilter === 'all' ? 'default' : 'outline'}
+          size="sm"
+          className="h-8 rounded-full px-4"
+          onClick={() => { setStatusFilter('all'); handleFilterChange(); }}
+        >
+          Todos <span className="ml-1.5 tabular-nums">{orders.length}</span>
+        </Button>
         {STATUS_CARDS.map((sc) => (
-           <button
+          <Button
             key={sc.key}
+            variant={statusFilter === sc.key ? 'default' : 'outline'}
+            size="sm"
             onClick={() => {
               setStatusFilter(statusFilter === sc.key ? 'all' : sc.key);
               handleFilterChange();
             }}
-            className={cn(
-              'rounded-lg border p-2 md:p-3 text-center transition-all hover:shadow-sm',
-              statusFilter === sc.key
-                ? cn(sc.color, 'ring-2 ring-offset-1 ring-primary/30')
-                : 'bg-card border-border'
-            )}
+            className="h-8 rounded-full px-4 font-normal"
           >
-            <p className="text-lg md:text-2xl font-semibold">{statusCounts[sc.key] || 0}</p>
-            <p className="text-[10px] md:text-xs font-light mt-0.5">{sc.label}</p>
-          </button>
+            {sc.label} <span className="ml-1.5 tabular-nums">{statusCounts[sc.key] || 0}</span>
+          </Button>
         ))}
       </div>
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
+      <section className="rounded-md border bg-card p-3" aria-label="Filtros de pedidos">
+       <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-12">
+        <div className="relative md:col-span-2 xl:col-span-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por número ou cliente..."
@@ -313,7 +335,7 @@ export default function Orders() {
           />
         </div>
         <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); handleFilterChange(); }}>
-          <SelectTrigger className="w-full sm:w-48 font-light">
+          <SelectTrigger className="w-full font-light xl:col-span-2">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -330,7 +352,7 @@ export default function Orders() {
         </Select>
 
         <Select value={sourceFilter} onValueChange={(v) => { setSourceFilter(v); handleFilterChange(); }}>
-          <SelectTrigger className="w-full sm:w-40 font-light">
+          <SelectTrigger className="w-full font-light xl:col-span-2">
             <SelectValue placeholder="Origem" />
           </SelectTrigger>
           <SelectContent>
@@ -343,7 +365,7 @@ export default function Orders() {
         </Select>
 
         <Select value={paymentFilter} onValueChange={(v) => { setPaymentFilter(v); handleFilterChange(); }}>
-          <SelectTrigger className="w-full sm:w-44 font-light"><SelectValue placeholder="Cobrança" /></SelectTrigger>
+          <SelectTrigger className="w-full font-light xl:col-span-2"><SelectValue placeholder="Cobrança" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas cobranças</SelectItem>
             <SelectItem value="paid">Confirmadas</SelectItem>
@@ -356,7 +378,7 @@ export default function Orders() {
         </Select>
 
         <Select value={labelFilter} onValueChange={(v) => { setLabelFilter(v); handleFilterChange(); }}>
-          <SelectTrigger className="w-full sm:w-44 font-light"><SelectValue placeholder="Etiqueta" /></SelectTrigger>
+          <SelectTrigger className="w-full font-light xl:col-span-2"><SelectValue placeholder="Etiqueta" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas etiquetas</SelectItem>
             <SelectItem value="pending">Aguardando</SelectItem>
@@ -368,7 +390,7 @@ export default function Orders() {
 
         {vendors.length > 0 && (
           <Select value={vendorFilter} onValueChange={(v) => { setVendorFilter(v); handleFilterChange(); }}>
-            <SelectTrigger className="w-full sm:w-44 font-light">
+            <SelectTrigger className="w-full font-light xl:col-span-2">
               <SelectValue placeholder="Vendedor" />
             </SelectTrigger>
             <SelectContent>
@@ -383,7 +405,7 @@ export default function Orders() {
         {/* Date From */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className={cn('w-full sm:w-40 justify-start text-left font-light', !dateFrom && 'text-muted-foreground')}>
+            <Button variant="outline" className={cn('w-full justify-start text-left font-light', !dateFrom && 'text-muted-foreground')}>
               <CalendarIcon className="h-4 w-4 mr-2" />
               {dateFrom ? format(dateFrom, 'dd/MM/yyyy') : 'Data início'}
             </Button>
@@ -396,7 +418,7 @@ export default function Orders() {
         {/* Date To */}
         <Popover>
           <PopoverTrigger asChild>
-            <Button variant="outline" className={cn('w-full sm:w-40 justify-start text-left font-light', !dateTo && 'text-muted-foreground')}>
+            <Button variant="outline" className={cn('w-full justify-start text-left font-light', !dateTo && 'text-muted-foreground')}>
               <CalendarIcon className="h-4 w-4 mr-2" />
               {dateTo ? format(dateTo, 'dd/MM/yyyy') : 'Data fim'}
             </Button>
@@ -407,10 +429,19 @@ export default function Orders() {
         </Popover>
 
         {hasActiveFilters && (
-          <Button variant="ghost" size="icon" onClick={clearFilters} title="Limpar filtros">
-            <X className="h-4 w-4" />
+          <Button variant="ghost" onClick={clearFilters} className="justify-self-start xl:justify-self-end" title="Limpar filtros">
+            <X className="mr-2 h-4 w-4" /> Limpar
           </Button>
         )}
+       </div>
+      </section>
+
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <h2 className="text-base font-medium">Pedidos</h2>
+          <p className="text-xs text-muted-foreground">{filteredOrders.length} {filteredOrders.length === 1 ? 'resultado' : 'resultados'} nos filtros atuais</p>
+        </div>
+        {hasActiveFilters && <span className="text-xs text-muted-foreground">Filtros ativos</span>}
       </div>
 
       {/* Orders Table */}

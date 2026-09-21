@@ -277,7 +277,7 @@ export function useAdminData() {
     } else {
       setLoading(false);
     }
-  }, [roleLoading, isVendedor, fetchOrders, fetchCustomers]);
+  }, [roleLoading, isVendedor, fetchOrders, fetchCustomers, fetchInventoryStats]);
 
   useEffect(() => {
     calculateStats();
