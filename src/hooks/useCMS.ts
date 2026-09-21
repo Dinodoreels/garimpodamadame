@@ -779,9 +779,9 @@ export function useCMSPageBySlugOrHome(slug: string, isHome?: boolean) {
         query = query.eq('slug', slug);
       }
       
-      const { data, error } = await query.single();
+      const { data, error } = await query.maybeSingle();
       
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       if (!data) return null;
       
       if (data.sections) {
