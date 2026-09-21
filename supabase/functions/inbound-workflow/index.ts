@@ -171,8 +171,14 @@ Deno.serve(async (req) => {
     }
     if (action === 'address') {
       if (!['PRICED','ADDRESS_PENDING'].includes(before.state)) return jsonResponse({ ok: false, error: 'Aprove o preço antes de definir o endereço.' }, 409);
-      const { data: location } = await db.from('warehouse_locations').select('id,code,is_active').eq('id', body.location_id).maybeSingle();
+      const { data: location } = await db.from('warehouse_locations').select('id,code,is_active,capacity').eq('id', body.location_id).maybeSingle();
       if (!location?.is_active) return jsonResponse({ ok: false, error: 'Endereço inválido ou inativo.' }, 400);
+      if (location.capacity) {
+        const { data: occupiedItems, error: occupiedError } = await db.from('inbound_items').select('id,quantity').eq('location_id', location.id).in('state', ['ADDRESS_PENDING','STOCKED','AVAILABLE']);
+        if (occupiedError) throw occupiedError;
+        const occupied = (occupiedItems ?? []).filter(item => item.id !== itemId).reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
+        if (occupied + Number(before.quantity ?? 0) > Number(location.capacity)) return jsonResponse({ ok: false, error: `A posição ${location.code} não tem capacidade para este item.` }, 409);
+      }
       await db.from('inbound_items').update({ location_id: location.id, state: 'ADDRESS_PENDING' }).eq('id', itemId);
       await movement(db, before, 'ADDRESS_PENDING', 'addressed', user.id, location.code, location.id);
       await event(db, itemId, 'addressed', before, { state: 'ADDRESS_PENDING', location_id: location.id, code: location.code }, user.id);
