@@ -290,7 +290,10 @@ export default function Products() {
     [products, categoryValues]
   );
   const productsWithoutPackaging = useMemo(
-    () => products.filter((product) => product.status === 'active' && [product.weight_grams, product.length_cm, product.width_cm, product.height_cm].some(value => Number(value) <= 0)),
+    () => products.filter((product) => {
+      const packageFields = product as Product & { weight_grams?: number | null; length_cm?: number | null; width_cm?: number | null; height_cm?: number | null };
+      return product.status === 'active' && [packageFields.weight_grams, packageFields.length_cm, packageFields.width_cm, packageFields.height_cm].some(value => Number(value) <= 0);
+    }),
     [products],
   );
 
@@ -696,6 +699,18 @@ export default function Products() {
               >
                 Filtrar
               </Button>
+            </div>
+          )}
+
+          {productsWithoutPackaging.length > 0 && !packagingOnly && (
+            <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-3 sm:flex-row sm:items-center">
+              <Package className="h-5 w-5 shrink-0 text-primary" />
+              <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium">{productsWithoutPackaging.length} produto{productsWithoutPackaging.length === 1 ? '' : 's'} sem peso ou dimensões</p>
+                <p className="text-xs text-muted-foreground">Frete, etiqueta e publicação ficam bloqueados até informar as medidas reais.</p>
+              </div>
+              <Button variant="outline" size="sm" onClick={()=>setPackagingOnly(true)}>Ver pendências</Button>
+              {productsWithoutPackaging.slice(0,1).map(product=><Button key={product.id} size="sm" onClick={()=>handlePackagingEdit(product)}>Corrigir agora</Button>)}
             </div>
           )}
 
