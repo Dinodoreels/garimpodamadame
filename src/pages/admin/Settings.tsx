@@ -365,6 +365,7 @@ function ShippingProviderCards({
 
 // ========== SHIPPING TAB ==========
 function ShippingTab() {
+  const { toast } = useToast();
   const { data: freeShippingSettings, isLoading: loadingFreeShipping } = useFreeShippingSettings();
   const { data: shippingRates, isLoading: loadingRates } = useShippingRates();
   const updateFreeShipping = useUpdateFreeShipping();
@@ -402,6 +403,9 @@ function ShippingTab() {
   const [freeShippingMinValue, setFreeShippingMinValue] = useState('500');
   const [freeShippingDiscountCode, setFreeShippingDiscountCode] = useState('FRETEGRATIS500');
   const [freeShippingInitialized, setFreeShippingInitialized] = useState(false);
+  const [surchargeEnabled, setSurchargeEnabled] = useState(false);
+  const [surchargeAmount, setSurchargeAmount] = useState('0.00');
+  const [surchargeInitialized, setSurchargeInitialized] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [regionFilter, setRegionFilter] = useState<string>('all');
   const [editingRate, setEditingRate] = useState<ShippingRate | null>(null);
@@ -414,11 +418,39 @@ function ShippingTab() {
     setFreeShippingInitialized(true);
   }
 
+  if (integrationsConfig && !surchargeInitialized) {
+    setSurchargeEnabled(integrationsConfig.shipping.surcharge_enabled ?? false);
+    setSurchargeAmount(Number(integrationsConfig.shipping.surcharge_amount ?? 0).toFixed(2));
+    setSurchargeInitialized(true);
+  }
+
   const handleSaveFreeShipping = async () => {
     await updateFreeShipping.mutateAsync({
       enabled: freeShippingEnabled,
       min_value: parseFloat(freeShippingMinValue) || 0,
       discount_code: freeShippingDiscountCode
+    });
+  };
+
+  const handleSaveSurcharge = () => {
+    if (!integrationsConfig) return;
+    const normalizedAmount = surchargeAmount.replace(',', '.');
+    const amount = Number(normalizedAmount);
+    if (surchargeEnabled && (!/^\d+(\.\d{1,2})?$/.test(normalizedAmount) || !Number.isFinite(amount) || amount <= 0 || amount > 1000)) {
+      toast({
+        variant: 'destructive',
+        title: 'Valor inválido',
+        description: 'Informe um acréscimo positivo, com até duas casas decimais.',
+      });
+      return;
+    }
+    saveIntegrations.mutate({
+      ...integrationsConfig,
+      shipping: {
+        ...integrationsConfig.shipping,
+        surcharge_enabled: surchargeEnabled,
+        surcharge_amount: surchargeEnabled ? Math.round(amount * 100) / 100 : 0,
+      },
     });
   };
 
@@ -480,6 +512,50 @@ function ShippingTab() {
               ? integrationsConfig.shipping.correios.origin_zip
               : integrationsConfig.shipping.melhor_envio.origin_zip}
           />
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Truck className="h-5 w-5 text-primary" />
+                <CardTitle className="text-lg font-medium">Acréscimo fixo no valor do frete</CardTitle>
+              </div>
+              <CardDescription>
+                Adicione um valor fixo à cotação. O cliente verá somente o preço final da entrega.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <Label htmlFor="shipping-surcharge-enabled">Ativar acréscimo</Label>
+                  <p className="text-sm text-muted-foreground">O valor adicional não será mostrado separadamente ao cliente.</p>
+                </div>
+                <Switch id="shipping-surcharge-enabled" checked={surchargeEnabled} onCheckedChange={setSurchargeEnabled} />
+              </div>
+              <div className="space-y-2 border-t pt-4">
+                <Label htmlFor="shipping-surcharge-amount">Acréscimo no frete (R$)</Label>
+                <Input
+                  id="shipping-surcharge-amount"
+                  type="number"
+                  min="0.01"
+                  max="1000"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={surchargeAmount}
+                  onChange={(event) => setSurchargeAmount(event.target.value)}
+                  disabled={!surchargeEnabled}
+                  className="max-w-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Exemplo: uma cotação de {formatPrice(20)} será mostrada como {formatPrice(20 + (surchargeEnabled ? Math.max(0, Number(surchargeAmount.replace(',', '.')) || 0) : 0))}. No frete grátis, o cliente paga R$ 0,00.
+                </p>
+              </div>
+              <div className="flex justify-end pt-2">
+                <Button onClick={handleSaveSurcharge} disabled={saveIntegrations.isPending}>
+                  {saveIntegrations.isPending ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                  Salvar acréscimo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </>
       )}
 
