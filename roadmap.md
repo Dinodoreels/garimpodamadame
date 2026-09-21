@@ -64,6 +64,7 @@
 - [x] Corrigir o avanço do PIX, enviar os dados reais do comprador e manter erros visíveis
 - [x] Levar o cliente ao catálogo após exibir a confirmação do pagamento
 - [x] Informar que os juros do parcelamento de 2x a 12x são calculados pelo Mercado Pago e pagos pelo cliente
+- [x] Confirmar que o checkout não bloqueia débito e mostrar no painel as modalidades retornadas pelo Mercado Pago
 
 # Etiquetas de marketplaces e cadastro automático
 

@@ -73,13 +73,28 @@ Deno.serve(async (req) => {
 
     if (mpResponse.ok) {
       const methods = await mpResponse.json()
+      const availableMethods = Array.isArray(methods) ? methods : []
+      const debitMethods = availableMethods
+        .filter((method: { payment_type_id?: string; status?: string }) =>
+          method.payment_type_id === 'debit_card' && method.status !== 'deactivated'
+        )
+        .map((method: { id?: string; name?: string; status?: string }) => ({
+          id: method.id || '',
+          name: method.name || method.id || 'Cartão de débito',
+          status: method.status || 'active',
+        }))
       // Check if it's sandbox or production
       const isSandbox = accessToken.startsWith('TEST-')
       return new Response(
         JSON.stringify({ 
           success: true, 
           environment: isSandbox ? 'sandbox' : 'production',
-          methods_count: Array.isArray(methods) ? methods.length : 0,
+          methods_count: availableMethods.length,
+          debit_available: debitMethods.length > 0,
+          debit_methods: debitMethods,
+          debit_note: debitMethods.length > 0
+            ? 'A conta aceita débito, mas o Mercado Pago decide quais opções mostrar para cada comprador e cartão.'
+            : 'A conta não recebeu modalidades de débito na consulta atual do Mercado Pago.',
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
