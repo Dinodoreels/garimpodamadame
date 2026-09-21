@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { forwardRef, useState, useRef, useEffect } from 'react';
 import { MessageCircle, X, Send, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,7 +17,7 @@ function renderMarkdown(text: string) {
     .replace(/\n/g, '<br/>');
 }
 
-export function CustomerSupportChat() {
+export const CustomerSupportChat = forwardRef<HTMLDivElement, Record<string, never>>(function CustomerSupportChat(_, ref) {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState('');
@@ -111,7 +111,7 @@ export function CustomerSupportChat() {
   if (isAdminPage || !isEnabled) return null;
 
   return (
-    <>
+    <div ref={ref} className="contents">
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
@@ -205,6 +205,6 @@ export function CustomerSupportChat() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
-}
+});
