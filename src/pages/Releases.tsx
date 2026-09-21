@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { Sparkles, Quote } from 'lucide-react';
+import { Quote } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Header } from '@/components/layout/Header';
@@ -44,48 +44,13 @@ function StaticReleasesPage() {
   const { data: savedContent } = useSiteContent<ReleasesContent>('releases');
 
   const content = { ...defaultContent, ...savedContent };
-  const hasHeroImage = !!content.hero_image;
-
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
       
       <main className="flex-1">
+        <h1 className="sr-only">{content.hero_title}</h1>
         <HeroBannerCarousel compact />
-        {/* Intro */}
-        <section className="relative text-primary-foreground py-10 lg:py-14 overflow-hidden">
-          {hasHeroImage ? (
-            <>
-              <div 
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: `url(${content.hero_image})` }}
-              />
-              <div className="absolute inset-0 bg-black/50" />
-            </>
-          ) : (
-            <>
-              <div className="absolute inset-0 bg-primary" />
-              <div className="absolute inset-0 opacity-20">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,hsl(var(--gold))_0%,transparent_50%)]" />
-              </div>
-            </>
-          )}
-          
-          {content.show_hero_text !== false && (
-            <div className="container relative z-10 text-center">
-              <div className="inline-flex items-center gap-2 bg-gold/20 text-gold px-4 py-2 rounded-full text-sm font-medium mb-6">
-                <Sparkles className="h-4 w-4" />
-                {content.hero_badge}
-              </div>
-              <h1 className="font-display text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-white">
-                {content.hero_title}
-              </h1>
-              <p className="text-white/70 max-w-lg mx-auto">
-                {content.hero_subtitle}
-              </p>
-            </div>
-          )}
-        </section>
 
         {/* New Products */}
         <section className="py-16 lg:py-24">
