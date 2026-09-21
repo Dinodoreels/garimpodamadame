@@ -183,6 +183,13 @@
       "when": 1789973092588,
       "tag": "0025_fix_selected_security_findings",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1789973276340,
+      "tag": "0026_remove_last_public_definer_grant",
+      "breakpoints": true
     }
   ]
 }
