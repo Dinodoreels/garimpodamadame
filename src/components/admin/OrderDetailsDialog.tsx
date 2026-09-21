@@ -751,10 +751,10 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
                         <span>E-mail: {r.workflow_results.email?.sent ? 'enviado' : r.workflow_results.email?.reason === 'recipient_suppressed' ? 'bloqueado pelo destinatário' : 'revisar'}</span>
                       </div>
                     ) : null}
-                    {r.status === 'pending' && (
+                    {['pending', 'failed'].includes(r.status) && (
                       <div className="flex gap-2 pt-1">
                         <AlertDialog>
-                          <AlertDialogTrigger asChild><Button size="sm" variant="outline" className="text-green-600 h-7 text-xs">Aprovar e estornar</Button></AlertDialogTrigger>
+                          <AlertDialogTrigger asChild><Button size="sm" variant="outline" className="text-green-600 h-7 text-xs">{r.status === 'failed' ? 'Tentar novamente' : 'Aprovar e estornar'}</Button></AlertDialogTrigger>
                           <AlertDialogContent>
                             <AlertDialogHeader>
                               <AlertDialogTitle>Confirmar estorno de {formatCurrency(Number(r.amount))}?</AlertDialogTitle>
@@ -766,14 +766,16 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
                             </AlertDialogFooter>
                           </AlertDialogContent>
                         </AlertDialog>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-destructive h-7 text-xs"
-                          onClick={() => updateRefundStatus.mutate({ refundId: r.id, status: 'rejected', orderId: order.id })}
-                        >
-                          Rejeitar
-                        </Button>
+                        {r.status === 'pending' ? (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="text-destructive h-7 text-xs"
+                            onClick={() => updateRefundStatus.mutate({ refundId: r.id, status: 'rejected', orderId: order.id })}
+                          >
+                            Rejeitar
+                          </Button>
+                        ) : null}
                       </div>
                     )}
                   </div>
