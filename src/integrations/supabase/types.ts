@@ -822,6 +822,7 @@ export type Database = {
           seo_description: string | null
           seo_title: string | null
           slug: string
+          social_image_url: string | null
           title: string
           updated_at: string | null
         }
@@ -833,6 +834,7 @@ export type Database = {
           seo_description?: string | null
           seo_title?: string | null
           slug: string
+          social_image_url?: string | null
           title: string
           updated_at?: string | null
         }
@@ -844,6 +846,7 @@ export type Database = {
           seo_description?: string | null
           seo_title?: string | null
           slug?: string
+          social_image_url?: string | null
           title?: string
           updated_at?: string | null
         }
@@ -3738,6 +3741,9 @@ export type Database = {
           is_available: boolean
           position: number | null
           pricing_type: string
+          seo_description: string | null
+          seo_title: string | null
+          social_image_url: string | null
           starts_at: string | null
           status: string
           title: string
@@ -3756,6 +3762,9 @@ export type Database = {
           is_available?: boolean
           position?: number | null
           pricing_type?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          social_image_url?: string | null
           starts_at?: string | null
           status?: string
           title: string
@@ -3774,6 +3783,9 @@ export type Database = {
           is_available?: boolean
           position?: number | null
           pricing_type?: string
+          seo_description?: string | null
+          seo_title?: string | null
+          social_image_url?: string | null
           starts_at?: string | null
           status?: string
           title?: string
@@ -3965,6 +3977,9 @@ export type Database = {
           position: number | null
           price: number
           product_type: string | null
+          seo_description: string | null
+          seo_title: string | null
+          social_image_url: string | null
           status: string
           suggestion_data: Json
           suggestions_confirmed_at: string | null
@@ -3999,6 +4014,9 @@ export type Database = {
           position?: number | null
           price?: number
           product_type?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          social_image_url?: string | null
           status?: string
           suggestion_data?: Json
           suggestions_confirmed_at?: string | null
@@ -4033,6 +4051,9 @@ export type Database = {
           position?: number | null
           price?: number
           product_type?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
+          social_image_url?: string | null
           status?: string
           suggestion_data?: Json
           suggestions_confirmed_at?: string | null
@@ -4101,8 +4122,11 @@ export type Database = {
           is_published: boolean | null
           product_ids: Json | null
           promotion_id: string | null
+          seo_description: string | null
+          seo_title: string | null
           show_hero_text: boolean | null
           slug: string
+          social_image_url: string | null
           title: string
           updated_at: string | null
         }
@@ -4116,8 +4140,11 @@ export type Database = {
           is_published?: boolean | null
           product_ids?: Json | null
           promotion_id?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
           show_hero_text?: boolean | null
           slug: string
+          social_image_url?: string | null
           title: string
           updated_at?: string | null
         }
@@ -4131,8 +4158,11 @@ export type Database = {
           is_published?: boolean | null
           product_ids?: Json | null
           promotion_id?: string | null
+          seo_description?: string | null
+          seo_title?: string | null
           show_hero_text?: boolean | null
           slug?: string
+          social_image_url?: string | null
           title?: string
           updated_at?: string | null
         }

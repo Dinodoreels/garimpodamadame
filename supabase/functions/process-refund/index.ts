@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { z } from 'npm:zod@3.23.8'
-import { finalizeConfirmedRefund } from '../_shared/refund-workflow.ts'
+import { finalizeConfirmedRefund, sendRefundApprovedEmail } from '../_shared/refund-workflow.ts'
 
 const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
 const BodySchema = z.discriminatedUnion('action', [
@@ -88,8 +88,17 @@ Deno.serve(async (req) => {
       return response({ ok: false, error: message }, 409)
     }
 
+    try {
+      const approvedEmail = await sendRefundApprovedEmail(admin, refund.id)
+      const priorResults = claimed.workflow_results ?? {}
+      await admin.from('refunds').update({ workflow_results: { ...priorResults, approval_email: approvedEmail }, updated_at: new Date().toISOString() }).eq('id', refund.id)
+    } catch (emailError) {
+      console.error('Refund approved email failed:', emailError)
+    }
+
     if (!['approved', 'refunded'].includes(String(providerData.status ?? '').toLowerCase())) {
-      await admin.from('refunds').update({ provider_refund_id: String(providerData.id ?? ''), provider_status: String(providerData.status ?? 'pending'), workflow_results: { payment: { ok: true, pending: true } }, updated_at: new Date().toISOString() }).eq('id', refund.id)
+      const { data: currentRefund } = await admin.from('refunds').select('workflow_results').eq('id', refund.id).maybeSingle()
+      await admin.from('refunds').update({ provider_refund_id: String(providerData.id ?? ''), provider_status: String(providerData.status ?? 'pending'), workflow_results: { ...(currentRefund?.workflow_results ?? {}), payment: { ok: true, pending: true } }, updated_at: new Date().toISOString() }).eq('id', refund.id)
       return response({ ok: true, status: 'processing', message: 'O Mercado Pago recebeu o pedido de estorno e ainda está processando.' })
     }
 

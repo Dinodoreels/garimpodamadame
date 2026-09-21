@@ -4,6 +4,33 @@ import { sendTemplateEmail } from './transactional-email-templates/send-email.ts
 
 type AdminClient = any
 
+export async function sendRefundApprovedEmail(admin: AdminClient, refundId: string) {
+  const { data: refund, error: refundError } = await admin.from('refunds').select('*').eq('id', refundId).maybeSingle()
+  if (refundError) throw refundError
+  if (!refund) throw new Error('Reembolso não encontrado.')
+  const { data: order, error: orderError } = await admin.from('orders').select('*').eq('id', refund.order_id).maybeSingle()
+  if (orderError) throw orderError
+  if (!order) throw new Error('Pedido não encontrado.')
+  const guest = (order.guest_info ?? {}) as Record<string, string>
+  let customerEmail = guest.email ?? ''
+  let customerName = guest.name ?? 'Cliente'
+  if (order.user_id) {
+    const [{ data: authUser }, { data: profile }] = await Promise.all([
+      admin.auth.admin.getUserById(order.user_id),
+      admin.from('profiles').select('full_name').eq('id', order.user_id).maybeSingle(),
+    ])
+    customerEmail = authUser?.user?.email ?? customerEmail
+    customerName = profile?.full_name ?? customerName
+  }
+  if (!customerEmail) return { ok: false, skipped: true, reason: 'email_missing' }
+  const amount = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(refund.amount))
+  const paidAmount = Number(order.paid_amount ?? order.total)
+  return sendTemplateEmail('refund-approved', customerEmail, {
+    idempotencyKey: `refund-approved-${refund.id}`,
+    templateData: { customerName, orderNumber: order.order_number, amount, refundType: Number(refund.amount) >= paidAmount - 0.01 ? 'total' : 'parcial' },
+  })
+}
+
 export async function finalizeConfirmedRefund(
   admin: AdminClient,
   refundId: string,
@@ -41,6 +68,7 @@ export async function finalizeConfirmedRefund(
   const cumulativeRefunded = previouslyRefunded + confirmedAmount
   const isFullRefund = cumulativeRefunded >= paidAmount - 0.01
   const results: Record<string, any> = {
+    ...((refund.workflow_results ?? {}) as Record<string, any>),
     payment: { ok: true, provider_status: providerRefund.status ?? 'approved' },
     stock: { ok: false, skipped: !isFullRefund },
     bling: { ok: false, skipped: !isFullRefund },

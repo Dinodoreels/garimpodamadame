@@ -18,9 +18,9 @@ export default function PromoPage() {
 
   useEffect(() => {
     if (!page || !slug) return;
-    const title = page.hero_title?.trim() || page.title;
-    const description = page.hero_subtitle?.trim() || `Confira ${page.title} no O Garimpo Digital.`;
-    applySeoMetadata(`${title} | O Garimpo Digital`, description, `/promo/${slug}`, page.hero_image || page.banner_images[0]);
+    const title = page.seo_title?.trim() || `${page.hero_title?.trim() || page.title} | O Garimpo Digital`;
+    const description = page.seo_description?.trim() || page.hero_subtitle?.trim() || `Confira ${page.title} no O Garimpo Digital.`;
+    applySeoMetadata(title, description, `/promo/${slug}`, page.social_image_url || page.hero_image || page.banner_images[0]);
   }, [page, slug]);
 
   const productIds = page?.product_ids || [];

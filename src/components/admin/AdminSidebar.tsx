@@ -32,6 +32,7 @@ import {
   ScanLine,
   MapPin,
   History,
+  Search,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -140,6 +141,7 @@ const menuItems: MenuItem[] = [
   },
   { icon: StoreIcon, label: 'Lojas', path: '/admin/stores' },
   { icon: FileText, label: 'Conteúdo', path: '/admin/content' },
+  { icon: Search, label: 'SEO', path: '/admin/seo' },
   { icon: BarChart3, label: 'Analytics', path: '/admin/analytics' },
   { icon: Settings, label: 'Configurações', path: '/admin/settings' },
 ];

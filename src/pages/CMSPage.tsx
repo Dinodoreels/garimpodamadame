@@ -56,7 +56,7 @@
       if (!page || !slug) return;
       const title = page.seo_title?.trim() || page.title;
       const description = page.seo_description?.trim() || `Conheça ${page.title} no O Garimpo Digital.`;
-      applySeoMetadata(`${title} | O Garimpo Digital`, description, `/p/${slug}`, findPageImage(page.sections as CMSSection[] | undefined));
+      applySeoMetadata(`${title} | O Garimpo Digital`, description, `/p/${slug}`, page.social_image_url || findPageImage(page.sections as CMSSection[] | undefined));
     }, [page, slug]);
  
    if (isLoading) {

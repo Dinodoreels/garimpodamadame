@@ -7,6 +7,9 @@ export interface ProductKit {
   description: string | null;
   handle: string;
   image_url: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  social_image_url?: string | null;
   gallery_urls?: string[] | null;
   pricing_type: string;
   fixed_price: number | null;
@@ -73,7 +76,7 @@ export function useKitByHandle(handle: string | undefined) {
       const { data, error } = await supabase
         .from('product_kits')
         .select('*, product_kit_items(*, products(id, title, price, handle, product_images(url, position)))')
-        .eq('handle', handle!)
+        .eq('handle', handle || '')
         .eq('status', 'active')
         .eq('is_available', true)
         .maybeSingle();

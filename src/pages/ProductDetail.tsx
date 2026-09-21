@@ -63,12 +63,12 @@ export default function ProductDetail() {
 
   useEffect(() => {
     if (!product) return;
-    const description = product.description?.trim().slice(0, 160) || `Conheça ${product.title} no O Garimpo Digital.`;
+    const description = product.seo_description?.trim() || product.description?.trim().slice(0, 160) || `Conheça ${product.title} no O Garimpo Digital.`;
     applySeoMetadata(
-      `${product.title} | O Garimpo Digital`,
+      product.seo_title?.trim() || `${product.title} | O Garimpo Digital`,
       description,
       `/product/${product.handle}`,
-      product.images?.[0]?.url,
+      product.social_image_url || product.images?.[0]?.url,
     );
 
     const variants = product.variants || [];
