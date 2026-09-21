@@ -222,3 +222,6 @@
 - [x] Publicar novamente os envios de acesso, pedidos, recibos e notificações
 - [x] Confirmar um envio real no histórico de entrega
 - [x] Simplificar o painel para mostrar apenas o serviço oficial ativo
+- [x] Exigir confirmação do endereço de e-mail antes do primeiro acesso
+- [x] Ativar avisos por e-mail de pagamento, envio e entrega do pedido
+- [x] Restringir carrinho e comunicações promocionais a clientes com consentimento registrado

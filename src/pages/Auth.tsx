@@ -162,9 +162,9 @@ export default function Auth() {
       return;
     }
     toast.success('Conta criada!', {
-      description: 'Bem-vinda! Sua conta já está ativa.'
+      description: 'Enviamos um link para seu e-mail. Confirme o endereço para entrar na loja.'
     });
-    navigate('/');
+    setActiveTab('login');
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
