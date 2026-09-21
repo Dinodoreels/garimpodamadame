@@ -253,6 +253,11 @@ export default function ProductDetail() {
   const expiryStatus = getExpiryStatus(variantExpiry, alertDays);
   const isExpired = expiryStatus === 'expired';
   const isAvailable = stockAvailable && !isExpired;
+  const compareAtPrice = selectedVariant?.compare_at_price ?? product.compare_at_price;
+  const hasDiscount = Boolean(compareAtPrice && selectedVariant && compareAtPrice > selectedVariant.price);
+  const discountPercent = hasDiscount && compareAtPrice && selectedVariant
+    ? Math.round(((compareAtPrice - selectedVariant.price) / compareAtPrice) * 100)
+    : 0;
 
   return (
     <div className="min-h-screen flex flex-col overflow-x-hidden">
@@ -295,9 +300,14 @@ export default function ProductDetail() {
                   <div className="font-display text-base font-bold text-white leading-tight line-clamp-2 mb-0.5">
                     {product.title}
                   </div>
-                  <span className="text-lg font-bold text-gold">
-                    {selectedVariant && formatPrice(selectedVariant.price)}
-                  </span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-lg font-bold text-gold">
+                      {selectedVariant && formatPrice(selectedVariant.price)}
+                    </span>
+                    {hasDiscount && compareAtPrice && (
+                      <span className="text-xs text-background/80 line-through">{formatPrice(compareAtPrice)}</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Dot indicators on mobile */}
@@ -362,9 +372,15 @@ export default function ProductDetail() {
                   {product.title}
                 </h1>
                 
+                {hasDiscount && compareAtPrice && (
+                  <div className="mb-1 flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground line-through">De {formatPrice(compareAtPrice)}</span>
+                    <Badge variant="destructive">-{discountPercent}%</Badge>
+                  </div>
+                )}
                 <div className="flex items-center gap-3">
                   <span className="text-2xl lg:text-3xl font-bold text-gold">
-                    {selectedVariant && formatPrice(selectedVariant.price)}
+                    {selectedVariant && `${hasDiscount ? 'Por ' : ''}${formatPrice(selectedVariant.price)}`}
                   </span>
                   
                   <Badge variant={isAvailable ? "secondary" : "destructive"}>

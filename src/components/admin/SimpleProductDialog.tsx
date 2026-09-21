@@ -138,6 +138,8 @@ export function SimpleProductDialog({
   const [newSupplierType, setNewSupplierType] = useState<'own' | 'consignment'>('own');
   const [title, setTitle] = useState('');
   const [price, setPrice] = useState('');
+  const [useCompareAtPrice, setUseCompareAtPrice] = useState(false);
+  const [compareAtPrice, setCompareAtPrice] = useState('');
   const [productType, setProductType] = useState('');
   const [vendor, setVendor] = useState('');
   const [manufacturer, setManufacturer] = useState('');
@@ -228,6 +230,8 @@ export function SimpleProductDialog({
   const resetForm = useCallback(() => {
     setTitle('');
     setPrice('');
+    setUseCompareAtPrice(false);
+    setCompareAtPrice('');
     setProductType('');
     setVendor('');
     setManufacturer('');
@@ -326,6 +330,9 @@ export function SimpleProductDialog({
     if (open && mode === 'edit' && initialData) {
       setTitle(initialData.title || '');
       setPrice(formatPriceForDisplay(initialData.variants?.[0]?.price));
+      const initialCompareAtPrice = formatPriceForDisplay(initialData.compare_at_price);
+      setCompareAtPrice(initialCompareAtPrice);
+      setUseCompareAtPrice(Boolean(initialCompareAtPrice));
       setProductType(initialData.product_type || '');
       setVendor(initialData.vendor || '');
       setManufacturer(initialData.manufacturer || '');
@@ -638,6 +645,10 @@ export function SimpleProductDialog({
     setPrice(formatted);
   };
 
+  const handleCompareAtPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCompareAtPrice(formatPrice(e.target.value));
+  };
+
   const fileToBase64 = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -779,6 +790,14 @@ export function SimpleProductDialog({
     setIsSubmitting(true);
     try {
       const priceNumber = parseFloat(price.replace(/\./g, '').replace(',', '.'));
+      const compareAtPriceNumber = useCompareAtPrice
+        ? parseFloat(compareAtPrice.replace(/\./g, '').replace(',', '.'))
+        : 0;
+
+      if (useCompareAtPrice && (!compareAtPrice || !Number.isFinite(compareAtPriceNumber) || compareAtPriceNumber <= priceNumber)) {
+        toast.error('O preço cheio deve ser maior que o preço de venda');
+        return;
+      }
 
       const variants: ProductFormData['variants'] = [];
       const options: ProductFormData['options'] = [];
@@ -875,6 +894,7 @@ export function SimpleProductDialog({
         suggestions_confirmed: suggestionsConfirmed,
         marketplace_attributes: marketplaceAttributes,
         tags: '',
+        compare_at_price: useCompareAtPrice ? String(compareAtPriceNumber) : '',
         fulfillment_type: fulfillmentType,
         dropship_lead_time: fulfillmentType === 'dropship' ? dropshipLeadTime : undefined,
         weight_grams: parseInt(weightGrams) || undefined,
@@ -1238,6 +1258,46 @@ export function SimpleProductDialog({
                       </Select>
                       {categoriesError && <p className="text-xs text-destructive">Não foi possível carregar as categorias. Feche e abra o cadastro para tentar novamente.</p>}
                     </div>
+                  </div>
+
+                  <div className="rounded-md border border-border p-3 space-y-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <Label htmlFor="use-compare-at-price" className="text-sm font-medium">Mostrar preço cheio e desconto</Label>
+                        <p className="text-xs text-muted-foreground mt-1">Exibe o valor cheio riscado e a porcentagem economizada.</p>
+                      </div>
+                      <Switch
+                        id="use-compare-at-price"
+                        checked={useCompareAtPrice}
+                        onCheckedChange={(checked) => {
+                          setUseCompareAtPrice(checked);
+                          if (!checked) setCompareAtPrice('');
+                        }}
+                        aria-label="Ativar preço cheio"
+                      />
+                    </div>
+
+                    {useCompareAtPrice && (
+                      <div className="space-y-1.5">
+                        <Label htmlFor="compare-at-price" className="text-xs font-medium">Preço cheio</Label>
+                        <div className="relative max-w-xs">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">R$</span>
+                          <Input
+                            id="compare-at-price"
+                            value={compareAtPrice}
+                            onChange={handleCompareAtPriceChange}
+                            inputMode="decimal"
+                            placeholder="0,00"
+                            className="pl-10"
+                          />
+                        </div>
+                        {compareAtPrice && price && Number(compareAtPrice.replace(/\./g, '').replace(',', '.')) > Number(price.replace(/\./g, '').replace(',', '.')) && (
+                          <p className="text-xs font-medium text-primary">
+                            {Math.round((1 - Number(price.replace(/\./g, '').replace(',', '.')) / Number(compareAtPrice.replace(/\./g, '').replace(',', '.'))) * 100)}% de desconto na loja
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Margin Indicator + Calculator */}
