@@ -210,4 +210,4 @@
 - [x] Mostrar sugestões instantâneas com produtos reais e acesso direto ao anúncio
 - [x] Interpretar intenção e faixa de preço em pesquisas naturais, com funcionamento local se a IA estiver indisponível
 - [x] Aplicar a busca melhorada no Catálogo e na Administração
-- [ ] Validar a pesquisa no computador e celular
+- [x] Validar a pesquisa no computador e celular
