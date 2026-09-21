@@ -3,6 +3,7 @@ import { fetchAllBlingProducts, fetchBlingProductDetail, fetchBlingStock, normal
 import { runAutomaticTikTokPublication } from './bling-auto-publish.ts';
 
 const errorMessage = (error: unknown) => error instanceof Error ? error.message : String(error);
+const APPLY_BATCH_SIZE = 3;
 
 async function autoImportNewProducts(productIds: string[]) {
   if (!productIds.length) return { applied: 0, review: 0, failed: 0 };
@@ -33,9 +34,9 @@ async function autoImportNewProducts(productIds: string[]) {
   }).map((row: any) => row.id);
   let applied = 0;
   let failed = 0;
-  for (let index = 0; index < safeIds.length; index += 50) {
+  for (let index = 0; index < safeIds.length; index += APPLY_BATCH_SIZE) {
     const applyResponse = await fetch(`${baseUrl}/functions/v1/bling-import-apply`, {
-      method: 'POST', headers, body: JSON.stringify({ run_id: preview.run_id, item_ids: safeIds.slice(index, index + 50) }),
+      method: 'POST', headers, body: JSON.stringify({ run_id: preview.run_id, item_ids: safeIds.slice(index, index + APPLY_BATCH_SIZE) }),
     });
     const result = await applyResponse.json().catch(() => ({}));
     if (!applyResponse.ok) throw new Error(result?.error ?? `Aplicação automática falhou (${applyResponse.status}).`);
