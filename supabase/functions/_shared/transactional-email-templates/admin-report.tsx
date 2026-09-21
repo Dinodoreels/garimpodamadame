@@ -1,9 +1,9 @@
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Container, Head, Heading, Html, Preview, Section, Text, Hr,
+  Body, Container, Head, Html, Preview, Text,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
-import { BrandHeader, DEFAULT_BRANDING, brandStyles } from '../email-templates/_components.tsx'
+import { BrandContentCard, BrandHeader, BrandStatusCard, DEFAULT_BRANDING } from '../email-templates/_components.tsx'
 import type { EmailBranding } from '../email-branding.ts'
 
 interface AdminReportProps {
@@ -15,7 +15,6 @@ interface AdminReportProps {
 
 const AdminReportEmail = ({ title, subtitle, bodyText, branding }: AdminReportProps) => {
   const b = branding ?? DEFAULT_BRANDING
-  const s = brandStyles(b)
   const finalTitle = title || 'Relatório administrativo'
   const finalBody = bodyText || ''
 
@@ -26,13 +25,12 @@ const AdminReportEmail = ({ title, subtitle, bodyText, branding }: AdminReportPr
       <Body style={main}>
         <Container style={container}>
           <BrandHeader branding={b} />
-          <Heading style={{ ...s.h1, fontSize: '22px', margin: '0 0 6px' }}>{finalTitle}</Heading>
-          {subtitle ? <Text style={sub}>{subtitle}</Text> : null}
-          <Hr style={hr} />
-          <Section>
+          <BrandStatusCard branding={b} eyebrow="RELATÓRIO ADMINISTRATIVO" title={finalTitle}>
+            {subtitle ? <Text style={sub}>{subtitle}</Text> : null}
+          </BrandStatusCard>
+          <BrandContentCard>
             <pre style={pre}>{finalBody}</pre>
-          </Section>
-          <Hr style={hr} />
+          </BrandContentCard>
           <Text style={footer}>
             Você recebeu este email porque é administrador da loja {b.storeName}.
           </Text>
@@ -57,10 +55,9 @@ export const template = {
   },
 } satisfies TemplateEntry
 
-const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const main = { backgroundColor: '#f3f3f3', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif' }
+const container = { padding: '30px 22px', maxWidth: '600px', margin: '0 auto' }
 const sub = { fontSize: '13px', color: '#666', margin: '0 0 12px' }
-const hr = { borderColor: '#ececec', margin: '20px 0' }
 const pre = {
   fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
   fontSize: '13px',

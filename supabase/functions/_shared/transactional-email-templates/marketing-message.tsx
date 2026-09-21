@@ -1,7 +1,7 @@
 import * as React from 'npm:react@18.3.1'
 import { Body, Container, Head, Html, Preview, Section } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
-import { BrandFooter, BrandHeader, DEFAULT_BRANDING } from '../email-templates/_components.tsx'
+import { BrandContentCard, BrandFooter, BrandHeader, BrandStatusCard, DEFAULT_BRANDING } from '../email-templates/_components.tsx'
 import type { EmailBranding } from '../email-branding.ts'
 
 interface MarketingMessageProps {
@@ -20,9 +20,10 @@ const MarketingMessageEmail = ({ subject, html, preheader, branding }: Marketing
       <Body style={main}>
         <Container style={container}>
           <BrandHeader branding={b} />
-          <Section>
+          <BrandStatusCard branding={b} eyebrow="NOVIDADES DA LOJA" title={subject || 'Novidades para você'} />
+          <BrandContentCard>
             <div dangerouslySetInnerHTML={{ __html: html || '<p>Confira as novidades da loja.</p>' }} />
-          </Section>
+          </BrandContentCard>
           <BrandFooter branding={b} />
         </Container>
       </Body>
@@ -41,7 +42,7 @@ export const template = {
 } satisfies TemplateEntry
 
 const main = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#f3f3f3',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
 }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const container = { padding: '30px 22px', maxWidth: '600px', margin: '0 auto' }

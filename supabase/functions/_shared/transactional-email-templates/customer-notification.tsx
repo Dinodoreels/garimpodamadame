@@ -1,11 +1,13 @@
 import * as React from 'npm:react@18.3.1'
 import {
-  Body, Container, Head, Heading, Html, Preview, Section, Text, Hr, Button,
+  Body, Container, Head, Html, Preview, Section, Text, Button,
 } from 'npm:@react-email/components@0.0.22'
 import type { TemplateEntry } from './registry.ts'
 import {
   BrandFooter,
   BrandHeader,
+  BrandStatusCard,
+  BrandContentCard,
   CouponBlock,
   DEFAULT_BRANDING,
   brandStyles,
@@ -62,14 +64,13 @@ const CustomerNotificationEmail = ({
         <Container style={container}>
           <BrandHeader branding={b} />
 
-          <Heading style={{ ...s.h1, margin: '0 0 8px' }}>{finalTitle}</Heading>
-          {subtitle ? <Text style={sub}>{subtitle}</Text> : null}
+          <BrandStatusCard branding={b} eyebrow="ATUALIZAÇÃO DO PEDIDO" title={finalTitle}>
+            {subtitle ? <Text style={sub}>{subtitle}</Text> : null}
+          </BrandStatusCard>
 
-          <Hr style={hr} />
-
-          <Section>
+          <BrandContentCard>
             <Text style={bodyStyle}>{finalBody}</Text>
-          </Section>
+          </BrandContentCard>
 
           {orderCoupon ? (
             <Section style={{ ...couponBox, borderColor: b.colors.primary }}>
@@ -111,12 +112,11 @@ export const template = {
 } satisfies TemplateEntry
 
 const main = {
-  backgroundColor: '#ffffff',
+  backgroundColor: '#f3f3f3',
   fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
 }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const container = { padding: '30px 22px', maxWidth: '600px', margin: '0 auto' }
 const sub = { fontSize: '14px', color: '#666', margin: '0 0 12px' }
-const hr = { borderColor: '#ececec', margin: '24px 0' }
 const bodyStyle = {
   fontSize: '15px',
   lineHeight: '1.7',
