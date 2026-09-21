@@ -459,6 +459,50 @@ export default function ShippingSettings() {
           />
           <Card>
             <CardHeader>
+              <div className="flex items-center gap-2">
+                <Truck className="h-5 w-5 text-muted-foreground" />
+                <CardTitle className="text-lg font-medium">Acréscimo fixo no valor do frete</CardTitle>
+              </div>
+              <CardDescription>
+                Adicione um valor fixo à cotação. Na loja, o cliente verá somente o preço final da entrega.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <Label htmlFor="shipping-surcharge-enabled">Ativar acréscimo</Label>
+                  <p className="text-sm text-muted-foreground">O valor não será detalhado separadamente para o cliente.</p>
+                </div>
+                <Switch id="shipping-surcharge-enabled" checked={surchargeEnabled} onCheckedChange={setSurchargeEnabled} />
+              </div>
+              <div className="space-y-2 border-t pt-4">
+                <Label htmlFor="shipping-surcharge-amount">Acréscimo no frete (R$)</Label>
+                <Input
+                  id="shipping-surcharge-amount"
+                  type="number"
+                  min="0.01"
+                  max="1000"
+                  step="0.01"
+                  inputMode="decimal"
+                  value={surchargeAmount}
+                  onChange={(event) => setSurchargeAmount(event.target.value)}
+                  disabled={!surchargeEnabled}
+                  className="max-w-xs"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Exemplo: uma cotação de {formatPrice(20)} será mostrada como {formatPrice(20 + (surchargeEnabled ? Math.max(0, Number(surchargeAmount.replace(',', '.')) || 0) : 0))}. No frete grátis, o cliente paga R$ 0,00.
+                </p>
+              </div>
+              <div className="flex justify-end">
+                <Button onClick={handleSaveSurcharge} disabled={saveIntegrations.isPending}>
+                  {saveIntegrations.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                  Salvar acréscimo
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg font-medium"><Package className="h-5 w-5" />Compra híbrida de etiquetas</CardTitle>
               <CardDescription>Pedidos pagos e completos seguem automaticamente. Divergências ficam aguardando sua revisão, sem cobrança.</CardDescription>
             </CardHeader>
@@ -471,51 +515,6 @@ export default function ShippingSettings() {
       )}
 
       <MelhorEnvioConnection />
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Truck className="h-5 w-5 text-muted-foreground" />
-            <CardTitle className="text-lg font-medium">Ajuste no valor do frete</CardTitle>
-          </div>
-          <CardDescription>
-            Adicione um valor fixo à cotação. Na loja, o cliente verá somente o preço final da entrega.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-5">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <Label htmlFor="shipping-surcharge-enabled">Ativar ajuste</Label>
-              <p className="text-sm text-muted-foreground">O valor não será detalhado separadamente para o cliente.</p>
-            </div>
-            <Switch id="shipping-surcharge-enabled" checked={surchargeEnabled} onCheckedChange={setSurchargeEnabled} />
-          </div>
-          <div className="space-y-2 border-t pt-4">
-            <Label htmlFor="shipping-surcharge-amount">Valor adicional (R$)</Label>
-            <Input
-              id="shipping-surcharge-amount"
-              type="number"
-              min="0"
-              max="1000"
-              step="0.01"
-              inputMode="decimal"
-              value={surchargeAmount}
-              onChange={(event) => setSurchargeAmount(event.target.value)}
-              disabled={!surchargeEnabled}
-              className="max-w-xs"
-            />
-            <p className="text-xs text-muted-foreground">
-              Exemplo: uma cotação de {formatPrice(20)} será mostrada como {formatPrice(20 + (surchargeEnabled ? Math.max(0, Number(surchargeAmount.replace(',', '.')) || 0) : 0))}. No frete grátis, o cliente paga R$ 0,00.
-            </p>
-          </div>
-          <div className="flex justify-end">
-            <Button onClick={handleSaveSurcharge} disabled={saveIntegrations.isPending}>
-              {saveIntegrations.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
-              Salvar ajuste
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Free Shipping Card */}
       <Card>
