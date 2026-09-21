@@ -66,13 +66,13 @@ export function HeroBannerCarousel({ compact = false }: { compact?: boolean }) {
 
   if (isLoading) {
     return (
-      <section className={cn("relative overflow-hidden bg-muted animate-pulse", compact ? "h-[420px] sm:h-[500px] lg:h-[580px]" : "min-h-[70vh] lg:min-h-[85vh]")} />
+      <section className={cn("relative overflow-hidden bg-muted animate-pulse", compact ? "h-[300px] sm:h-[360px] lg:h-[400px]" : "min-h-[70vh] lg:min-h-[85vh]")} />
     );
   }
 
   if (!banners?.length) {
     return (
-      <section className={cn("relative overflow-hidden", compact ? "h-[420px] sm:h-[500px] lg:h-[580px]" : "min-h-[70vh] lg:min-h-[85vh]")}>
+      <section className={cn("relative overflow-hidden", compact ? "h-[300px] sm:h-[360px] lg:h-[400px]" : "min-h-[70vh] lg:min-h-[85vh]")}>
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
           style={{ backgroundImage: `url(${heroBg})` }}
@@ -113,7 +113,7 @@ export function HeroBannerCarousel({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <section className={cn("relative overflow-hidden", compact ? "h-[420px] sm:h-[500px] lg:h-[580px]" : "min-h-[70vh] lg:min-h-[85vh]")}>
+    <section className={cn("relative overflow-hidden", compact ? "h-[300px] sm:h-[360px] lg:h-[400px]" : "min-h-[70vh] lg:min-h-[85vh]")}>
       <div ref={emblaRef} className="overflow-hidden h-full">
         <div className="flex h-full">
           {banners.map((banner) => {
