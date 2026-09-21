@@ -51,6 +51,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useRealtimeInvalidator } from '@/hooks/useRealtimeInvalidator';
+import { searchProducts } from '@/lib/productSearch';
 
 // Helper function to upload image to Supabase Storage
 async function uploadImageToStorage(base64: string, filename: string): Promise<string> {
@@ -288,9 +289,8 @@ export default function Products() {
   );
 
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    return searchProducts(products, search).filter((product) => {
       if (focusedProductId && product.id !== focusedProductId) return false;
-      const matchesSearch = product.title.toLowerCase().includes(search.toLowerCase());
       let matchesType = true;
       if (filterType === '__none__') {
         matchesType = !product.product_type || !categoryValues.has(product.product_type);
@@ -303,7 +303,7 @@ export default function Products() {
         (filterConsignment === 'consignment' ? (product as any).is_consignment === true : (product as any).is_consignment !== true);
       const matchesLote = !filterLote ||
         (filterLote === 'lote' ? (product as any).is_lote === true : (product as any).is_lote !== true);
-      return matchesSearch && matchesType && matchesVendor && matchesSupplier && matchesConsignment && matchesLote;
+      return matchesType && matchesVendor && matchesSupplier && matchesConsignment && matchesLote;
     });
   }, [products, search, filterType, filterVendor, filterSupplier, filterConsignment, filterLote, categoryValues, focusedProductId]);
 
@@ -696,7 +696,7 @@ export default function Products() {
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar produtos..."
+            placeholder="Buscar por nome, SKU, código, marca ou categoria..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-10 font-light"

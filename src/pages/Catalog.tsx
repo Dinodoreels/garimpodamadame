@@ -21,6 +21,7 @@ import { useCatalogShippingCep } from '@/hooks/useCatalogShippingCep';
 import { CategoryChips } from '@/components/catalog/CategoryChips';
 import { CatalogFiltersSheet, type CatalogFilters } from '@/components/catalog/CatalogFiltersSheet';
 import { HeroBannerCarousel } from '@/components/home/HeroBannerCarousel';
+import { useSmartProductSearch } from '@/hooks/useSmartProductSearch';
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc' | 'expiry-asc';
 
@@ -53,6 +54,7 @@ export default function Catalog() {
   });
 
   const { data: products, isLoading } = useProducts();
+  const { results: searchedProducts, isInterpreting } = useSmartProductSearch(products ?? [], searchQuery);
   const { data: cmsPage } = useCMSPageBySlugOrHome('catalog');
   const { cep: shippingCep } = useCatalogShippingCep();
 
@@ -85,26 +87,22 @@ export default function Catalog() {
   const productCountsByCategory = useMemo(() => {
     if (!products) return {} as Record<string, number>;
     const acc: Record<string, number> = {};
-    const q = searchQuery.trim().toLowerCase();
-    products.forEach((p) => {
-      if (q && !p.title.toLowerCase().includes(q) && !p.description?.toLowerCase().includes(q)) return;
+    searchedProducts.forEach((p) => {
       const key = p.product_type || '';
       if (!key) return;
       acc[key] = (acc[key] || 0) + 1;
     });
     return acc;
-  }, [products, searchQuery]);
+  }, [products, searchedProducts]);
 
   const filteredAndSortedProducts = useMemo(() => {
     if (!products) return [];
 
-    const q = searchQuery.trim().toLowerCase();
     const min = parseNumber(filters.minPrice);
     const max = parseNumber(filters.maxPrice);
     const now = Date.now();
 
-    const filtered = products.filter((p) => {
-      if (q && !p.title.toLowerCase().includes(q) && !p.description?.toLowerCase().includes(q)) return false;
+    const filtered = searchedProducts.filter((p) => {
       if (category && p.product_type !== category) return false;
       if (filters.vendor && p.vendor !== filters.vendor) return false;
       if (min !== null && p.price < min) return false;
@@ -149,7 +147,7 @@ export default function Catalog() {
     });
 
     return sorted;
-  }, [products, searchQuery, sortBy, category, filters]);
+  }, [products, searchedProducts, sortBy, category, filters]);
 
   const activeFilterCount =
     (filters.vendor ? 1 : 0) +
@@ -197,6 +195,7 @@ export default function Catalog() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="pl-10 h-12"
                 />
+                {isInterpreting && <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">Entendendo sua busca…</span>}
               </div>
 
               <div className="flex gap-2">

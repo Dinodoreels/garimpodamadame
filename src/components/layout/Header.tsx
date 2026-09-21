@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Cookie, FileText, Heart, Menu, Moon, Search, Settings, ShieldCheck, Store, Sun, User } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { Cookie, FileText, Heart, Menu, Moon, Settings, ShieldCheck, Store, Sun, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -14,11 +13,11 @@ import logo from '@/assets/logo.png';
 import { useCMSThemeContext } from '@/providers/CMSThemeProvider';
 import { useTheme } from 'next-themes';
 import { getStorefrontFallback, mergeStorefrontNavigation, type StorefrontNavigationSettings } from '@/lib/storefrontNavigation';
+import { ProductSearchBox } from '@/components/search/ProductSearchBox';
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
   const { isAdmin } = useAdmin();
@@ -30,14 +29,6 @@ export function Header() {
   const navigation = settings.items.filter((item) => item.enabled);
   const homeHref = settings.items.find((item) => item.href === '/')?.enabled ? '/' : getStorefrontFallback(settings);
   const logoUrl = cmsTheme?.logo_url || logo;
-
-  const handleSearch = (event: React.FormEvent) => {
-    event.preventDefault();
-    if (!searchQuery.trim()) return;
-    navigate(`/catalog?search=${encodeURIComponent(searchQuery.trim())}`);
-    setSearchQuery('');
-    setMenuOpen(false);
-  };
 
   const closeMenu = () => setMenuOpen(false);
   const toggleColorMode = () => setColorMode(colorMode === 'dark' ? 'light' : 'dark');
@@ -58,10 +49,14 @@ export function Header() {
                 <p className="mt-1 text-xs text-muted-foreground">O Garimpo Digital</p>
               </div>
               <div className="flex-1 overflow-y-auto px-4 py-5">
-                <form onSubmit={handleSearch} className="relative mb-5 lg:hidden">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="O que você está procurando?" className="h-11 rounded-sm pl-11" />
-                </form>
+                <ProductSearchBox
+                  value={searchQuery}
+                  onChange={setSearchQuery}
+                  onSubmit={() => setMenuOpen(false)}
+                  onNavigate={closeMenu}
+                  className="mb-5 lg:hidden"
+                  inputClassName="h-11 rounded-sm"
+                />
                 <div className="space-y-1">
                   {navigation.map((item) => (
                     <Link key={item.href} to={item.href} onClick={closeMenu} className={cn('flex min-h-11 items-center rounded-sm px-4 py-3 text-sm transition-colors', location.pathname === item.href ? 'bg-accent/10 font-medium text-accent' : 'text-muted-foreground hover:bg-muted hover:text-foreground')}>
@@ -95,10 +90,11 @@ export function Header() {
           </Link>
         </div>
 
-        <form onSubmit={handleSearch} className="relative col-span-3 row-start-2 w-full lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:max-w-3xl lg:justify-self-center">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-storefront-search-muted" strokeWidth={1.5} />
-          <Input type="search" aria-label="Pesquisar produtos" placeholder="O que você está procurando?" value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} className="h-12 w-full rounded-full border-storefront-header-border bg-storefront-search pl-12 pr-5 text-sm text-storefront-search-foreground placeholder:text-storefront-search-muted focus-visible:ring-accent" />
-        </form>
+        <ProductSearchBox
+          value={searchQuery}
+          onChange={setSearchQuery}
+          className="col-span-3 row-start-2 w-full lg:col-span-1 lg:col-start-2 lg:row-start-1 lg:max-w-3xl lg:justify-self-center"
+        />
 
         <div className="flex items-center justify-end gap-1">
           <Button variant="ghost" size="icon" aria-label="Alternar tema" onClick={toggleColorMode} className="hidden min-h-11 min-w-11 text-storefront-header-foreground hover:bg-storefront-header-foreground/10 hover:text-storefront-header-foreground sm:inline-flex">
