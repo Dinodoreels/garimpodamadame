@@ -63,6 +63,7 @@
 - [x] Restaurar os cadastros ausentes e garantir que os dados pessoais sejam realmente salvos
 - [x] Corrigir o avanço do PIX, enviar os dados reais do comprador e manter erros visíveis
 - [x] Levar o cliente ao catálogo após exibir a confirmação do pagamento
+- [x] Informar que os juros do parcelamento de 2x a 12x são calculados pelo Mercado Pago e pagos pelo cliente
 
 # Etiquetas de marketplaces e cadastro automático
 

@@ -34,6 +34,7 @@ import { ShippingAddressModal } from "./ShippingAddressModal";
 import { DiscountInput } from "./DiscountInput";
 import { LoyaltyRedemption } from "./LoyaltyRedemption";
 import { CartItemsList } from "./CartItemsList";
+import { PaymentTermsNotice } from "./PaymentTermsNotice";
 import { calculateShipping } from "@/lib/shipping";
 import { toast } from "sonner";
 import { DiscountCode } from "@/hooks/useDiscounts";
@@ -409,6 +410,8 @@ export function CartDrawer() {
                     </span>
                   </div>
                 </div>
+
+                <PaymentTermsNotice />
                 
                 <div className="flex flex-col gap-2">
                   <Button 
