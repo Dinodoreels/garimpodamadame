@@ -122,11 +122,29 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "Produto e categoria são obrigatórios." }, 400);
     }
 
-    const [{ data: product }, categories] = await Promise.all([
-      supa.from("products").select("id,product_type").eq("id", productId).maybeSingle(),
-      getTikTokCategories(channel, typeof body.product_type === "string" ? body.product_type : undefined),
-    ]);
+    const { data: product } = await supa.from("products").select("id,product_type").eq("id", productId).maybeSingle();
     if (!product?.product_type) return jsonResponse({ error: "Defina o tipo do produto antes da categoria TikTok." }, 409);
+    let categories;
+    try {
+      categories = await getTikTokCategories(channel, typeof body.product_type === "string" ? body.product_type : undefined);
+    } catch (categoryError) {
+      const detail = categoryError instanceof Error ? categoryError.message : String(categoryError);
+      await logSync({
+        entity_type: "category",
+        entity_id: categoryId,
+        action: "tiktok_category_confirmation",
+        status: "blocked",
+        payload: { product_id: productId, category_id: categoryId, store_id: String(channel.id) },
+        error_message: detail,
+      });
+      return jsonResponse({
+        ok: false,
+        blocked: true,
+        code: "TIKTOK_CATEGORIES_UNAVAILABLE",
+        error: "O Bling não liberou as categorias do TikTok para esta loja. A publicação está pausada; reconecte o TikTok no Bling com permissão para gerenciar anúncios.",
+        detail,
+      }, 409);
+    }
     const selected = categories.find((category) => category.id === categoryId);
     if (!selected) return jsonResponse({ error: "Escolha uma categoria real retornada pelo canal TikTok." }, 400);
 

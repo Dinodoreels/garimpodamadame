@@ -460,6 +460,7 @@ export function SimpleProductDialog({
     setTikTokPublication(status);
     const savedAttributes = status.category?.attribute_mappings;
     if (savedAttributes) setMarketplaceAttributes((current) => ({ ...current, ...savedAttributes }));
+    if (status.category?.marketplace_category_id) setTikTokCategoryId(status.category.marketplace_category_id);
     if (status.publication?.status === 'published') setTikTokStatus('published');
     else if (status.publication?.status === 'error') setTikTokStatus('error');
     else if (status.publication) setTikTokStatus('pending');
@@ -1650,6 +1651,12 @@ export function SimpleProductDialog({
                             </div>
                           </div>
                           {tiktokStatus === 'published' && <Badge variant="secondary"><CheckCircle2 className="mr-1 h-3 w-3" />Publicado</Badge>}
+                        </div>
+
+                        <div className="grid grid-cols-3 divide-x rounded-md border bg-muted/20 text-xs">
+                          <div className="p-2.5"><span className="text-muted-foreground">Loja</span><p className="mt-1 font-medium">{initialData.status === 'active' ? 'Visível' : 'Inativo'}</p></div>
+                          <div className="p-2.5"><span className="text-muted-foreground">Bling</span><p className="mt-1 font-medium">{initialData.bling_links?.some((link) => link.status === 'synced' || link.status === 'partial') ? 'Sincronizado' : 'Pendente'}</p></div>
+                          <div className="p-2.5"><span className="text-muted-foreground">TikTok</span><p className="mt-1 font-medium">{tiktokCategoriesBlocked ? 'Pausado' : tiktokStatus === 'published' ? 'Publicado' : tiktokStatus === 'error' ? 'Com erro' : 'Pendente'}</p></div>
                         </div>
 
                         {!suggestionsConfirmed && (

@@ -215,6 +215,7 @@
 - [ ] Validar a recuperação dos PDFs oficiais dos pedidos após a autorização
 - [x] Mostrar o bloqueio real de categorias do Bling e impedir tentativas inválidas ou anúncios duplicados
 - [x] Substituir o erro genérico da função pela mensagem específica do canal
+- [x] Ressincronizar o Body Splash real no vínculo existente e confirmar fotos e estoque no Bling
 
 # Envio manual de etiquetas TikTok
 
