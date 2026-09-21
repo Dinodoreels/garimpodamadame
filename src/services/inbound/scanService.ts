@@ -1,3 +1,18 @@
+@@
+-  listLots: () => call<{ ok: boolean; lots: ScanLot[] }>('inbound-scan', { action: 'lots' }).then(r => r.lots ?? []),
++  listLots: async () => {
++    try {
++      return await call<{ ok: boolean; lots: ScanLot[] }>('inbound-scan', { action: 'lots' }).then(r => r.lots ?? []);
++    } catch {
++      const { data, error } = await supabase
++        .from('lots')
++        .select('id, code, description, status, expected_units, processed_units')
++        .in('status', ['open', 'processing'])
++        .order('created_at', { ascending: false });
++      if (error) throw error;
++      return (data ?? []) as ScanLot[];
++    }
++  },
 // Camada de acesso do Garimpo Scan. Funciona tanto no painel (usuário logado)
 // quanto no tablet do galpão (token de operador), sem duplicar telas.
 import { supabase } from '@/integrations/supabase/client';

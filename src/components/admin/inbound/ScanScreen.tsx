@@ -1,3 +1,17 @@
+@@
+-  useEffect(() => {
+-    if (!lotId && lots.length === 1) setLotId(lots[0].id);
+-  }, [lots, lotId]);
++  useEffect(() => {
++    if (!lotId && lots.length > 0) setLotId(lots[0].id);
++  }, [lots, lotId]);
+@@
+               {!loadingLots && lots.length === 0 && (
+@@
+               )}
++              {!loadingLots && lots.length > 1 && !lotId && (
++                <p className="text-sm text-muted-foreground">Escolha o lote que está fisicamente na bancada.</p>
++              )}
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';

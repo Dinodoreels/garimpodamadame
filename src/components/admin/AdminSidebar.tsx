@@ -1,3 +1,14 @@
+@@
+   Search,
++  Workflow,
+ } from 'lucide-react';
+@@
+ const menuItems: MenuItem[] = [
+   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
++  { icon: Workflow, label: 'Operacional', path: '/admin/operations' },
+@@
+-                  isExpanded ? "max-h-40" : "max-h-0"
++                  isExpanded ? "max-h-[44rem]" : "max-h-0"
 import { NavLink, useLocation } from 'react-router-dom';
 import { useState } from 'react';
 import { 

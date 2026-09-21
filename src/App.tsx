@@ -1,3 +1,16 @@
+@@
+ const TikTokShop = lazy(() => import("./pages/admin/TikTokShop"));
++const Operations = lazy(() => import("./pages/admin/Operations"));
+@@
+-const InboundTriage = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundTriage })));
++const InboundTriage = lazy(() => import("./pages/admin/inbound/Triage"));
+@@
+-const InboundLabels = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLabels })));
++const InboundLabels = lazy(() => import("./pages/admin/ProductLabels"));
+@@
+             <Route path="/admin" element={<AdminLayout />}>
+               <Route index element={<Dashboard />} />
++              <Route path="operations" element={<Operations />} />
 import { lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
