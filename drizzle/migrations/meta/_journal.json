@@ -176,6 +176,13 @@
       "when": 1789970363966,
       "tag": "0024_secure_warehouse_locations_and_inbound_package",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789973092588,
+      "tag": "0025_fix_selected_security_findings",
+      "breakpoints": true
     }
   ]
 }
