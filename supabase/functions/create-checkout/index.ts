@@ -233,7 +233,7 @@ Deno.serve(async (req) => {
     const total = subtotal - discountValue + shippingValue
 
     // Generate order number
-    const { data: orderNumberData, error: orderNumberError } = await supabase
+    const { data: orderNumberData, error: orderNumberError } = await admin
       .rpc('generate_order_number')
 
     if (orderNumberError) {
