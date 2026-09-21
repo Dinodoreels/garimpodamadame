@@ -114,10 +114,7 @@ export function useProductReviews(productId: string) {
 
     const { data, error } = await supabase
       .from('reviews')
-      .select(`
-        *,
-        profile:profiles(full_name)
-      `)
+      .select('*')
       .eq('product_id', productId)
       .eq('status', 'approved')
       .order('created_at', { ascending: false });
@@ -127,10 +124,7 @@ export function useProductReviews(productId: string) {
       return;
     }
 
-    const formattedReviews = data?.map(review => ({
-      ...review,
-      profile: review.profile as any,
-    })) || [];
+    const formattedReviews = data || [];
 
     setReviews(formattedReviews as Review[]);
 

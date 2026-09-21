@@ -294,7 +294,7 @@
            sections:cms_sections(*)
          `)
          .eq('id', pageId)
-         .single();
+          .maybeSingle();
        if (error) throw error;
        // Sort sections by position
        if (data?.sections) {
@@ -318,8 +318,9 @@
          `)
          .eq('slug', slug)
          .eq('is_published', true)
-         .single();
+         .maybeSingle();
        if (error) throw error;
+       if (!data) return null;
        if (data?.sections) {
          data.sections = (data.sections as CMSSection[]).sort((a, b) => a.position - b.position);
        }
@@ -491,8 +492,8 @@
          .from('cms_theme')
          .select('*')
          .eq('is_active', true)
-         .single();
-       if (error && error.code !== 'PGRST116') throw error;
+         .maybeSingle();
+       if (error) throw error;
        return data as CMSTheme | null;
      },
    });
@@ -779,9 +780,9 @@ export function useCMSPageBySlugOrHome(slug: string, isHome?: boolean) {
         query = query.eq('slug', slug);
       }
       
-      const { data, error } = await query.single();
+      const { data, error } = await query.maybeSingle();
       
-      if (error && error.code !== 'PGRST116') throw error;
+      if (error) throw error;
       if (!data) return null;
       
       if (data.sections) {

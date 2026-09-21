@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { forwardRef, useState, useEffect } from 'react';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -31,7 +31,7 @@ const BRAZILIAN_STATES = [
   'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
 ];
 
-export function AddressDialog({ open, onOpenChange, address, onSuccess }: AddressDialogProps) {
+export const AddressDialog = forwardRef<HTMLDivElement, AddressDialogProps>(function AddressDialog({ open, onOpenChange, address, onSuccess }, ref) {
   const { addAddress, updateAddress } = useAddresses();
   const { profile, updateProfile } = useProfile();
   const [loading, setLoading] = useState(false);
@@ -186,7 +186,7 @@ export function AddressDialog({ open, onOpenChange, address, onSuccess }: Addres
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[720px] max-h-[92vh] overflow-y-auto">
+      <DialogContent ref={ref} className="sm:max-w-[720px] max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{address ? 'Editar Endereço' : 'Novo Endereço'}</DialogTitle>
           <DialogDescription>
@@ -377,4 +377,4 @@ export function AddressDialog({ open, onOpenChange, address, onSuccess }: Addres
       </DialogContent>
     </Dialog>
   );
-}
+});

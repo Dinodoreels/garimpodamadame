@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { forwardRef, lazy, Suspense, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -18,6 +18,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Account from "./pages/Account";
 import Favorites from "./pages/Favorites";
+import Cart from "./pages/Cart";
 import OrderTracking from "./pages/OrderTracking";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -110,11 +111,11 @@ const queryClient = new QueryClient({
   },
 });
 
-function StorefrontOverlays() {
+const StorefrontOverlays = forwardRef<HTMLDivElement>(function StorefrontOverlays(_, ref) {
   const { pathname } = useLocation();
   if (pathname === '/galpao' || pathname.startsWith('/galpao/') || pathname.startsWith('/admin')) return null;
-  return <><CookieConsent /><BackToTop /><CustomerSupportChat /></>;
-}
+  return <div ref={ref} className="contents"><CookieConsent /><BackToTop /><CustomerSupportChat /></div>;
+});
 
 function ScrollToTopOnNavigation() {
   const { pathname } = useLocation();
@@ -155,6 +156,8 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/account" element={<Account />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/carrinho" element={<Cart />} />
             <Route path="/order-tracking" element={<OrderTracking />} />
             <Route path="/rastrear" element={<OrderTracking />} />
             

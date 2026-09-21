@@ -170,7 +170,7 @@ export async function getFreeShippingSettings(): Promise<{
     .from('site_settings')
     .select('value')
     .eq('key', 'free_shipping')
-    .single();
+    .maybeSingle();
   
   return data?.value as {
     enabled: boolean;

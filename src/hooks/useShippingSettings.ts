@@ -29,7 +29,7 @@ export function useFreeShippingSettings() {
         .from('site_settings')
         .select('value')
         .eq('key', 'free_shipping')
-        .single();
+        .maybeSingle();
       
       if (error) {
         console.error('Error fetching free shipping settings:', error);

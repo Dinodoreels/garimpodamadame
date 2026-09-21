@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { forwardRef, useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,7 +23,7 @@ interface ShippingCalculatorProps {
   hasDropshipItems?: boolean;
 }
 
-export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalculatorProps) {
+export const ShippingCalculator = forwardRef<HTMLDivElement, ShippingCalculatorProps>(function ShippingCalculator({ hasDropshipItems = false }, ref) {
   const { user } = useAuth();
   const { addresses, refetch } = useAddresses();
   const { data: freeShippingSettings } = useFreeShippingSettings();
@@ -33,6 +33,8 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
     shippingCity, 
     shippingEstimate,
     shippingZipCode,
+    shippingOption,
+    selectedAddress,
     setShipping, 
     clearShipping,
     getTotalPrice,
@@ -47,6 +49,7 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
   const [calcResponse, setCalcResponse] = useState<ShippingCalcResponse | null>(null);
   const [addressDialogOpen, setAddressDialogOpen] = useState(false);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+  const autoCalculationKey = useRef('');
 
   const subtotal = getTotalPrice();
   const freeShippingEnabled = freeShippingSettings?.enabled ?? false;
@@ -153,6 +156,19 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
     );
   };
 
+  useEffect(() => {
+    if (!user || addresses.length === 0 || items.length === 0 || isCalculating || shippingOption) return;
+
+    const preferredAddress = addresses.find((address) => address.is_default) || addresses[0];
+    const calculationKey = `${preferredAddress.id}:${subtotal}`;
+    if (autoCalculationKey.current === calculationKey) return;
+
+    autoCalculationKey.current = calculationKey;
+    setSelectedAddressId(preferredAddress.id);
+    setZipInput(formatZipCode(preferredAddress.zip_code));
+    void doCalculate(preferredAddress.zip_code, preferredAddress.id);
+  }, [addresses, isCalculating, items.length, shippingOption, subtotal, user]);
+
   // Recalculate when subtotal changes
   useEffect(() => {
     if (shippingZipCode && shippingOptions.length > 0) {
@@ -169,11 +185,11 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
           // Update selected option
           const current = result.options.find(o => o.service_code === selectedService);
           if (current) {
-            setShipping(current.cost, result.address?.state || '', result.address?.city || '', shippingZipCode, current.estimated_text, undefined, current.service, current);
+            setShipping(current.cost, result.address?.state || '', result.address?.city || '', shippingZipCode, current.estimated_text, selectedAddress || undefined, current.service, current);
           } else {
             const cheapest = result.options[0];
             setSelectedService(cheapest.service_code);
-            setShipping(cheapest.cost, result.address?.state || '', result.address?.city || '', shippingZipCode, cheapest.estimated_text, undefined, cheapest.service, cheapest);
+            setShipping(cheapest.cost, result.address?.state || '', result.address?.city || '', shippingZipCode, cheapest.estimated_text, selectedAddress || undefined, cheapest.service, cheapest);
           }
         } else {
           clearShipping();
@@ -194,7 +210,7 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
   };
 
   return (
-    <div className="space-y-4 p-4 bg-secondary/30 rounded-lg">
+    <div ref={ref} className="space-y-4 p-4 bg-secondary/30 rounded-lg">
       {/* Free Shipping Progress */}
       {freeShippingEnabled && (
         <div className="space-y-2">
@@ -337,4 +353,4 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
       <AddressDialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen} onSuccess={refetch} />
     </div>
   );
-}
+});

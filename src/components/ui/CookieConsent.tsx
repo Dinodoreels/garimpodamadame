@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { forwardRef, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Cookie, X, ChevronDown, ChevronUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch';
 import { useCookieConsent, CookiePreferences } from '@/hooks/useCookieConsent';
 import { cn } from '@/lib/utils';
 
-export function CookieConsent() {
+export const CookieConsent = forwardRef<HTMLDivElement, Record<string, never>>(function CookieConsent(_, ref) {
   const {
     showBanner,
     preferences,
@@ -34,7 +34,7 @@ export function CookieConsent() {
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6">
+    <div ref={ref} className="fixed bottom-0 left-0 right-0 z-50 p-4 md:p-6">
       <div className="container max-w-4xl">
         <div className="bg-card border rounded-lg shadow-lg p-4 md:p-6">
           {/* Main Content */}
@@ -158,4 +158,4 @@ export function CookieConsent() {
       </div>
     </div>
   );
-}
+});
