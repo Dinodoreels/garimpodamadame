@@ -22,7 +22,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { useAdminProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useReorderProducts, ProductFormData as AdminProductFormData } from '@/hooks/useProductAdmin';
+import { useAdminProducts, useCreateProduct, useUpdateProduct, useDeleteProduct, useReorderProducts, useToggleProductStatus, ProductFormData as AdminProductFormData } from '@/hooks/useProductAdmin';
 import { ProductFormData as DialogProductFormData } from '@/components/admin/ProductDialog';
 import { SimpleProductDialog } from '@/components/admin/SimpleProductDialog';
 import { DeleteProductDialog } from '@/components/admin/DeleteProductDialog';
@@ -127,12 +127,14 @@ function ChannelBadges({ product }: { product: Product }) {
 }
 
 // Sortable row component for desktop table
-function SortableProductRow({ product, formatCurrency, handleEdit, handleDeleteClick, onStockClick }: {
+function SortableProductRow({ product, formatCurrency, handleEdit, handleDeleteClick, onStockClick, onStatusChange, statusUpdating }: {
   product: Product;
   formatCurrency: (n: number) => string;
   handleEdit: (p: Product) => void;
   handleDeleteClick: (p: Product) => void;
   onStockClick: (p: Product) => void;
+  onStatusChange: (p: Product, active: boolean) => void;
+  statusUpdating: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: product.id });
   const style = { transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1 };
@@ -160,9 +162,15 @@ function SortableProductRow({ product, formatCurrency, handleEdit, handleDeleteC
       <TableCell className="font-light text-muted-foreground">{product.product_type || '-'}</TableCell>
       <TableCell className="font-light text-muted-foreground hidden lg:table-cell">{product.vendor || '-'}</TableCell>
       <TableCell>
-        <Badge variant={product.status === 'active' ? 'default' : 'secondary'}>
-          {product.status === 'active' ? 'Ativo' : product.status === 'draft' ? 'Rascunho' : 'Arquivado'}
-        </Badge>
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={product.status === 'active'}
+            disabled={statusUpdating}
+            onCheckedChange={(active) => onStatusChange(product, active)}
+            aria-label={`${product.status === 'active' ? 'Desativar' : 'Ativar'} ${product.title}`}
+          />
+          <span className="text-xs whitespace-nowrap">{product.status === 'active' ? 'Ativo' : 'Inativo'}</span>
+        </div>
       </TableCell>
       <TableCell className="text-center">
         <button onClick={() => onStockClick(product)} className="inline-flex items-center gap-1 hover:text-primary transition-colors">
@@ -192,6 +200,7 @@ export default function Products() {
   const updateProductMutation = useUpdateProduct();
   const deleteProductMutation = useDeleteProduct();
   const reorderMutation = useReorderProducts();
+  const toggleStatusMutation = useToggleProductStatus();
   const { data: categories = [], isLoading: categoriesLoading } = useProductCategories();
   const createCategoryMutation = useCreateCategory();
   const updateCategoryMutation = useUpdateCategory();
@@ -218,6 +227,10 @@ export default function Products() {
   const [stockProduct, setStockProduct] = useState<Product | null>(null);
   useRealtimeInvalidator(['products', 'product_variants', 'product_images', 'bling_product_links', 'tiktok_product_links'], ['admin-products']);
   const focusedProductId = new URLSearchParams(window.location.search).get('product');
+
+  const handleStatusChange = (product: Product, active: boolean) => {
+    toggleStatusMutation.mutate({ id: product.id, active });
+  };
 
   // Category management state
   const [categoryDialogOpen, setCategoryDialogOpen] = useState(false);
@@ -801,9 +814,15 @@ export default function Products() {
                     <span className="text-xs text-muted-foreground truncate">
                       {[product.product_type, product.vendor].filter(Boolean).join(' | ') || '-'}
                     </span>
-                    <Badge variant={product.status === 'active' ? 'default' : 'secondary'} className="shrink-0 text-[10px] px-1.5 py-0">
-                      {product.status === 'active' ? 'Ativo' : product.status === 'draft' ? 'Rascunho' : 'Arquivado'}
-                    </Badge>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <Switch
+                        checked={product.status === 'active'}
+                        disabled={toggleStatusMutation.isPending}
+                        onCheckedChange={(active) => handleStatusChange(product, active)}
+                        aria-label={`${product.status === 'active' ? 'Desativar' : 'Ativar'} ${product.title}`}
+                      />
+                      <span className="text-[10px]">{product.status === 'active' ? 'Ativo' : 'Inativo'}</span>
+                    </div>
                   </div>
                   <div className="flex justify-end gap-1 mt-1">
                     <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleEdit(product)}>
@@ -860,6 +879,8 @@ export default function Products() {
                       handleEdit={handleEdit}
                       handleDeleteClick={handleDeleteClick}
                       onStockClick={handleStockClick}
+                      onStatusChange={handleStatusChange}
+                      statusUpdating={toggleStatusMutation.isPending}
                     />
                   ))
                 ) : (
@@ -878,9 +899,15 @@ export default function Products() {
                         <TableCell className="font-light text-muted-foreground">{product.product_type || '-'}</TableCell>
                         <TableCell className="font-light text-muted-foreground hidden lg:table-cell">{product.vendor || '-'}</TableCell>
                         <TableCell>
-                          <Badge variant={product.status === 'active' ? 'default' : 'secondary'}>
-                            {product.status === 'active' ? 'Ativo' : product.status === 'draft' ? 'Rascunho' : 'Arquivado'}
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={product.status === 'active'}
+                              disabled={toggleStatusMutation.isPending}
+                              onCheckedChange={(active) => handleStatusChange(product, active)}
+                              aria-label={`${product.status === 'active' ? 'Desativar' : 'Ativar'} ${product.title}`}
+                            />
+                            <span className="text-xs whitespace-nowrap">{product.status === 'active' ? 'Ativo' : 'Inativo'}</span>
+                          </div>
                         </TableCell>
                         <TableCell className="text-center">
                           {(() => {

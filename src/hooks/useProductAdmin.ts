@@ -26,6 +26,32 @@ export function useReorderProducts() {
   });
 }
 
+export function useToggleProductStatus() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, active }: { id: string; active: boolean }) => {
+      const status = active ? 'active' : 'draft';
+      const { error } = await supabase
+        .from('products')
+        .update({ status })
+        .eq('id', id);
+
+      if (error) throw new Error(error.message);
+      return { id, active };
+    },
+    onSuccess: ({ active }) => {
+      queryClient.invalidateQueries({ queryKey: ['admin-products'] });
+      queryClient.invalidateQueries({ queryKey: ['products'] });
+      queryClient.invalidateQueries({ queryKey: ['product'] });
+      toast.success(active ? 'Produto ativado na loja.' : 'Produto desativado e ocultado da loja.');
+    },
+    onError: (error: Error) => {
+      toast.error('Não foi possível alterar o produto.', { description: error.message });
+    },
+  });
+}
+
 export interface ProductFormData {
   title: string;
   description?: string;
