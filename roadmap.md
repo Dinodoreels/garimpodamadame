@@ -225,6 +225,7 @@
 - [x] Simplificar o painel para mostrar apenas o serviço oficial ativo
 - [x] Exigir confirmação do endereço de e-mail antes do primeiro acesso
 - [x] Ativar avisos por e-mail de pagamento, envio e entrega do pedido
+- [x] Centralizar a logo e os botões principais em todos os modelos
 - [x] Restringir carrinho e comunicações promocionais a clientes com consentimento registrado
 
 # Reembolso completo

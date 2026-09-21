@@ -62,16 +62,16 @@ export const Brand = {
 export function BrandHeader({ branding }: { branding: EmailBranding }) {
   if (branding.logoUrl) {
     return (
-      <Section style={{ margin: '0 0 24px', padding: '0 4px' }}>
+      <Section style={{ margin: '0 0 24px', padding: '0 4px', textAlign: 'center' as const }}>
         <Img
           src={branding.logoUrl}
           alt={branding.storeName}
-          style={{ maxHeight: '82px', maxWidth: '210px', objectFit: 'contain', margin: '0' }}
+          style={{ maxHeight: '82px', maxWidth: '210px', objectFit: 'contain', margin: '0 auto' }}
         />
       </Section>
     )
   }
-  return <Text style={{ ...brandTextStyle, color: branding.colors.primary }}>{branding.storeName}</Text>
+  return <Text style={{ ...brandTextStyle, color: branding.colors.primary, textAlign: 'center' as const }}>{branding.storeName}</Text>
 }
 
 export function BrandStatusCard({
@@ -180,9 +180,11 @@ export function BrandButton({
   children: React.ReactNode
 }) {
   return (
-    <Button href={href} style={brandStyles(branding).button}>
-      {children}
-    </Button>
+    <Section style={{ textAlign: 'center' as const, margin: '24px 0 8px' }}>
+      <Button href={href} style={brandStyles(branding).button}>
+        {children}
+      </Button>
+    </Section>
   )
 }
 
