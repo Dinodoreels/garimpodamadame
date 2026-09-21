@@ -106,6 +106,13 @@
       "when": 1789948052917,
       "tag": "0014_add_manual_marketplace_shipping_labels",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789948902342,
+      "tag": "0015_add_manual_tiktok_danfe_storage",
+      "breakpoints": true
     }
   ]
 }

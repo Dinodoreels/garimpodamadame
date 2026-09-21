@@ -1517,6 +1517,7 @@ export type Database = {
           authorized_at: string | null
           bling_invoice_id: string | null
           created_at: string
+          danfe_storage_path: string | null
           danfe_url: string | null
           error_message: string | null
           fiscal_environment: string
@@ -1530,6 +1531,9 @@ export type Database = {
           requested_by: string | null
           status: string
           updated_at: string
+          upload_source: string | null
+          uploaded_at: string | null
+          uploaded_by: string | null
           validated_at: string | null
           validation_details: Json
           validation_errors: Json
@@ -1540,6 +1544,7 @@ export type Database = {
           authorized_at?: string | null
           bling_invoice_id?: string | null
           created_at?: string
+          danfe_storage_path?: string | null
           danfe_url?: string | null
           error_message?: string | null
           fiscal_environment?: string
@@ -1553,6 +1558,9 @@ export type Database = {
           requested_by?: string | null
           status?: string
           updated_at?: string
+          upload_source?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
           validated_at?: string | null
           validation_details?: Json
           validation_errors?: Json
@@ -1563,6 +1571,7 @@ export type Database = {
           authorized_at?: string | null
           bling_invoice_id?: string | null
           created_at?: string
+          danfe_storage_path?: string | null
           danfe_url?: string | null
           error_message?: string | null
           fiscal_environment?: string
@@ -1576,6 +1585,9 @@ export type Database = {
           requested_by?: string | null
           status?: string
           updated_at?: string
+          upload_source?: string | null
+          uploaded_at?: string | null
+          uploaded_by?: string | null
           validated_at?: string | null
           validation_details?: Json
           validation_errors?: Json
