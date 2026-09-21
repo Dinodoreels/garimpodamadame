@@ -78,7 +78,7 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
 
   return (
     <>
-      <div className="border border-border overflow-x-auto">
+      <div className="overflow-x-auto rounded-md border border-border bg-card">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -96,8 +96,8 @@ export function OrdersTable({ orders, onStatusChange }: OrdersTableProps) {
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center py-12 text-muted-foreground font-light">
-                  Nenhum pedido encontrado
+                <TableCell colSpan={9} className="h-48 text-center text-muted-foreground font-light">
+                  Nenhum pedido encontrado nos filtros atuais
                 </TableCell>
               </TableRow>
             ) : (
