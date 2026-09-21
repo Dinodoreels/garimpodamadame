@@ -95,7 +95,7 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     const body: CheckoutRequest = await req.json()
-    const { items, shipping_cost, shipping_address, discount_code, discount_amount, loyalty_points_used, shipping_option } = body
+    const { items, shipping_cost, shipping_address, discount_code, loyalty_points_used, shipping_option } = body
 
     if (!items || items.length === 0) {
       return new Response(
@@ -118,7 +118,7 @@ Deno.serve(async (req) => {
     })
     // Calculate totals from prices stored by the shop, never from browser values
     const subtotal = verifiedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-    let discountValue = 0
+    let couponDiscountValue = 0
     let verifiedDiscountCode: string | null = null
     if (discount_code) {
       const { data: discountRows, error: discountError } = await supabase.rpc('validate_discount_code', { p_code: discount_code.toUpperCase() })
@@ -131,14 +131,33 @@ Deno.serve(async (req) => {
         ? verifiedItems.filter((item) => item.variant_id === vipCampaign.variant_id).reduce((sum, item) => sum + item.price * item.quantity, 0)
         : subtotal
       if (vipCampaign && eligibleSubtotal <= 0) throw new Error('Este cupom é válido somente para o produto da oferta VIP')
-      discountValue = discount.type === 'percentage'
+      couponDiscountValue = discount.type === 'percentage'
         ? eligibleSubtotal * (Number(discount.value) / 100)
         : Math.min(Number(discount.value), eligibleSubtotal)
-      if (discount.max_discount) discountValue = Math.min(discountValue, Number(discount.max_discount))
+      if (discount.max_discount) couponDiscountValue = Math.min(couponDiscountValue, Number(discount.max_discount))
       verifiedDiscountCode = discount.code
-    } else if (Number(discount_amount || 0) > 0) {
-      throw new Error('Cupom inválido')
     }
+
+    const requestedPoints = Number(loyalty_points_used || 0)
+    let loyaltyDiscountValue = 0
+    if (requestedPoints > 0) {
+      if (!Number.isSafeInteger(requestedPoints)) throw new Error('Quantidade de pontos inválida')
+      const [{ data: loyaltySettings }, { data: loyaltyBalance }] = await Promise.all([
+        admin.from('loyalty_settings').select('is_active, redemption_rate, min_redemption, min_order_value, max_discount_percent, redemption_step').maybeSingle(),
+        admin.from('loyalty_points').select('balance').eq('user_id', userId).maybeSingle(),
+      ])
+      if (!loyaltySettings?.is_active) throw new Error('Programa de fidelidade indisponível')
+      if (requestedPoints > Number(loyaltyBalance?.balance || 0)) throw new Error('Saldo de pontos insuficiente')
+      if (requestedPoints < Number(loyaltySettings.min_redemption || 0)) throw new Error('Quantidade de pontos abaixo do mínimo para resgate')
+      const redemptionStep = Math.max(1, Number(loyaltySettings.redemption_step || 1))
+      if (requestedPoints % redemptionStep !== 0) throw new Error(`O resgate deve ser feito em múltiplos de ${redemptionStep} pontos`)
+      if (subtotal < Number(loyaltySettings.min_order_value || 0)) throw new Error('Pedido abaixo do valor mínimo para usar pontos')
+      loyaltyDiscountValue = (requestedPoints / 100) * Number(loyaltySettings.redemption_rate || 0)
+      const maxLoyaltyDiscount = subtotal * Math.min(100, Math.max(0, Number(loyaltySettings.max_discount_percent ?? 100))) / 100
+      if (loyaltyDiscountValue <= 0 || loyaltyDiscountValue > maxLoyaltyDiscount + 0.001) throw new Error('Desconto de pontos inválido para este pedido')
+    }
+
+    const discountValue = Math.round((couponDiscountValue + loyaltyDiscountValue) * 100) / 100
     const shippingValue = Math.max(0, Number(shipping_cost || 0))
     if (discountValue > subtotal || !Number.isFinite(shippingValue)) throw new Error('Valores de desconto ou frete inválidos')
     const total = subtotal - discountValue + shippingValue
@@ -167,7 +186,7 @@ Deno.serve(async (req) => {
         shipping_address,
         discount_code: verifiedDiscountCode,
         discount_amount: discountValue,
-        loyalty_points_used: loyalty_points_used || 0,
+        loyalty_points_used: requestedPoints,
         source: 'website',
         shipping_provider: shipping_option ? 'melhor_envio' : null,
         shipping_carrier: shipping_option?.carrier || null,
@@ -186,7 +205,7 @@ Deno.serve(async (req) => {
     }
 
     // If loyalty points were used, deduct them from user's balance
-    if (loyalty_points_used && loyalty_points_used > 0) {
+    if (requestedPoints > 0) {
       // Create redemption transaction
       const { error: transactionError } = await supabase
         .from('loyalty_transactions')
@@ -194,7 +213,7 @@ Deno.serve(async (req) => {
           user_id: userId,
           order_id: order.id,
           type: 'redeem',
-          points: -loyalty_points_used,
+          points: -requestedPoints,
           description: `Resgate - Pedido #${orderNumber}`,
         })
 
@@ -206,8 +225,8 @@ Deno.serve(async (req) => {
       const { error: balanceError } = await supabase
         .from('loyalty_points')
         .update({ 
-          balance: supabase.rpc('decrement_balance', { amount: loyalty_points_used }),
-          total_redeemed: supabase.rpc('increment_redeemed', { amount: loyalty_points_used }),
+          balance: supabase.rpc('decrement_balance', { amount: requestedPoints }),
+          total_redeemed: supabase.rpc('increment_redeemed', { amount: requestedPoints }),
         })
         .eq('user_id', userId)
 
@@ -216,7 +235,7 @@ Deno.serve(async (req) => {
         console.error('Error updating loyalty balance, trying direct update:', balanceError)
         await supabase.rpc('adjust_loyalty_balance', {
           p_user_id: userId,
-          p_points: -loyalty_points_used,
+          p_points: -requestedPoints,
         })
       }
     }

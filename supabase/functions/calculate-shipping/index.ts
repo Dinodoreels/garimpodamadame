@@ -188,8 +188,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback to shipping_rates table
-    if (options.length === 0 && !providerError) {
+    // Keep checkout available with the configured local rates when the live
+    // provider is disconnected or temporarily unavailable.
+    if (options.length === 0) {
       options = await getFallbackRates(supabase, cleanZip);
     }
 

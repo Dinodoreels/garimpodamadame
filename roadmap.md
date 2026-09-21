@@ -245,3 +245,9 @@
 - [x] Permitir editar e ocultar separadamente o título e o subtítulo
 - [x] Permitir remover totalmente a camada de cor e exibir somente a imagem original
 
+# Correções de checkout e operação
+- [x] Validar e aplicar pontos de fidelidade junto com cupons no pagamento
+- [x] Usar tarifas locais quando o Melhor Envio estiver temporariamente indisponível
+- [x] Restaurar a prévia e o teste dos e-mails de campanha
+- [x] Corrigir a identificação local por GTIN e SKU no Garimpo Scan
+

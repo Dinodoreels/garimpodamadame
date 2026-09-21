@@ -352,8 +352,8 @@ Deno.serve(async (req) => {
   try {
     if (barcode) {
       const { data: local } = await db.from('product_variants')
-        .select('id,title,sku,barcode,gtin,price,cost,product_id,products(id,title,description,vendor,product_type,product_images(url,position))')
-        .or(`barcode.eq.${barcode},gtin.eq.${barcode},sku.eq.${barcode}`).limit(1).maybeSingle();
+        .select('id,title,sku,gtin,price,cost,product_id,products(id,title,description,vendor,product_type,product_images(url,position))')
+        .or(`gtin.eq.${barcode},sku.eq.${barcode}`).limit(1).maybeSingle();
       if (local) {
         const product = (local.products ?? {}) as Record<string, any>;
         const images = (product.product_images ?? []).sort((a: any, b: any) => Number(a.position) - Number(b.position)).map((row: any) => row.url);

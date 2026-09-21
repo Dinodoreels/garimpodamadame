@@ -353,9 +353,7 @@ export const useCartStore = create<CartStore>()(
               shipping_option: shippingOption || undefined,
               shipping_address: selectedAddress || undefined,
               discount_code: appliedDiscount?.code || undefined,
-              discount_amount: (appliedDiscount?.discountAmount || 0) + loyaltyDiscount,
               loyalty_points_used: loyaltyPointsUsed,
-              loyalty_discount: loyaltyDiscount,
             },
           });
 
