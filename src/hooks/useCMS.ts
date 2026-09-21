@@ -318,8 +318,9 @@
          `)
          .eq('slug', slug)
          .eq('is_published', true)
-         .single();
+         .maybeSingle();
        if (error) throw error;
+       if (!data) return null;
        if (data?.sections) {
          data.sections = (data.sections as CMSSection[]).sort((a, b) => a.position - b.position);
        }
