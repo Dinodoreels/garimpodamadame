@@ -144,7 +144,19 @@ export function AddressDialog({ open, onOpenChange, address, onSuccess }: Addres
     setLoading(true);
 
     try {
-      const { phone, cpf, birth_date, ...addressData } = parsed.data;
+      const { phone, cpf, birth_date } = parsed.data;
+      const addressData = {
+        label: parsed.data.label,
+        recipient_name: parsed.data.recipient_name,
+        zip_code: parsed.data.zip_code,
+        street: parsed.data.street,
+        number: parsed.data.number,
+        complement: parsed.data.complement,
+        neighborhood: parsed.data.neighborhood,
+        city: parsed.data.city,
+        state: parsed.data.state,
+        is_default: parsed.data.is_default,
+      };
       const { error: profileError } = await updateProfile({
         full_name: parsed.data.recipient_name,
         phone,
