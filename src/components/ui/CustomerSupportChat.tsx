@@ -10,13 +10,6 @@ type Msg = { role: 'user' | 'assistant'; content: string };
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/customer-support-chat`;
 
-function renderMarkdown(text: string) {
-  return text
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-primary underline hover:no-underline">$1</a>')
-    .replace(/\n/g, '<br/>');
-}
-
 export function CustomerSupportChat() {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Msg[]>([]);
@@ -163,14 +156,7 @@ export function CustomerSupportChat() {
                     : 'bg-muted rounded-tl-none'
                 )}
               >
-                {msg.role === 'assistant' ? (
-                  <div
-                    className="prose prose-sm max-w-none [&_a]:text-primary [&_a]:underline"
-                    dangerouslySetInnerHTML={{ __html: renderMarkdown(msg.content) }}
-                  />
-                ) : (
-                  msg.content
-                )}
+                <div className="whitespace-pre-wrap break-words">{msg.content}</div>
               </div>
             ))}
 

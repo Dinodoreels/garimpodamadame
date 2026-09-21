@@ -1,3 +1,4 @@
+import { requireInternalOrAdmin } from '../_shared/internal-auth.ts'
 // Cron-triggered. Processes pending products in tiktok_product_queue.
 import { corsHeaders, getConfig, getSupabaseAdmin, jsonResponse } from "../_shared/tiktok.ts";
 import { syncProductToTikTok } from "../_shared/tiktok-product-sync.ts";
@@ -6,6 +7,9 @@ const BATCH = 10;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const access = await requireInternalOrAdmin(req)
+  if (access instanceof Response) return new Response(access.body, { status: access.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
   try {
     const cfg = await getConfig();
     if (!cfg?.is_active || !cfg?.auto_sync_products) {

@@ -1,3 +1,4 @@
+import { requireInternalOrAdmin } from '../_shared/internal-auth.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { getEmailBranding } from '../_shared/email-branding.ts'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
@@ -96,6 +97,9 @@ async function dispatch(supabase: any, wa: any, recipients: string[], channel: s
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  const access = await requireInternalOrAdmin(req)
+  if (access instanceof Response) return new Response(access.body, { status: access.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   try {
     const supabase = createClient(

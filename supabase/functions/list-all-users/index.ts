@@ -32,13 +32,13 @@ Deno.serve(async (req) => {
 
     const admin = createClient(supabaseUrl, serviceKey);
 
-    // Permission check: caller must be admin or vendedor
+    // Full customer PII is restricted to administrators.
     const { data: callerRoles } = await admin
       .from('user_roles')
       .select('role')
       .eq('user_id', callerId);
     const callerRoleSet = new Set((callerRoles || []).map((r) => r.role));
-    if (!callerRoleSet.has('admin') && !callerRoleSet.has('vendedor')) {
+    if (!callerRoleSet.has('admin')) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
     }
 

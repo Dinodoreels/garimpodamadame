@@ -1,3 +1,4 @@
+import { requireInternalOrAdmin } from '../_shared/internal-auth.ts'
 // Pulls orders from TikTok Shop and imports them as internal orders.
 // Cron-triggered every 5 minutes.
 import { corsHeaders, getSupabaseAdmin, getConfig, callTikTok, logSync } from "../_shared/tiktok.ts";
@@ -192,6 +193,9 @@ async function importOrder(tkOrder: any) {
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  const access = await requireInternalOrAdmin(req)
+  if (access instanceof Response) return new Response(access.body, { status: access.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   try {
     const cfg = await getConfig();
