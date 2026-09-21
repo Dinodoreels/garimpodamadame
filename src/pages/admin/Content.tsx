@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, GripVertical, Pencil, Trash2, Eye, EyeOff, Star, Check, X, MessageSquare, Loader2, ExternalLink, Image, Info, Phone, Save, Palette, Video, Scale, LogIn, Sparkles } from 'lucide-react';
+import { Plus, GripVertical, Pencil, Trash2, Eye, EyeOff, Star, Check, X, MessageSquare, Loader2, ExternalLink, Image, Info, Phone, Save, Palette, Video, Scale, LogIn, Sparkles, PanelLeft } from 'lucide-react';
 import { LegalTab } from '@/components/admin/LegalTab';
 import { AppearanceTab } from '@/components/admin/AppearanceTab';
 import { MediaPicker } from '@/components/cms/MediaPicker';
@@ -63,6 +63,73 @@ import { StarRating } from '@/components/products/StarRating';
 import { useReviews, Review } from '@/hooks/useReviews';
 import { AdminPageHeader } from '@/components/admin/AdminPageHeader';
 import { toast } from 'sonner';
+import { defaultStorefrontNavigation, mergeStorefrontNavigation, type StorefrontNavigationSettings } from '@/lib/storefrontNavigation';
+
+function NavigationTab() {
+  const { data, isLoading, save, saving } = useSiteContent<StorefrontNavigationSettings>('storefront_navigation');
+  const [settings, setSettings] = useState<StorefrontNavigationSettings>(defaultStorefrontNavigation);
+
+  useEffect(() => {
+    if (!isLoading) setSettings(mergeStorefrontNavigation(data));
+  }, [data, isLoading]);
+
+  const togglePage = (href: string, enabled: boolean) => {
+    setSettings((current) => ({
+      ...current,
+      items: current.items.map((item) => item.href === href ? { ...item, enabled } : item),
+    }));
+  };
+
+  const handleSave = () => {
+    if (!settings.items.some((item) => item.enabled)) {
+      toast.error('Mantenha pelo menos uma página ativa.');
+      return;
+    }
+    save(settings);
+  };
+
+  if (isLoading) return <div className="flex h-48 items-center justify-center"><Loader2 className="h-7 w-7 animate-spin text-muted-foreground" /></div>;
+
+  return (
+    <div className="max-w-2xl space-y-6">
+      <Card>
+        <CardContent className="space-y-1 pt-6">
+          <div className="mb-5">
+            <h3 className="font-semibold">Páginas exibidas na loja</h3>
+            <p className="mt-1 text-sm text-muted-foreground">Desative uma página para removê-la do menu e impedir seu acesso público.</p>
+          </div>
+          {settings.items.map((item) => (
+            <div key={item.href} className="flex min-h-14 items-center justify-between gap-4 border-b border-border py-3 last:border-0">
+              <div>
+                <Label htmlFor={`page-${item.href}`} className="text-sm">{item.name}</Label>
+                <p className="text-xs text-muted-foreground">{item.href}</p>
+              </div>
+              <Switch id={`page-${item.href}`} checked={item.enabled} onCheckedChange={(checked) => togglePage(item.href, checked)} />
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      {!settings.items.find((item) => item.href === '/')?.enabled && (
+        <Card>
+          <CardContent className="pt-6">
+            <Label htmlFor="home-destination">Ao acessar o endereço principal, abrir</Label>
+            <select id="home-destination" value={settings.disabledHomeDestination} onChange={(event) => setSettings((current) => ({ ...current, disabledHomeDestination: event.target.value }))} className="mt-2 h-11 w-full border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-ring">
+              {settings.items.filter((item) => item.enabled && item.href !== '/').map((item) => <option key={item.href} value={item.href}>{item.name}</option>)}
+            </select>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex justify-end">
+        <Button onClick={handleSave} disabled={saving} className="gap-2">
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Salvar navegação
+        </Button>
+      </div>
+    </div>
+  );
+}
 
 // ========== BANNERS TAB ==========
 function SortableBannerItem({ banner, onEdit, onDelete, onToggleActive }: {
@@ -921,11 +988,15 @@ export default function Content() {
     <div className="space-y-6">
       <AdminPageHeader
         title="Conteúdo"
-        subtitle="Gerencie banners, avaliações e páginas do site"
+        subtitle="Gerencie páginas, navegação e conteúdo da loja"
       />
 
       <Tabs defaultValue="banners" className="w-full">
         <TabsList className="w-full justify-start">
+          <TabsTrigger value="navigation" className="gap-2">
+            <PanelLeft className="h-4 w-4" />
+            Navegação
+          </TabsTrigger>
           <TabsTrigger value="banners" className="gap-2">
             <Image className="h-4 w-4" />
             Banners
@@ -964,6 +1035,10 @@ export default function Content() {
             Aparência
           </TabsTrigger>
         </TabsList>
+
+        <TabsContent value="navigation" className="mt-6">
+          <NavigationTab />
+        </TabsContent>
 
         <TabsContent value="banners" className="mt-6">
           <BannersTab />

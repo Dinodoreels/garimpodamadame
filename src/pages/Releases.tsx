@@ -11,6 +11,7 @@ import { useNewProducts } from '@/hooks/useProductSections';
 import { useCMSPageBySlugOrHome } from '@/hooks/useCMS';
 import { CMSPageRenderer } from '@/components/cms/CMSPageRenderer';
 import { useSiteContent } from '@/hooks/useSiteContent';
+import { HeroBannerCarousel } from '@/components/home/HeroBannerCarousel';
 
 interface ReleasesContent {
   hero_badge: string;
@@ -50,8 +51,9 @@ function StaticReleasesPage() {
       <Header />
       
       <main className="flex-1">
-        {/* Hero */}
-        <section className="relative text-primary-foreground py-16 lg:py-24 overflow-hidden">
+        <HeroBannerCarousel compact />
+        {/* Intro */}
+        <section className="relative text-primary-foreground py-10 lg:py-14 overflow-hidden">
           {hasHeroImage ? (
             <>
               <div 

@@ -197,3 +197,10 @@
 - [x] Enviar PDFs em lote, separar páginas e vincular etiquetas e DANFEs pelo rastreamento
 - [x] Mostrar arquivos vinculados e páginas sem pedido correspondente antes de concluir
 - [x] Validar a separação das etiquetas e a abertura dos DANFEs por pedido; os PDFs de teste ficaram sem vínculo porque seus três rastreamentos ainda não existem nos pedidos atuais
+
+# Navegação pública da loja
+
+- [x] Criar busca larga no topo e menu lateral seguindo a direção visual aprovada
+- [x] Permitir ativar ou desativar Início, Lançamentos, Catálogo, Lotes, Sobre e Contato no painel
+- [x] Redirecionar o endereço principal para Lançamentos enquanto Início estiver desativado
+- [x] Exibir os banners reais em formato horizontal logo abaixo do cabeçalho em Lançamentos
