@@ -69,8 +69,8 @@ async function lookupLocal(gtin: string): Promise<Candidate | null> {
   if (!gtin) return null;
   const db = getSupabaseAdmin();
   const { data } = await db.from("product_variants")
-    .select("gtin, barcode, price, cost, products(title, description, product_type, vendor, manufacturer, weight_grams, length_cm, width_cm, height_cm, product_images(url, position))")
-    .or(`gtin.eq.${gtin},barcode.eq.${gtin}`)
+    .select("gtin, price, cost, products(title, description, product_type, vendor, manufacturer, weight_grams, length_cm, width_cm, height_cm, product_images(url, position))")
+    .eq("gtin", gtin)
     .limit(1)
     .maybeSingle();
   if (!data) return null;
@@ -82,7 +82,7 @@ async function lookupLocal(gtin: string): Promise<Candidate | null> {
     product_type: product.product_type,
     vendor: product.vendor,
     manufacturer: product.manufacturer,
-    gtin: data.gtin ?? data.barcode,
+    gtin: data.gtin,
     price: finite(data.price),
     cost: finite(data.cost),
     weight_grams: finite(product.weight_grams),

@@ -40,6 +40,7 @@ export interface ShippingOption {
   estimated_text: string;
   is_free: boolean;
   original_cost: number;
+  quote_source?: 'melhor_envio' | 'correios' | 'local';
 }
 
 export interface ShippingResult {

@@ -20,7 +20,9 @@ const MarketingMessageEmail = ({ subject, html, preheader, branding }: Marketing
       <Body style={main}>
         <Container style={container}>
           <BrandHeader branding={b} />
-          <Section dangerouslySetInnerHTML={{ __html: html || '<p>Confira as novidades da loja.</p>' }} />
+          <Section>
+            <div dangerouslySetInnerHTML={{ __html: html || '<p>Confira as novidades da loja.</p>' }} />
+          </Section>
           <BrandFooter branding={b} />
         </Container>
       </Body>

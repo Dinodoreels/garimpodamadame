@@ -5993,6 +5993,10 @@ export type Database = {
         }
         Returns: undefined
       }
+      redeem_loyalty_points: {
+        Args: { p_order_id: string; p_points: number; p_user_id: string }
+        Returns: undefined
+      }
       release_bling_catalog_sync: { Args: never; Returns: undefined }
       release_inbound_item: {
         Args: {

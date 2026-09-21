@@ -24,6 +24,7 @@ interface ShippingOption {
   estimated_text: string;
   is_free: boolean;
   original_cost: number;
+  quote_source: 'melhor_envio' | 'correios' | 'local';
 }
 
 Deno.serve(async (req) => {
@@ -188,8 +189,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Fallback to shipping_rates table
-    if (options.length === 0 && !providerError) {
+    // Keep checkout available with the configured local rates when the live
+    // provider is disconnected or temporarily unavailable.
+    if (options.length === 0) {
       options = await getFallbackRates(supabase, cleanZip);
     }
 
@@ -315,6 +317,7 @@ async function fetchMelhorEnvioQuotes(
       estimated_text: `${days} dias úteis`,
       is_free: false,
       original_cost: Math.round(cost * 100) / 100,
+      quote_source: 'melhor_envio',
     });
   }
 
@@ -355,6 +358,7 @@ async function fetchCorreiosQuotes(
           estimated_text: `${days} dias úteis`,
           is_free: false,
           original_cost: Math.round(cost * 100) / 100,
+          quote_source: 'correios',
         });
       }
     } catch (e) {
@@ -376,6 +380,7 @@ async function fetchCorreiosQuotes(
         estimated_text: `${miniDays} dias úteis`,
         is_free: false,
         original_cost: Math.round(miniCost * 100) / 100,
+        quote_source: 'correios',
       });
     }
   }
@@ -513,6 +518,7 @@ async function getFallbackRates(supabase: any, destZip: string): Promise<Shippin
         estimated_text: rateData.estimated_days || '7-10 dias úteis',
         is_free: false,
         original_cost: cost,
+        quote_source: 'local',
       },
       {
         carrier: 'Correios',
@@ -523,6 +529,7 @@ async function getFallbackRates(supabase: any, destZip: string): Promise<Shippin
         estimated_text: `${Math.max(1, Math.ceil((parseInt(rateData.estimated_days) || 10) / 2.5))} dias úteis`,
         is_free: false,
         original_cost: cost * 1.8,
+        quote_source: 'local',
       },
     ];
   } catch {
@@ -541,6 +548,7 @@ function getDefaultFallback(): ShippingOption[] {
       estimated_text: '10 dias úteis',
       is_free: false,
       original_cost: 35.00,
+      quote_source: 'local',
     },
     {
       carrier: 'Correios',
@@ -551,6 +559,7 @@ function getDefaultFallback(): ShippingOption[] {
       estimated_text: '4 dias úteis',
       is_free: false,
       original_cost: 55.00,
+      quote_source: 'local',
     },
   ];
 }
