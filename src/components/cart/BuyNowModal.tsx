@@ -220,6 +220,7 @@ export function BuyNowModal({ open, onOpenChange, item }: BuyNowModalProps) {
       selectedAddress.zip_code,
       shippingResult.estimatedDays,
       {
+        id: selectedAddress.id,
         recipient_name: selectedAddress.recipient_name,
         street: selectedAddress.street,
         number: selectedAddress.number,

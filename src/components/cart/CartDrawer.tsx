@@ -206,6 +206,7 @@ export function CartDrawer() {
             defaultAddress.zip_code,
             result.estimatedDays,
             {
+              id: defaultAddress.id,
               recipient_name: defaultAddress.recipient_name,
               street: defaultAddress.street,
               number: defaultAddress.number,

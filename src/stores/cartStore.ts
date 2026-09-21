@@ -29,7 +29,7 @@ export interface CartItem {
 }
 
 export interface SelectedAddress {
-  id: string;
+  id?: string;
   recipient_name: string;
   street: string;
   number: string;
