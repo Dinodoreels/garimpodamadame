@@ -15,6 +15,8 @@
 +- [ ] Conciliar pedidos pagos antigos sem baixa ou envio, após revisão humana
 +- [ ] Corrigir os três pedidos recusados pelo Bling e revisar duas publicações pendentes
 +- [ ] Homologar uma devolução real retornando obrigatoriamente para triagem
+- [x] Exigir checklist completo no QC e impedir endereçamento antes do preço aprovado
+- [x] Recolocar devoluções e quarentenas na fila de triagem com histórico da movimentação
 # Fase 3
 
 - [x] Criar base de dados, permissões e fluxo seguro de SKU/QC/preço/endereço/liberação

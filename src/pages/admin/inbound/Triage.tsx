@@ -1,5 +1,5 @@
 import InboundItems from './Items';
 
 export default function InboundTriage() {
-  return <InboundItems states={['RECEIVED', 'TRIAGE', 'SCAN_PENDING']} title="Triagem" subtitle="Itens aguardando leitura, identificação ou decisão humana" />;
+  return <InboundItems states={['RECEIVED', 'TRIAGE', 'SCAN_PENDING', 'RETURNED', 'QUARANTINE']} title="Triagem" subtitle="Entradas, devoluções e quarentenas aguardando conferência" />;
 }
