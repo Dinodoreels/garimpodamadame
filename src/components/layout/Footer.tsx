@@ -14,7 +14,10 @@ export function Footer() {
    const { data: intConfig } = useIntegrations();
    
    // Use theme values or defaults — integrations config takes priority
-   const siteName = intConfig?.store_name || theme?.name || 'O Garimpo Digital';
+    const configuredSiteName = intConfig?.store_name || theme?.name || 'O Garimpo Digital';
+    const siteName = configuredSiteName.trim().toLocaleLowerCase('pt-BR') === 'o garimpo digita'
+      ? 'O Garimpo Digital'
+      : configuredSiteName;
    const whatsappNumber = intConfig?.contact_phone || (theme?.social as Record<string, string>)?.whatsapp || '';
    const instagramHandle = (theme?.social as Record<string, string>)?.instagram || '';
    const logoUrl = theme?.logo_url || logo;

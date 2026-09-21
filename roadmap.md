@@ -266,3 +266,13 @@
 - [x] Incorporar o valor ao preço final sem detalhá-lo para o cliente
 - [x] Manter frete grátis em R$ 0 e preservar o custo original da transportadora
 - [x] Revalidar a cotação no checkout para impedir preço adulterado ou antigo
+
+# Gargalos da jornada de compra
+- [x] Evitar carregamento prolongado no detalhe do produto
+- [x] Selecionar o endereço padrão e calcular o frete automaticamente
+- [x] Explicar ao cliente o que falta antes de finalizar
+- [x] Criar entradas válidas para /cart e /carrinho
+- [x] Evitar respostas de registro ausente nas configurações opcionais
+- [x] Remover depoimentos fictícios exibidos por padrão
+- [x] Corrigir o nome O Garimpo Digital no rodapé
+- [ ] Repetir a jornada autenticada até antes do pagamento

@@ -86,6 +86,17 @@ export function CartDrawer() {
   const progressToFreeShipping = freeShippingEnabled 
     ? Math.min(100, (discountedSubtotal / freeShippingMinValue) * 100) 
     : 0;
+  const missingProfileFields = [profile?.full_name, profile?.phone, profile?.cpf, profile?.birth_date]
+    .filter((value) => !value?.trim()).length;
+  const checkoutGuidance = !user
+    ? 'Entre na sua conta para continuar.'
+    : missingProfileFields > 0
+      ? 'Complete seus dados pessoais para continuar.'
+      : addresses.length === 0
+        ? 'Adicione um endereço de entrega para continuar.'
+        : deliveryType === 'shipping' && !shippingOption
+          ? 'Aguarde ou escolha uma opção de frete para continuar.'
+          : null;
 
   const handleApplyDiscount = (discount: DiscountCode | null, amount: number) => {
     if (discount) {
@@ -429,7 +440,7 @@ export function CartDrawer() {
                     onClick={handleCheckout}
                     className="w-full h-14 sm:h-12 text-base sm:text-sm bg-chrome hover:bg-chrome-dark text-white touch-manipulation transition-all duration-300 hover:shadow-lg group" 
                     size="lg"
-                    disabled={items.length === 0 || isLoading || profileLoading || isCalculatingAuto || (deliveryType === 'shipping' && !shippingOption)}
+                    disabled={items.length === 0 || isLoading || profileLoading || isCalculatingAuto}
                   >
                     {isLoading || profileLoading || isCalculatingAuto ? (
                       <>
@@ -443,6 +454,12 @@ export function CartDrawer() {
                       </>
                     )}
                   </Button>
+
+                  {checkoutGuidance && !profileLoading && !isCalculatingAuto && (
+                    <p className="text-center text-xs text-muted-foreground" role="status">
+                      {checkoutGuidance}
+                    </p>
+                  )}
 
                 </div>
                 

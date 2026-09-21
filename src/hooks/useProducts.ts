@@ -133,7 +133,7 @@ export function useProductByHandle(handle: string) {
         `)
         .eq('handle', handle)
         .eq('status', 'active')
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching product:', error);
@@ -149,5 +149,7 @@ export function useProductByHandle(handle: string) {
       } as Product;
     },
     enabled: !!handle,
+    retry: false,
+    staleTime: 1000 * 60 * 5,
   });
 }

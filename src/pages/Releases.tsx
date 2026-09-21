@@ -30,11 +30,7 @@ const defaultContent: ReleasesContent = {
   hero_subtitle: 'Confira as últimas novidades em roupas, calçados e acessórios importados',
   hero_image: '',
   show_hero_text: true,
-  testimonials: [
-    { name: 'Ana Silva', text: 'Produtos de excelente qualidade! Atendimento impecável e entrega super rápida.', location: 'São Paulo, SP' },
-    { name: 'Carlos Santos', text: 'Melhor loja de importados que já comprei. Produtos autênticos e preços justos.', location: 'Rio de Janeiro, RJ' },
-    { name: 'Maria Oliveira', text: 'Amei minha compra! O tênis chegou perfeito e exatamente como nas fotos.', location: 'Belo Horizonte, MG' },
-  ],
+  testimonials: [],
   cta_title: 'Não Encontrou o Que Procura?',
   cta_subtitle: 'Entre em contato conosco e encomende seu produto exclusivo',
 };

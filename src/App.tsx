@@ -18,6 +18,7 @@ import Auth from "./pages/Auth";
 import ResetPassword from "./pages/ResetPassword";
 import Account from "./pages/Account";
 import Favorites from "./pages/Favorites";
+import Cart from "./pages/Cart";
 import OrderTracking from "./pages/OrderTracking";
 import Terms from "./pages/Terms";
 import Privacy from "./pages/Privacy";
@@ -155,6 +156,8 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/account" element={<Account />} />
             <Route path="/favorites" element={<Favorites />} />
+            <Route path="/cart" element={<Cart />} />
+            <Route path="/carrinho" element={<Cart />} />
             <Route path="/order-tracking" element={<OrderTracking />} />
             <Route path="/rastrear" element={<OrderTracking />} />
             

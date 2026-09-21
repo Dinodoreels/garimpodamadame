@@ -294,7 +294,7 @@
            sections:cms_sections(*)
          `)
          .eq('id', pageId)
-         .single();
+          .maybeSingle();
        if (error) throw error;
        // Sort sections by position
        if (data?.sections) {
@@ -492,8 +492,8 @@
          .from('cms_theme')
          .select('*')
          .eq('is_active', true)
-         .single();
-       if (error && error.code !== 'PGRST116') throw error;
+         .maybeSingle();
+       if (error) throw error;
        return data as CMSTheme | null;
      },
    });
