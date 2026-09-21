@@ -1,22 +1,24 @@
-@@
- # Gargalos da jornada de compra
-@@
- - [x] Repetir a jornada autenticada até antes do pagamento
-+
-+# Ciclo operacional profissional
-+- [x] Auditar o ciclo real sem movimentar estoque, pagamento ou etiquetas
-+- [x] Criar central Operacional com bloqueios, pendências e próxima ação
-+- [x] Selecionar automaticamente o lote mais recente no Garimpo Scan e usar consulta alternativa segura
-+- [x] Substituir a Triagem “Em breve” por uma fila real de itens
-+- [x] Reaproveitar a impressão existente de etiquetas na área Inbound
-+- [x] Corrigir o menu Inbound para exibir todas as etapas
-+- [ ] Cadastrar posições físicas reais do centro de distribuição
-+- [ ] Completar peso e dimensões dos produtos ativos
-+- [ ] Conciliar pedidos pagos antigos sem baixa ou envio, após revisão humana
-+- [ ] Corrigir os três pedidos recusados pelo Bling e revisar duas publicações pendentes
-+- [ ] Homologar uma devolução real retornando obrigatoriamente para triagem
+# Gargalos da jornada de compra
+
+- [x] Repetir a jornada autenticada até antes do pagamento
+
+# Ciclo operacional profissional
+
+- [x] Auditar o ciclo real sem movimentar estoque, pagamento ou etiquetas
+- [x] Criar central Operacional com bloqueios, pendências e próxima ação
+- [x] Selecionar automaticamente o lote mais recente no Garimpo Scan e usar consulta alternativa segura
+- [x] Substituir a Triagem “Em breve” por uma fila real de itens
+- [x] Reaproveitar a impressão existente de etiquetas na área Inbound
+- [x] Corrigir o menu Inbound para exibir todas as etapas
+- [ ] Cadastrar posições físicas reais do centro de distribuição
+- [ ] Completar peso e dimensões dos produtos ativos
+- [ ] Conciliar pedidos pagos antigos sem baixa ou envio, após revisão humana
+- [ ] Corrigir os três pedidos recusados pelo Bling e revisar duas publicações pendentes
+- [ ] Homologar uma devolução real retornando obrigatoriamente para triagem
 - [x] Exigir checklist completo no QC e impedir endereçamento antes do preço aprovado
 - [x] Recolocar devoluções e quarentenas na fila de triagem com histórico da movimentação
+- [x] Exigir separação e conferência antes de liberar etiqueta e postagem
+- [x] Bloquear reenvio automático de pedidos antigos entregues ou cancelados ao Bling
 # Fase 3
 
 - [x] Criar base de dados, permissões e fluxo seguro de SKU/QC/preço/endereço/liberação

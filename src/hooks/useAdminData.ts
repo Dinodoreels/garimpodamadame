@@ -45,6 +45,11 @@ export interface AdminOrder {
   paid_at?: string | null;
   payment_attempts?: number | null;
   mercadopago_payment_id?: string | null;
+  fulfillment_status?: string | null;
+  separation_started_at?: string | null;
+  separated_at?: string | null;
+  packed_at?: string | null;
+  posted_at?: string | null;
 }
 
 export interface AdminCustomer {

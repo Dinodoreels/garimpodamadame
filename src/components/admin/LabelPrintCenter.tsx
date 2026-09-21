@@ -34,9 +34,9 @@ export function LabelPrintCenter({ orders }: LabelPrintCenterProps) {
     const printableStatuses = new Set(['paid', 'processing', 'ready_to_ship']);
     const marketplace = orders.filter(order => {
       const source = String(order.source ?? '').toLowerCase();
-      return printableStatuses.has(order.status) && (source.startsWith('bling:') || source.includes('tiktok'));
+      return printableStatuses.has(order.status) && order.fulfillment_status === 'packed' && (source.startsWith('bling:') || source.includes('tiktok'));
     });
-    const melhorEnvio = orders.filter(order => order.source === 'website' && order.melhor_envio_shipment);
+    const melhorEnvio = orders.filter(order => order.source === 'website' && order.fulfillment_status === 'packed' && order.melhor_envio_shipment);
     return {
       marketplace,
       marketplaceReady: marketplace.filter(order => {
