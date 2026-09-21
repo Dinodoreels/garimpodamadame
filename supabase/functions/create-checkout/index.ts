@@ -34,6 +34,7 @@ interface CheckoutRequest {
     service_code: string
     estimated_days: number
     original_cost: number
+    quote_source?: 'melhor_envio' | 'correios' | 'local'
   }
 }
 
@@ -188,7 +189,7 @@ Deno.serve(async (req) => {
         discount_amount: discountValue,
         loyalty_points_used: requestedPoints,
         source: 'website',
-        shipping_provider: shipping_option ? 'melhor_envio' : null,
+        shipping_provider: shipping_option?.quote_source || (shipping_option ? 'melhor_envio' : null),
         shipping_carrier: shipping_option?.carrier || null,
         shipping_service: shipping_option?.service || null,
         shipping_service_code: shipping_option?.service_code || null,
