@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Package, Heart, Settings, LogOut, Loader2, Eye, Edit2, Lock, MapPin, Bell, ChevronRight, Trash2, Star, ChevronDown, RefreshCw, ExternalLink, Ticket, FileText, Truck } from 'lucide-react';
+import { User, Package, Heart, Settings, LogOut, Loader2, Eye, Edit2, Lock, MapPin, Bell, ChevronRight, Trash2, Star, ChevronDown, RefreshCw, ExternalLink, Ticket, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -21,7 +21,6 @@ import { AddressList } from '@/components/account/AddressList';
 import { ChangePasswordDialog } from '@/components/account/ChangePasswordDialog';
 import { LoyaltyCard } from '@/components/account/LoyaltyCard';
 import { CustomerCouponsCard } from '@/components/account/CustomerCouponsCard';
-import { SimulateShippingTab } from '@/components/account/SimulateShippingTab';
 import { useLoyaltySettings } from '@/hooks/useLoyalty';
 
 import { toast } from 'sonner';
@@ -215,7 +214,7 @@ export default function Account() {
 
           {/* Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full mb-8 h-auto p-1 bg-muted/50 grid-cols-3 sm:grid-cols-6">
+            <TabsList className="grid w-full mb-8 h-auto p-1 bg-muted/50 grid-cols-3 sm:grid-cols-5">
               <TabsTrigger value="profile" className="flex items-center gap-2 py-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <User className="h-4 w-4" />
                 <span className="hidden sm:inline">Perfil</span>
@@ -231,10 +230,6 @@ export default function Account() {
               <TabsTrigger value="favorites" className="flex items-center gap-2 py-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Heart className="h-4 w-4" />
                 <span className="hidden sm:inline">Favoritos</span>
-              </TabsTrigger>
-              <TabsTrigger value="shipping" className="flex items-center gap-2 py-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">
-                <Truck className="h-4 w-4" />
-                <span className="hidden sm:inline">Frete</span>
               </TabsTrigger>
               <TabsTrigger value="settings" className="flex items-center gap-2 py-3 data-[state=active]:bg-background data-[state=active]:shadow-sm">
                 <Settings className="h-4 w-4" />
@@ -579,11 +574,6 @@ export default function Account() {
                   )}
                 </CardContent>
               </Card>
-            </TabsContent>
-
-            {/* Shipping Simulator Tab */}
-            <TabsContent value="shipping">
-              <SimulateShippingTab />
             </TabsContent>
 
             {/* Settings Tab */}
