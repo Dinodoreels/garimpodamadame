@@ -11,7 +11,7 @@ import {
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
-import { BrandButton, BrandFooter, BrandHeader, CouponBlock, DEFAULT_BRANDING, brandStyles } from './_components.tsx'
+import { BrandButton, BrandContentCard, BrandFooter, BrandHeader, BrandStatusCard, CouponBlock, DEFAULT_BRANDING } from './_components.tsx'
 import type { EmailBranding } from '../email-branding.ts'
 
 interface MagicLinkEmailProps {
@@ -26,7 +26,6 @@ export const MagicLinkEmail = ({
   branding,
 }: MagicLinkEmailProps) => {
   const b = branding ?? { ...DEFAULT_BRANDING, storeName: siteName || DEFAULT_BRANDING.storeName }
-  const s = brandStyles(b)
   return (
     <Html lang="pt-BR" dir="ltr">
       <Head />
@@ -34,11 +33,12 @@ export const MagicLinkEmail = ({
       <Body style={main}>
         <Container style={container}>
           <BrandHeader branding={b} />
-          <Heading style={s.h1}>Seu link de acesso</Heading>
-          <Text style={text}>
+          <BrandStatusCard branding={b} eyebrow="ACESSO SEGURO" title="Seu link de acesso" />
+          <BrandContentCard><Text style={text}>
             Clique no botão abaixo para entrar na sua conta da {b.storeName}. Este link expira em alguns minutos.
           </Text>
           <BrandButton branding={b} href={confirmationUrl}>Entrar</BrandButton>
+          </BrandContentCard>
           <CouponBlock coupon={b.activeCoupon} branding={b} />
           <Text style={footer}>
             Se você não solicitou este link, pode ignorar este email.
@@ -52,8 +52,8 @@ export const MagicLinkEmail = ({
 
 export default MagicLinkEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const main = { backgroundColor: '#f3f3f3', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
+const container = { padding: '30px 22px', maxWidth: '600px', margin: '0 auto' }
 const text = {
   fontSize: '15px',
   color: '#1a1a1a',

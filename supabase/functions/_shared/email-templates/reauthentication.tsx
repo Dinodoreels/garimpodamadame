@@ -11,7 +11,7 @@ import {
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
-import { BrandFooter, BrandHeader, DEFAULT_BRANDING, brandStyles } from './_components.tsx'
+import { BrandContentCard, BrandFooter, BrandHeader, BrandStatusCard, DEFAULT_BRANDING } from './_components.tsx'
 import type { EmailBranding } from '../email-branding.ts'
 
 interface ReauthenticationEmailProps {
@@ -22,7 +22,6 @@ interface ReauthenticationEmailProps {
 
 export const ReauthenticationEmail = ({ token, siteName, branding }: ReauthenticationEmailProps) => {
   const b = branding ?? { ...DEFAULT_BRANDING, storeName: siteName || DEFAULT_BRANDING.storeName }
-  const s = brandStyles(b)
   const code = {
     fontFamily: 'Courier, monospace',
     fontSize: '28px',
@@ -42,9 +41,9 @@ export const ReauthenticationEmail = ({ token, siteName, branding }: Reauthentic
       <Body style={main}>
         <Container style={container}>
           <BrandHeader branding={b} />
-          <Heading style={s.h1}>Código de verificação</Heading>
-          <Text style={text}>Use o código abaixo para confirmar sua identidade:</Text>
-          <Text style={code}>{token}</Text>
+          <BrandStatusCard branding={b} eyebrow="ACESSO SEGURO" title="Código de verificação" />
+          <BrandContentCard><Text style={text}>Use o código abaixo para confirmar sua identidade:</Text>
+          <Text style={code}>{token}</Text></BrandContentCard>
           <Text style={footer}>
             Este código expira em alguns minutos. Se você não solicitou, pode ignorar este email.
           </Text>
@@ -57,8 +56,8 @@ export const ReauthenticationEmail = ({ token, siteName, branding }: Reauthentic
 
 export default ReauthenticationEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const main = { backgroundColor: '#f3f3f3', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
+const container = { padding: '30px 22px', maxWidth: '600px', margin: '0 auto' }
 const text = {
   fontSize: '15px',
   color: '#1a1a1a',
