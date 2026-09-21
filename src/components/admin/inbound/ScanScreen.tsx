@@ -55,7 +55,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
   });
 
   useEffect(() => {
-    if (!lotId && lots.length === 1) setLotId(lots[0].id);
+    if (!lotId && lots.length > 0) setLotId(lots[0].id);
   }, [lots, lotId]);
 
   const lot: ScanLot | undefined = useMemo(() => lots.find(l => l.id === lotId), [lots, lotId]);

@@ -33,6 +33,7 @@ import {
   MapPin,
   History,
   Search,
+  Workflow,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -90,6 +91,7 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/admin' },
+  { icon: Workflow, label: 'Operacional', path: '/admin/operations' },
   { icon: ShoppingBag, label: 'Pedidos', path: '/admin/orders' },
   { icon: Users, label: 'Usuários', path: '/admin/customers' },
   { 
@@ -300,7 +302,7 @@ function SidebarContent({ onItemClick, collapsed, inboundOnly }: { onItemClick?:
                 </button>
                 <div className={cn(
                   "overflow-hidden transition-all duration-200",
-                  isExpanded ? "max-h-40" : "max-h-0"
+                  isExpanded ? "max-h-[44rem]" : "max-h-0"
                 )}>
                   {item.children!.map(child => {
                     const childActive = isChildActive(child.path, location.pathname, location.search);

@@ -69,6 +69,7 @@ const Pricing = lazy(() => import("./pages/admin/Pricing"));
 const EmailMarketing = lazy(() => import("./pages/admin/EmailMarketing"));
 const Expiry = lazy(() => import("./pages/admin/Expiry"));
 const TikTokShop = lazy(() => import("./pages/admin/TikTokShop"));
+const Operations = lazy(() => import("./pages/admin/Operations"));
 
 // Inbound Intelligence / Garimpo Scan
 const InboundDashboard = lazy(() => import("./pages/admin/inbound/Dashboard"));
@@ -83,12 +84,12 @@ const InboundLocations = lazy(() => import("./pages/admin/inbound/Locations"));
 const InboundHistory = lazy(() => import("./pages/admin/inbound/History"));
 const GalpaoLogin = lazy(() => import("./pages/GalpaoLogin"));
 const GalpaoScan = lazy(() => import("./pages/GalpaoScan"));
-const InboundTriage = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundTriage })));
+const InboundTriage = lazy(() => import("./pages/admin/inbound/Triage"));
 const InboundQC = lazy(() => import("./pages/admin/inbound/Items").then(m => ({ default: () => <m.default states={['IDENTIFIED','QC_PENDING']} title="Controle de qualidade" subtitle="Produtos aguardando aprovação, quarentena ou reprovação" /> })));
 const InboundIdentified = lazy(() => import("./pages/admin/inbound/Items"));
 const InboundPending = lazy(() => import("./pages/admin/inbound/Pendings"));
 const InboundStock = lazy(() => import("./pages/admin/inbound/Items").then(m => ({ default: () => <m.default states={['QC_APPROVED','PRICED','ADDRESS_PENDING','STOCKED','AVAILABLE']} title="Estoque Inbound" subtitle="Endereçamento, guarda e liberação para os canais de venda" /> })));
-const InboundLabels = lazy(() => import("./pages/admin/inbound/Placeholders").then(m => ({ default: m.InboundLabels })));
+const InboundLabels = lazy(() => import("./pages/admin/ProductLabels"));
 
 const SellerLayout = lazy(() => import("./pages/seller/SellerLayout"));
 const SellerDashboard = lazy(() => import("./pages/seller/Dashboard"));
@@ -182,6 +183,7 @@ const App = () => (
             {/* Admin Routes */}
             <Route path="/admin" element={<AdminLayout />}>
               <Route index element={<Dashboard />} />
+              <Route path="operations" element={<Operations />} />
               <Route path="orders" element={<AdminOrders />} />
               <Route path="orders/new" element={<NewOrder />} />
               <Route path="customers" element={<Customers />} />

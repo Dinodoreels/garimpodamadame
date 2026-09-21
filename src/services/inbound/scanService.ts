@@ -110,7 +110,19 @@ async function call<T>(fn: string, body: Record<string, unknown>): Promise<T> {
 }
 
 export const scanService = {
-  listLots: () => call<{ ok: boolean; lots: ScanLot[] }>('inbound-scan', { action: 'lots' }).then(r => r.lots ?? []),
+  listLots: async () => {
+    try {
+      return await call<{ ok: boolean; lots: ScanLot[] }>('inbound-scan', { action: 'lots' }).then(r => r.lots ?? []);
+    } catch {
+      const { data, error } = await supabase
+        .from('lots')
+        .select('id, code, description, status, expected_units, processed_units')
+        .in('status', ['open', 'processing'])
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ScanLot[];
+    }
+  },
 
   lotStats: (lot_id: string) =>
     call<{ ok: boolean; scanned: number; pending: number }>('inbound-scan', { action: 'lot_stats', lot_id }),
