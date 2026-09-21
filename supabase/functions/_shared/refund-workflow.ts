@@ -1,6 +1,7 @@
 import { applyOrderStock } from './order-stock.ts'
 import { callMelhorEnvio } from './melhor-envio.ts'
 import { sendTemplateEmail } from './transactional-email-templates/send-email.ts'
+import { markRefundedOrderInBling } from './bling-orders.ts'
 
 type AdminClient = any
 
@@ -85,15 +86,7 @@ export async function finalizeConfirmedRefund(
     }
 
     try {
-      const response = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/bling-flush-queue`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${Deno.env.get('BLING_CRON_TOKEN') ?? Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
-        },
-        body: JSON.stringify({ source: 'refund', order_id: order.id }),
-      })
-      results.bling = { ok: response.ok, status: response.status }
+      results.bling = await markRefundedOrderInBling(order.id)
     } catch (error) {
       results.bling = { ok: false, error: error instanceof Error ? error.message : String(error) }
     }

@@ -748,7 +748,8 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
                         <span>Estoque: {r.workflow_results.stock?.ok ? 'devolvido' : r.workflow_results.stock?.skipped ? 'não aplicável' : 'revisar'}</span>
                         <span>Bling: {r.workflow_results.bling?.ok ? 'sincronizado' : r.workflow_results.bling?.skipped ? 'não aplicável' : 'na fila'}</span>
                         <span>Envio: {r.workflow_results.shipping?.ok ? 'tratado' : r.workflow_results.shipping?.skipped ? 'não aplicável' : 'revisar'}</span>
-                        <span>E-mail: {r.workflow_results.email?.sent ? 'enviado' : r.workflow_results.email?.reason === 'recipient_suppressed' ? 'bloqueado pelo destinatário' : 'revisar'}</span>
+                        <span>Aviso de aprovação: {r.workflow_results.approval_email?.sent ? 'enviado' : r.workflow_results.approval_email?.reason === 'recipient_suppressed' ? 'bloqueado pelo destinatário' : 'aguardando'}</span>
+                        <span>Aviso do dinheiro: {r.workflow_results.email?.sent ? 'enviado' : r.workflow_results.email?.reason === 'recipient_suppressed' ? 'bloqueado pelo destinatário' : 'aguardando confirmação'}</span>
                       </div>
                     ) : null}
                     {['pending', 'failed'].includes(r.status) && (
