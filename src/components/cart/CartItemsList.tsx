@@ -2,17 +2,6 @@ import { forwardRef, useState } from "react";
 import { Minus, Plus, Trash2, Bookmark, BookmarkCheck, Package, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import type { CartItem } from "@/stores/cartStore";
 
 interface Props {
@@ -24,7 +13,7 @@ interface Props {
   onToggleSaved: (variantId: string) => void;
 }
 
-export function CartItemsList({ items, formatPrice, onUpdateQty, onRemove, onRemoveKit, onToggleSaved }: Props) {
+export const CartItemsList = forwardRef<HTMLDivElement, Props>(function CartItemsList({ items, formatPrice, onUpdateQty, onRemove, onRemoveKit, onToggleSaved }, ref) {
   const active = items.filter(i => !i.savedForLater);
   const saved = items.filter(i => i.savedForLater);
   const [showSaved, setShowSaved] = useState(true);
@@ -38,7 +27,7 @@ export function CartItemsList({ items, formatPrice, onUpdateQty, onRemove, onRem
   }
 
   return (
-    <div className="space-y-4">
+    <div ref={ref} className="space-y-4">
       {Array.from(groups.entries()).map(([kitId, kitItems]) => {
         if (kitId) {
           const total = kitItems.reduce(
@@ -53,23 +42,9 @@ export function CartItemsList({ items, formatPrice, onUpdateQty, onRemove, onRem
                   <Badge variant="secondary" className="text-[10px] tracking-widest bg-foreground text-background">KIT</Badge>
                   <span className="text-sm font-medium truncate">{kitItems[0].kitTitle || 'Kit'}</span>
                 </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" aria-label={`Remover kit ${kitItems[0].kitTitle || ''}`.trim()}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Remover kit?</AlertDialogTitle>
-                      <AlertDialogDescription>Todos os itens deste kit serão removidos do carrinho.</AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => onRemoveKit(kitId)} className="bg-destructive hover:bg-destructive/90">Remover</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => onRemoveKit(kitId)} aria-label={`Remover kit ${kitItems[0].kitTitle || ''}`.trim()}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
               </div>
               <div className="p-2 space-y-2">
                 {kitItems.map((item) => (
@@ -135,7 +110,7 @@ export function CartItemsList({ items, formatPrice, onUpdateQty, onRemove, onRem
       )}
     </div>
   );
-}
+});
 
 const ItemRow = forwardRef<HTMLDivElement, {
   item: CartItem;

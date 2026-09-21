@@ -13,17 +13,6 @@ import {
 } from "@/components/ui/sheet";
 import { ShoppingCart, Minus, Plus, Trash2, ExternalLink, Loader2, Gift } from "lucide-react";
 import { Package, Bookmark, BookmarkCheck } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useCartStore } from "@/stores/cartStore";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -42,6 +31,7 @@ import { DiscountCode } from "@/hooks/useDiscounts";
 export function CartDrawer() {
   const [isOpen, setIsOpen] = useState(false);
   const [showAddressModal, setShowAddressModal] = useState(false);
+  const [confirmClear, setConfirmClear] = useState(false);
   const [isCalculatingAuto, setIsCalculatingAuto] = useState(false);
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -280,32 +270,23 @@ export function CartDrawer() {
           <div className="flex items-center justify-between">
             <SheetTitle className="font-display text-xl">Carrinho</SheetTitle>
             {items.filter(i => !i.savedForLater).length > 0 && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button variant="ghost" size="sm" className="text-xs text-destructive hover:text-destructive">
-                    <Trash2 className="h-3 w-3 mr-1" /> Limpar
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Limpar carrinho?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      Todos os itens ativos serão removidos. Itens salvos para depois serão mantidos.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => clearActiveItems()} className="bg-destructive hover:bg-destructive/90">
-                      Limpar
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+              <Button variant="ghost" size="sm" className="text-xs text-destructive hover:text-destructive" onClick={() => setConfirmClear((value) => !value)}>
+                <Trash2 className="h-3 w-3 mr-1" /> Limpar
+              </Button>
             )}
           </div>
           <SheetDescription>
             {totalItems === 0 ? "Seu carrinho está vazio" : `${totalItems} ${totalItems !== 1 ? 'itens' : 'item'} no carrinho`}
           </SheetDescription>
+          {confirmClear && (
+            <div className="flex items-center justify-between gap-3 border-t border-border pt-3 text-left">
+              <p className="text-xs text-muted-foreground">Remover todos os itens ativos?</p>
+              <div className="flex gap-1">
+                <Button variant="ghost" size="sm" onClick={() => setConfirmClear(false)}>Cancelar</Button>
+                <Button variant="destructive" size="sm" onClick={() => { clearActiveItems(); setConfirmClear(false); }}>Remover</Button>
+              </div>
+            </div>
+          )}
         </SheetHeader>
         
         <div className="flex flex-col flex-1 pt-6 min-h-0">
