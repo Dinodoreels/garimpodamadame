@@ -62,6 +62,7 @@ const AUTHORITY_LABEL: Record<Authority, string> = {
 
 const CALLBACK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bling-oauth-callback`;
 const WEBHOOK_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/bling-webhook`;
+const IMPORT_APPLY_BATCH_SIZE = 3;
 
 const hasAuthorizationError = (message: string | null | undefined) =>
   !!message && /invalid_grant|invalid refresh token|client_id.*inv[aá]lido|invalid_client|autoriza[cç][aã]o anterior.*expirou/i.test(message);
@@ -326,8 +327,9 @@ export function BlingTab() {
     const { data: automaticItems } = await supabase.from('bling_import_items').select('id').eq('run_id', preview.run_id).eq('selected', true).neq('classification', 'conflict');
     if (automaticItems?.length) {
       await call('bling-import-decide', { run_id: preview.run_id, decision: 'approved', reason: 'Importação automática de produtos completos do Bling' });
-      for (let index = 0; index < automaticItems.length; index += 50) {
-        await call('bling-import-apply', { run_id: preview.run_id, item_ids: automaticItems.slice(index, index + 50).map((item) => item.id) });
+      for (let index = 0; index < automaticItems.length; index += IMPORT_APPLY_BATCH_SIZE) {
+        const result = await call('bling-import-apply', { run_id: preview.run_id, item_ids: automaticItems.slice(index, index + IMPORT_APPLY_BATCH_SIZE).map((item) => item.id) });
+        if (!result) break;
       }
     }
     const orders = config?.pull_marketplace_orders ? await call('bling-pull-orders') : null;
@@ -357,8 +359,8 @@ export function BlingTab() {
     if (!pendingIds.length) return toast.info('Nenhum produto pendente foi selecionado.');
     let processed = 0;
     let failed = 0;
-    for (let index = 0; index < pendingIds.length; index += 50) {
-      const result = await call('bling-import-apply', { run_id: importRun.id, item_ids: pendingIds.slice(index, index + 50) });
+    for (let index = 0; index < pendingIds.length; index += IMPORT_APPLY_BATCH_SIZE) {
+      const result = await call('bling-import-apply', { run_id: importRun.id, item_ids: pendingIds.slice(index, index + IMPORT_APPLY_BATCH_SIZE) });
       if (!result) break;
       processed += Number(result.processed ?? 0);
       failed += Number(result.failed ?? 0);

@@ -162,6 +162,7 @@
 - [x] Evitar envios pendentes duplicados ao Bling e sincronizar imediatamente após salvar
 - [x] Mostrar em português as pendências de peso, medidas e categoria do TikTok
 - [x] Tratar a recusa de atributos de categoria do Bling sem erro interno e sem publicar produto incompleto
+- [x] Dividir a aplicação de produtos do Bling em lotes curtos e limitar downloads lentos para evitar o erro 504
 - [x] Consolidar produtos duplicados do Bling preservando vínculos e usando um único estoque oficial
 - [x] Impedir novas duplicações por código Bling, GTIN, SKU e correspondência exata segura
 - [x] Baixar uma única vez o estoque central em vendas TikTok importadas pelo Bling e devolver no cancelamento

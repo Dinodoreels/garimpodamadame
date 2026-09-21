@@ -2,6 +2,10 @@ import { assertAdmin, corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, lo
 import { accountKey, fetchBlingProductDetail, fetchBlingStock, normalizeSku, productSnapshot } from '../_shared/bling-import.ts';
 import { pushStockToBling } from '../_shared/bling-product-sync.ts';
 
+const MAX_ITEMS_PER_REQUEST = 3;
+const MAX_EXECUTION_MS = 110_000;
+const IMAGE_DOWNLOAD_TIMEOUT_MS = 15_000;
+
 const slug = (name: string, remoteId: string) => `${name.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 70) || 'produto'}-bling-${remoteId}`;
 
 function isCronCaller(req: Request) {
@@ -35,11 +39,9 @@ const imageExtension = (contentType: string | null, sourceUrl: string) => {
 };
 
 async function persistBlingImages(supa: any, productId: string, remoteId: string, urls: string[]) {
-  const persisted: string[] = [];
-  for (let index = 0; index < urls.length; index++) {
-    const sourceUrl = urls[index];
+  const persisted = await Promise.all(urls.map(async (sourceUrl, index): Promise<string | null> => {
     try {
-      const response = await fetch(sourceUrl);
+      const response = await fetch(sourceUrl, { signal: AbortSignal.timeout(IMAGE_DOWNLOAD_TIMEOUT_MS) });
       if (!response.ok) throw new Error(`download ${response.status}`);
       const contentType = response.headers.get('content-type');
       if (contentType && !contentType.startsWith('image/')) throw new Error('arquivo não é uma imagem');
@@ -51,7 +53,7 @@ async function persistBlingImages(supa: any, productId: string, remoteId: string
       });
       if (error) throw error;
       const { data } = supa.storage.from('product-images').getPublicUrl(path);
-      if (data?.publicUrl) persisted.push(data.publicUrl);
+      return data?.publicUrl ?? null;
     } catch (error) {
       await logSync({
         entity_type: 'product',
@@ -61,9 +63,10 @@ async function persistBlingImages(supa: any, productId: string, remoteId: string
         payload: { source_url: sourceUrl },
         error_message: errorMessage(error),
       });
+      return null;
     }
-  }
-  return persisted;
+  }));
+  return persisted.filter((url): url is string => Boolean(url));
 }
 
 Deno.serve(async (req) => {
@@ -73,7 +76,7 @@ Deno.serve(async (req) => {
     const userId = cron ? null : await assertAdmin(req);
     const body = await req.json().catch(() => ({}));
     const runId = typeof body?.run_id === 'string' ? body.run_id : '';
-    const itemIds = Array.isArray(body?.item_ids) ? body.item_ids.filter((id: unknown) => typeof id === 'string').slice(0, 50) : [];
+    const itemIds = Array.isArray(body?.item_ids) ? body.item_ids.filter((id: unknown) => typeof id === 'string').slice(0, MAX_ITEMS_PER_REQUEST) : [];
     if (!runId || !itemIds.length) return jsonResponse({ error: 'Selecione ao menos um produto da prévia.' }, 400);
 
     const supa = getSupabaseAdmin();
@@ -100,8 +103,10 @@ Deno.serve(async (req) => {
       ? await fetchBlingStock((items ?? []).map((item) => String(item.bling_product_id)), cfg.deposito_id)
       : new Map<string, number>();
     const results: any[] = [];
+    const requestStartedAt = Date.now();
 
     for (const item of items ?? []) {
+      if (Date.now() - requestStartedAt >= MAX_EXECUTION_MS) break;
       if (['created', 'linked', 'updated'].includes(item.apply_status)) {
         results.push({ id: item.id, ok: true, skipped: true });
         continue;
@@ -296,11 +301,12 @@ Deno.serve(async (req) => {
     }
 
     const failed = results.filter((result) => !result.ok).length;
+    const deferred = Math.max(0, (items?.length ?? 0) - results.length);
     const { count: remaining } = await supa.from('bling_import_items').select('id', { count: 'exact', head: true }).eq('run_id', runId).eq('selected', true).in('apply_status', ['pending', 'error']);
     const done = !remaining;
     await supa.from('bling_import_runs').update({ status: done ? 'completed' : 'review', completed_at: done ? new Date().toISOString() : null, error_message: failed ? `${failed} item(ns) com erro` : null }).eq('id', runId);
-    await logSync({ entity_type: 'import', entity_id: runId, action: 'apply', status: failed ? 'error' : 'success', response: { processed: results.length, failed }, error_message: failed ? `${failed} item(ns) com erro` : null });
-    return jsonResponse({ processed: results.length, failed, results, completed: done, actor: userId ?? 'system' });
+    await logSync({ entity_type: 'import', entity_id: runId, action: 'apply', status: failed ? 'error' : 'success', response: { processed: results.length, failed, deferred }, error_message: failed ? `${failed} item(ns) com erro` : null });
+    return jsonResponse({ processed: results.length, failed, deferred, results, completed: done, actor: userId ?? 'system' });
   } catch (error) {
     if (error instanceof Response) return error;
     return jsonResponse({ error: errorMessage(error) }, 500);
