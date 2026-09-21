@@ -12,7 +12,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { recordCurrentLegalAcceptance } from '@/hooks/useLegalConsent';
 import { CURRENT_LEGAL_VERSION } from '@/lib/legalContent';
 
 const loginSchema = z.object({
@@ -57,6 +56,7 @@ export default function Auth() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResetForm, setShowResetForm] = useState(isReset);
+  const [activeTab, setActiveTab] = useState('login');
   
   const [loginData, setLoginData] = useState({ email: '', password: '' });
   const [signupData, setSignupData] = useState({
@@ -155,16 +155,10 @@ export default function Auth() {
       return;
     }
     
-    const { error: consentError } = await recordCurrentLegalAcceptance('signup');
-    if (consentError) {
-      toast.error('Conta criada, mas o aceite não foi registrado. Confirme os documentos ao entrar.');
-      navigate('/');
-      return;
-    }
     toast.success('Conta criada!', {
-      description: 'Bem-vinda! Sua conta já está ativa.'
+      description: 'Enviamos um link para seu e-mail. Confirme o endereço para entrar na loja.'
     });
-    navigate('/');
+    setActiveTab('login');
   };
 
   const handleResetPassword = async (e: React.FormEvent) => {
@@ -303,7 +297,7 @@ export default function Auth() {
             <p className="text-gray-500 text-sm mt-1">{slogan}</p>
           </div>
 
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6 bg-gray-100 p-1 rounded-lg">
               <TabsTrigger 
                 value="login" 

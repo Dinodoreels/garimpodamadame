@@ -161,6 +161,38 @@ Deno.serve(async (req) => {
       }
     }
 
+    const marketingTypes = new Set([
+      'abandoned_cart',
+      'welcome',
+      'birthday',
+      'account_anniversary',
+      'review_request',
+      'inactive_customer',
+    ])
+
+    if (marketingTypes.has(type)) {
+      if (!userId) {
+        return new Response(JSON.stringify({ ok: false, reason: 'marketing_consent_required' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+
+      const { data: consent } = await supabase
+        .from('cookie_consent_log')
+        .select('marketing')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (consent?.marketing !== true) {
+        console.log(`Marketing notification skipped for ${userId}: consent not granted`)
+        return new Response(JSON.stringify({ ok: false, reason: 'marketing_consent_required' }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+    }
+
     // Generate automatic coupon if configured
     let couponCode = ''
     if (step.coupon_enabled && step.coupon_value) {
@@ -345,6 +377,7 @@ Deno.serve(async (req) => {
             coupon: couponCode || undefined,
             preheader: subject,
             branding,
+            showCampaignCoupon: marketingTypes.has(type),
           },
         })
         results.push(`Email:${emailResult.sent ? 'sent' : emailResult.reason}`)
