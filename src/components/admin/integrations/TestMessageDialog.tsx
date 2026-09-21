@@ -24,11 +24,11 @@ interface Props {
 
 export function TestMessageDialog({ open, onOpenChange, channel, providerLabel }: Props) {
   const [recipient, setRecipient] = useState('');
-  const [subject, setSubject] = useState('Teste de integração');
+  const [subject, setSubject] = useState('Teste de e-mail — O Garimpo Digital');
   const [message, setMessage] = useState(
     channel === 'whatsapp'
       ? '✅ Mensagem de teste do sistema. Se você recebeu isso, sua integração de WhatsApp está funcionando!'
-      : '✅ E-mail de teste do sistema. Se você recebeu isso, sua integração de e-mail marketing está funcionando!'
+      : 'Este é um e-mail de teste de O Garimpo Digital. Se você recebeu esta mensagem, o envio da loja está funcionando corretamente.'
   );
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState<{ ok: boolean; provider?: string; status?: number; error?: string; response?: string; action?: { label: string; url: string } } | null>(null);

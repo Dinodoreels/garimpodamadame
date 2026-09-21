@@ -116,6 +116,29 @@ Deno.serve(async (req) => {
 
     if (error) throw error
 
+    // Wake the queue immediately for notifications that are already due.
+    // Future steps stay queued and are picked up by the next scheduled run.
+    if (scheduled.getTime() <= Date.now() + 60_000) {
+      try {
+        const processResponse = await fetch(
+          `${Deno.env.get('SUPABASE_URL')}/functions/v1/process-notification-queue`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+            },
+            body: JSON.stringify({}),
+          },
+        )
+        if (!processResponse.ok) {
+          console.error('Unable to wake notification queue:', processResponse.status, await processResponse.text())
+        }
+      } catch (processError) {
+        console.error('Unable to wake notification queue:', processError)
+      }
+    }
+
     return new Response(
       JSON.stringify({ ok: true, id: data.id, scheduled_for: scheduled.toISOString() }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },

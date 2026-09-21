@@ -658,7 +658,7 @@ function IntegrationsTab() {
         <TabsList className="mb-6">
           <TabsTrigger value="payment">Pagamento</TabsTrigger>
           <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
-          <TabsTrigger value="email">Email / Marketing</TabsTrigger>
+          <TabsTrigger value="email">E-mails</TabsTrigger>
         </TabsList>
       <TabsContent value="payment">
         <PaymentTab config={config} onSave={save} isSaving={isPending} />
