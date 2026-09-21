@@ -129,6 +129,7 @@ export function useProductByHandle(handle: string) {
           options:product_options(*)
         `)
         .eq('handle', handle)
+        .eq('status', 'active')
         .single();
 
       if (error) {
