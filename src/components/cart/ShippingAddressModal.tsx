@@ -16,6 +16,7 @@ import { calculateShipping, formatZipCode, ShippingResult } from '@/lib/shipping
 import { useCartStore } from '@/stores/cartStore';
 import { useActiveStores } from '@/hooks/useStores';
 import { toast } from 'sonner';
+import { PaymentTermsNotice } from './PaymentTermsNotice';
 
 interface ShippingAddressModalProps {
   open: boolean;
@@ -404,6 +405,8 @@ export function ShippingAddressModal({
             </>
           )}
         </div>
+
+        <PaymentTermsNotice />
 
         {/* Confirm Button */}
         <div className="flex gap-2">

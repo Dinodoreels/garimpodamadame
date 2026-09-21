@@ -17,6 +17,7 @@ import { calculateShipping, formatZipCode, ShippingResult, getAddressFromZip } f
 import { useCartStore, CartItem } from '@/stores/cartStore';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
+import { PaymentTermsNotice } from './PaymentTermsNotice';
 
 interface BuyNowModalProps {
   open: boolean;
@@ -568,6 +569,8 @@ export function BuyNowModal({ open, onOpenChange, item }: BuyNowModalProps) {
                 <span>{formatPrice(total)}</span>
               </div>
             </div>
+
+            <PaymentTermsNotice />
 
             {/* Actions */}
             <div className="flex gap-2">
