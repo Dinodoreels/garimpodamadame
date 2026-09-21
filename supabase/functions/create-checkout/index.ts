@@ -218,6 +218,13 @@ Deno.serve(async (req) => {
     })
     if (!quoteResponse.ok) throw new Error('Não foi possível confirmar o frete. Calcule novamente.')
     const verifiedQuote = await quoteResponse.json()
+    if (verifiedQuote?.blocking_error?.code === 'PACKAGE_DATA_REQUIRED') {
+      return new Response(JSON.stringify({
+        success: false,
+        error: verifiedQuote.blocking_error.message,
+        code: verifiedQuote.blocking_error.code,
+      }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
     const verifiedShippingOption = Array.isArray(verifiedQuote?.options)
       ? verifiedQuote.options.find((option: any) =>
           String(option.service_code) === String(shipping_option?.service_code)

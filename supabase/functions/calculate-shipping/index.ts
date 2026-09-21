@@ -121,8 +121,21 @@ Deno.serve(async (req) => {
         totalHeight += height * (item.quantity || 1);
       }
       if (incompleteProducts.length > 0) {
-        return new Response(JSON.stringify({ error: 'Este produto ainda não possui peso e medidas de embalagem para calcular o frete.', code: 'PACKAGE_DATA_REQUIRED' }), {
-          status: 409,
+        return new Response(JSON.stringify({
+          options: [],
+          address: null,
+          free_shipping_info: null,
+          dropship_extra_days: 0,
+          provider_error: null,
+          reconnect_required: false,
+          blocking_error: {
+            code: 'PACKAGE_DATA_REQUIRED',
+            message: 'Este produto ainda não possui peso e medidas de embalagem para calcular o frete.',
+          },
+        }), {
+          // Missing package data is an expected catalog state, not a function crash.
+          // Return a successful response so the storefront can render the guidance.
+          status: 200,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         });
       }
