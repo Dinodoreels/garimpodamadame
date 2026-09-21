@@ -35,16 +35,16 @@ export function brandStyles(b: EmailBranding) {
     },
     link: { color: b.colors.primary, textDecoration: 'underline' },
     h1: {
-      fontSize: '24px',
-      fontWeight: 300 as const,
-      color: b.colors.primary,
-      letterSpacing: '-0.01em',
-      margin: '0 0 20px',
+      fontSize: '23px',
+      fontWeight: 700 as const,
+      color: '#202124',
+      letterSpacing: '0',
+      margin: '0 0 14px',
     },
   }
 }
 
-const containerStyle = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const containerStyle = { padding: '30px 22px', maxWidth: '600px', margin: '0 auto' }
 const brandTextStyle = {
   fontSize: '11px',
   letterSpacing: '0.22em',
@@ -62,16 +62,40 @@ export const Brand = {
 export function BrandHeader({ branding }: { branding: EmailBranding }) {
   if (branding.logoUrl) {
     return (
-      <Section style={{ margin: '0 0 24px' }}>
+      <Section style={{ margin: '0 0 24px', padding: '0 4px' }}>
         <Img
           src={branding.logoUrl}
           alt={branding.storeName}
-          style={{ maxHeight: '112px', maxWidth: '240px', objectFit: 'contain', margin: '0 auto' }}
+          style={{ maxHeight: '82px', maxWidth: '210px', objectFit: 'contain', margin: '0' }}
         />
       </Section>
     )
   }
   return <Text style={{ ...brandTextStyle, color: branding.colors.primary }}>{branding.storeName}</Text>
+}
+
+export function BrandStatusCard({
+  branding,
+  eyebrow,
+  title,
+  children,
+}: {
+  branding: EmailBranding
+  eyebrow?: string
+  title: string
+  children?: React.ReactNode
+}) {
+  return (
+    <Section style={{ backgroundColor: '#ffffff', border: '1px solid #dfe2e6', borderLeft: `5px solid ${branding.colors.primary}`, borderRadius: '8px', padding: '24px', margin: '0 0 14px' }}>
+      {eyebrow ? <Text style={{ color: branding.colors.primary, fontSize: '12px', fontWeight: 700, margin: '0 0 8px' }}>{eyebrow}</Text> : null}
+      <Text style={{ color: '#202124', fontSize: '23px', fontWeight: 700, lineHeight: '1.3', margin: children ? '0 0 12px' : '0' }}>{title}</Text>
+      {children}
+    </Section>
+  )
+}
+
+export function BrandContentCard({ children }: { children: React.ReactNode }) {
+  return <Section style={{ backgroundColor: '#ffffff', border: '1px solid #e2e4e8', borderRadius: '8px', padding: '24px', margin: '0 0 14px' }}>{children}</Section>
 }
 
 export function CouponBlock({ coupon, branding }: { coupon?: EmailCoupon | null; branding: EmailBranding }) {
@@ -132,7 +156,7 @@ export function BrandFooter({ branding }: { branding: EmailBranding }) {
   })()
   return (
     <>
-      <Hr style={{ borderColor: '#ececec', margin: '32px 0 16px' }} />
+      <Hr style={{ borderColor: '#dfe2e6', margin: '30px 0 16px' }} />
       <Text style={{ fontSize: '12px', color: '#666', margin: '0 0 4px', textAlign: 'center' as const }}>
         {branding.storeName} ·{' '}
         <Link href={branding.siteUrl} style={{ color: branding.colors.primary, textDecoration: 'underline' }}>

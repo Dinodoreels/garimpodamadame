@@ -12,7 +12,7 @@ import {
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
-import { BrandButton, BrandFooter, BrandHeader, DEFAULT_BRANDING, brandStyles } from './_components.tsx'
+import { BrandButton, BrandContentCard, BrandFooter, BrandHeader, BrandStatusCard, DEFAULT_BRANDING, brandStyles } from './_components.tsx'
 import type { EmailBranding } from '../email-branding.ts'
 
 interface EmailChangeEmailProps {
@@ -40,8 +40,8 @@ export const EmailChangeEmail = ({
       <Body style={main}>
         <Container style={container}>
           <BrandHeader branding={b} />
-          <Heading style={s.h1}>Confirme a alteração de email</Heading>
-          <Text style={text}>
+          <BrandStatusCard branding={b} eyebrow="SEGURANÇA DA CONTA" title="Confirme a alteração de email" />
+          <BrandContentCard><Text style={text}>
             Você pediu para alterar o email da sua conta na {b.storeName} de{' '}
             <Link href={`mailto:${oldEmail}`} style={s.link}>{oldEmail}</Link>{' '}
             para{' '}
@@ -49,6 +49,7 @@ export const EmailChangeEmail = ({
           </Text>
           <Text style={text}>Clique no botão abaixo para confirmar a alteração:</Text>
           <BrandButton branding={b} href={confirmationUrl}>Confirmar alteração</BrandButton>
+          </BrandContentCard>
           <Text style={footer}>
             Se você não solicitou esta alteração, proteja sua conta imediatamente.
           </Text>
@@ -61,7 +62,7 @@ export const EmailChangeEmail = ({
 
 export default EmailChangeEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const main = { backgroundColor: '#f3f3f3', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
+const container = { padding: '30px 22px', maxWidth: '600px', margin: '0 auto' }
 const text = { fontSize: '15px', color: '#1a1a1a', lineHeight: '1.7', margin: '0 0 22px' }
 const footer = { fontSize: '12px', color: '#999', margin: '32px 0 0' }

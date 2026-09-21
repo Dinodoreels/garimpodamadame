@@ -11,7 +11,7 @@ import {
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
-import { BrandButton, BrandFooter, BrandHeader, DEFAULT_BRANDING, brandStyles } from './_components.tsx'
+import { BrandButton, BrandContentCard, BrandFooter, BrandHeader, BrandStatusCard, DEFAULT_BRANDING } from './_components.tsx'
 import type { EmailBranding } from '../email-branding.ts'
 
 interface RecoveryEmailProps {
@@ -26,7 +26,6 @@ export const RecoveryEmail = ({
   branding,
 }: RecoveryEmailProps) => {
   const b = branding ?? { ...DEFAULT_BRANDING, storeName: siteName || DEFAULT_BRANDING.storeName }
-  const s = brandStyles(b)
   return (
     <Html lang="pt-BR" dir="ltr">
       <Head />
@@ -34,11 +33,12 @@ export const RecoveryEmail = ({
       <Body style={main}>
         <Container style={container}>
           <BrandHeader branding={b} />
-          <Heading style={s.h1}>Redefinir senha</Heading>
-          <Text style={text}>
+          <BrandStatusCard branding={b} eyebrow="SEGURANÇA" title="Redefinir senha" />
+          <BrandContentCard><Text style={text}>
             Recebemos um pedido para redefinir a senha da sua conta na {b.storeName}. Clique no botão abaixo para escolher uma nova senha.
           </Text>
           <BrandButton branding={b} href={confirmationUrl}>Redefinir senha</BrandButton>
+          </BrandContentCard>
           <Text style={footer}>
             Se você não pediu para redefinir a senha, pode ignorar este email. Sua senha continuará a mesma.
           </Text>
@@ -51,8 +51,8 @@ export const RecoveryEmail = ({
 
 export default RecoveryEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const main = { backgroundColor: '#f3f3f3', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
+const container = { padding: '30px 22px', maxWidth: '600px', margin: '0 auto' }
 const text = {
   fontSize: '15px',
   color: '#1a1a1a',

@@ -12,7 +12,7 @@ import {
   Preview,
   Text,
 } from 'npm:@react-email/components@0.0.22'
-import { BrandButton, BrandFooter, BrandHeader, CouponBlock, DEFAULT_BRANDING, brandStyles } from './_components.tsx'
+import { BrandButton, BrandContentCard, BrandFooter, BrandHeader, BrandStatusCard, CouponBlock, DEFAULT_BRANDING } from './_components.tsx'
 import type { EmailBranding } from '../email-branding.ts'
 
 interface InviteEmailProps {
@@ -29,7 +29,6 @@ export const InviteEmail = ({
   branding,
 }: InviteEmailProps) => {
   const b = branding ?? { ...DEFAULT_BRANDING, storeName: siteName || DEFAULT_BRANDING.storeName, siteUrl: siteUrl || DEFAULT_BRANDING.siteUrl }
-  const s = brandStyles(b)
   return (
     <Html lang="pt-BR" dir="ltr">
       <Head />
@@ -37,15 +36,16 @@ export const InviteEmail = ({
       <Body style={main}>
         <Container style={container}>
           <BrandHeader branding={b} />
-          <Heading style={s.h1}>Você foi convidada</Heading>
-          <Text style={text}>
+          <BrandStatusCard branding={b} eyebrow="CONVITE" title="Você foi convidada" />
+          <BrandContentCard><Text style={text}>
             Você recebeu um convite para acessar a{' '}
-            <Link href={b.siteUrl} style={s.link}>
+            <Link href={b.siteUrl} style={{ color: b.colors.primary, textDecoration: 'underline' }}>
               <strong>{b.storeName}</strong>
             </Link>
             . Clique no botão abaixo para aceitar o convite e criar sua conta.
           </Text>
           <BrandButton branding={b} href={confirmationUrl}>Aceitar convite</BrandButton>
+          </BrandContentCard>
           <CouponBlock coupon={b.activeCoupon} branding={b} />
           <Text style={footer}>
             Se você não esperava este convite, pode ignorar este email.
@@ -59,8 +59,8 @@ export const InviteEmail = ({
 
 export default InviteEmail
 
-const main = { backgroundColor: '#ffffff', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
-const container = { padding: '32px 28px', maxWidth: '560px', margin: '0 auto' }
+const main = { backgroundColor: '#f3f3f3', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif' }
+const container = { padding: '30px 22px', maxWidth: '600px', margin: '0 auto' }
 const text = {
   fontSize: '15px',
   color: '#1a1a1a',
