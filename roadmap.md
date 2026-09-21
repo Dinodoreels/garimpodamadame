@@ -204,3 +204,10 @@
 - [x] Permitir ativar ou desativar Início, Lançamentos, Catálogo, Lotes, Sobre e Contato no painel
 - [x] Redirecionar o endereço principal para Lançamentos enquanto Início estiver desativado
 - [x] Exibir os banners reais em formato horizontal logo abaixo do cabeçalho em Lançamentos
+
+# Pesquisa inteligente
+- [ ] Melhorar a busca pública com tolerância a acentos, erros de digitação, marca, categoria, descrição, SKU e GTIN
+- [ ] Mostrar sugestões instantâneas com produtos reais e acesso direto ao anúncio
+- [ ] Interpretar intenção e faixa de preço em pesquisas naturais, com funcionamento local se a IA estiver indisponível
+- [ ] Aplicar a busca melhorada no Catálogo e na Administração
+- [ ] Validar a pesquisa no computador e celular
