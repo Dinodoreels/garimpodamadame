@@ -331,6 +331,9 @@ export default function ShippingSettings() {
   const [freeShippingMinValue, setFreeShippingMinValue] = useState('500');
   const [freeShippingDiscountCode, setFreeShippingDiscountCode] = useState('FRETEGRATIS500');
   const [freeShippingInitialized, setFreeShippingInitialized] = useState(false);
+  const [surchargeEnabled, setSurchargeEnabled] = useState(false);
+  const [surchargeAmount, setSurchargeAmount] = useState('0.00');
+  const [surchargeInitialized, setSurchargeInitialized] = useState(false);
 
   // Shipping rates state
   const [searchTerm, setSearchTerm] = useState('');
@@ -350,11 +353,34 @@ export default function ShippingSettings() {
     setFreeShippingInitialized(true);
   }
 
+  if (integrationsConfig && !surchargeInitialized) {
+    setSurchargeEnabled(integrationsConfig.shipping.surcharge_enabled ?? false);
+    setSurchargeAmount(Number(integrationsConfig.shipping.surcharge_amount ?? 0).toFixed(2));
+    setSurchargeInitialized(true);
+  }
+
   const handleSaveFreeShipping = async () => {
     await updateFreeShipping.mutateAsync({
       enabled: freeShippingEnabled,
       min_value: parseFloat(freeShippingMinValue) || 0,
       discount_code: freeShippingDiscountCode
+    });
+  };
+
+  const handleSaveSurcharge = () => {
+    if (!integrationsConfig) return;
+    const amount = Number(surchargeAmount.replace(',', '.'));
+    if (!Number.isFinite(amount) || amount < 0 || amount > 1000) {
+      toast.error('Informe um acréscimo entre R$ 0,00 e R$ 1.000,00');
+      return;
+    }
+    saveIntegrations.mutate({
+      ...integrationsConfig,
+      shipping: {
+        ...integrationsConfig.shipping,
+        surcharge_enabled: surchargeEnabled,
+        surcharge_amount: Math.round(amount * 100) / 100,
+      },
     });
   };
 
@@ -445,6 +471,51 @@ export default function ShippingSettings() {
       )}
 
       <MelhorEnvioConnection />
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Truck className="h-5 w-5 text-muted-foreground" />
+            <CardTitle className="text-lg font-medium">Ajuste no valor do frete</CardTitle>
+          </div>
+          <CardDescription>
+            Adicione um valor fixo à cotação. Na loja, o cliente verá somente o preço final da entrega.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label htmlFor="shipping-surcharge-enabled">Ativar ajuste</Label>
+              <p className="text-sm text-muted-foreground">O valor não será detalhado separadamente para o cliente.</p>
+            </div>
+            <Switch id="shipping-surcharge-enabled" checked={surchargeEnabled} onCheckedChange={setSurchargeEnabled} />
+          </div>
+          <div className="space-y-2 border-t pt-4">
+            <Label htmlFor="shipping-surcharge-amount">Valor adicional (R$)</Label>
+            <Input
+              id="shipping-surcharge-amount"
+              type="number"
+              min="0"
+              max="1000"
+              step="0.01"
+              inputMode="decimal"
+              value={surchargeAmount}
+              onChange={(event) => setSurchargeAmount(event.target.value)}
+              disabled={!surchargeEnabled}
+              className="max-w-xs"
+            />
+            <p className="text-xs text-muted-foreground">
+              Exemplo: uma cotação de {formatPrice(20)} será mostrada como {formatPrice(20 + (surchargeEnabled ? Math.max(0, Number(surchargeAmount.replace(',', '.')) || 0) : 0))}. No frete grátis, o cliente paga R$ 0,00.
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <Button onClick={handleSaveSurcharge} disabled={saveIntegrations.isPending}>
+              {saveIntegrations.isPending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+              Salvar ajuste
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Free Shipping Card */}
       <Card>

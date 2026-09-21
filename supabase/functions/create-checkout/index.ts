@@ -203,7 +203,32 @@ Deno.serve(async (req) => {
     }
 
     const discountValue = Math.round((couponDiscountValue + loyaltyDiscountValue) * 100) / 100
-    const shippingValue = Math.max(0, Number(shipping_cost || 0))
+    const quoteResponse = await fetch(`${Deno.env.get('SUPABASE_URL')}/functions/v1/calculate-shipping`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`,
+      },
+      body: JSON.stringify({
+        zip_code_destination: savedAddress.zip_code,
+        items: verifiedItems.map((item) => ({ product_id: item.product_id, quantity: item.quantity })),
+        subtotal,
+        has_dropship_items: false,
+      }),
+    })
+    if (!quoteResponse.ok) throw new Error('Não foi possível confirmar o frete. Calcule novamente.')
+    const verifiedQuote = await quoteResponse.json()
+    const verifiedShippingOption = Array.isArray(verifiedQuote?.options)
+      ? verifiedQuote.options.find((option: any) =>
+          String(option.service_code) === String(shipping_option?.service_code)
+          && (!shipping_option?.quote_source || option.quote_source === shipping_option.quote_source)
+        )
+      : null
+    if (!verifiedShippingOption) throw new Error('A opção de frete mudou. Calcule novamente antes de pagar.')
+    const shippingValue = Math.max(0, Number(verifiedShippingOption.cost))
+    if (!Number.isFinite(shippingValue) || Math.abs(shippingValue - Number(shipping_cost)) > 0.01) {
+      return new Response(JSON.stringify({ success: false, error: 'O valor do frete foi atualizado. Calcule novamente antes de pagar.' }), { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+    }
     if (discountValue > subtotal || !Number.isFinite(shippingValue)) throw new Error('Valores de desconto ou frete inválidos')
     const total = subtotal - discountValue + shippingValue
 
@@ -235,12 +260,12 @@ Deno.serve(async (req) => {
         loyalty_points_used: requestedPoints,
         source: 'website',
         shipping_provider: shipping_option?.quote_source || (shipping_option ? 'melhor_envio' : null),
-        shipping_carrier: shipping_option?.carrier || null,
-        shipping_service: shipping_option?.service || null,
-        shipping_service_code: shipping_option?.service_code || null,
-        shipping_estimated_days: shipping_option?.estimated_days || null,
-        shipping_original_cost: shipping_option?.original_cost ?? shippingValue,
-        shipping_quote_data: shipping_option || {},
+        shipping_carrier: verifiedShippingOption.carrier,
+        shipping_service: verifiedShippingOption.service,
+        shipping_service_code: verifiedShippingOption.service_code,
+        shipping_estimated_days: verifiedShippingOption.estimated_days,
+        shipping_original_cost: verifiedShippingOption.original_cost,
+        shipping_quote_data: verifiedShippingOption,
       })
       .select()
       .single()

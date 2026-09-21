@@ -260,3 +260,9 @@
 - [x] Automatizar conferência, compra única e geração da etiqueta para pedidos completos
 - [x] Enviar divergências para revisão e exibir pendências no painel
 - [ ] Validar sem executar compra real de etiqueta
+
+# Ajuste oculto no valor do frete
+- [x] Permitir configurar um valor fixo adicional no painel de frete
+- [x] Incorporar o valor ao preço final sem detalhá-lo para o cliente
+- [x] Manter frete grátis em R$ 0 e preservar o custo original da transportadora
+- [x] Revalidar a cotação no checkout para impedir preço adulterado ou antigo

@@ -50,6 +50,8 @@ export interface ShippingMelhorEnvioConfig {
 
 export interface ShippingIntegrationConfig {
   active_provider: '' | 'correios' | 'melhor_envio';
+  surcharge_enabled?: boolean;
+  surcharge_amount?: number;
   correios: ShippingCorreiosConfig;
   melhor_envio: ShippingMelhorEnvioConfig;
 }
@@ -355,6 +357,8 @@ const DEFAULT_CONFIG: IntegrationsConfig = {
   },
   shipping: {
     active_provider: '',
+    surcharge_enabled: false,
+    surcharge_amount: 0,
     correios: { origin_zip: '' },
     melhor_envio: { origin_zip: '', credential_configured: false, hybrid_enabled: true },
   },
