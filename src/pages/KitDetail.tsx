@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { Loader2, Package, ShoppingCart, Check, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import { getKitPricing } from '@/components/home/KitCard';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
+import { applySeoMetadata } from '@/components/seo/RouteSeo';
 
 const formatPrice = (v: number) =>
   new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
@@ -23,6 +24,12 @@ export default function KitDetail() {
   const addItem = useCartStore((s) => s.addItem);
   const [activeImg, setActiveImg] = useState(0);
   const [adding, setAdding] = useState(false);
+
+  useEffect(() => {
+    if (!kit || !handle) return;
+    const description = kit.description?.trim() || `Conheça o kit ${kit.title} disponível no O Garimpo Digital.`;
+    applySeoMetadata(`${kit.title} | O Garimpo Digital`, description, `/kits/${handle}`, kit.image_url || kit.gallery_urls?.[0]);
+  }, [kit, handle]);
 
   const productIds = useMemo(
     () => ((kit as any)?.product_kit_items || []).map((it: any) => it.product_id).filter(Boolean),

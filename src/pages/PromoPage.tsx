@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { usePromoPageBySlug } from '@/hooks/usePromoPages';
@@ -8,11 +9,19 @@ import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { ProductCard } from '@/components/products/ProductCard';
 import type { Product } from '@/hooks/useProducts';
+import { applySeoMetadata } from '@/components/seo/RouteSeo';
 
 export default function PromoPage() {
   const { slug } = useParams<{ slug: string }>();
   const { data: page, isLoading, error } = usePromoPageBySlug(slug || '');
   const { data: promotions = [] } = useActivePromotions();
+
+  useEffect(() => {
+    if (!page || !slug) return;
+    const title = page.hero_title?.trim() || page.title;
+    const description = page.hero_subtitle?.trim() || `Confira ${page.title} no O Garimpo Digital.`;
+    applySeoMetadata(`${title} | O Garimpo Digital`, description, `/promo/${slug}`, page.hero_image || page.banner_images[0]);
+  }, [page, slug]);
 
   const productIds = page?.product_ids || [];
   const { data: products = [] } = useQuery({

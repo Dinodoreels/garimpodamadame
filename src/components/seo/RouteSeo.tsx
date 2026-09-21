@@ -46,12 +46,12 @@ const ROUTE_META: Record<string, { title: string; description: string }> = {
     description: 'Entenda como o O Garimpo Digital utiliza cookies e gerencie suas preferências.',
   },
   '/rastrear': {
-    title: `Rastrear pedido | ${BRAND}`,
-    description: 'Acompanhe a situação e a entrega do seu pedido no O Garimpo Digital.',
+    title: `Consultar entrega | ${BRAND}`,
+    description: 'Consulte a entrega do seu pedido no O Garimpo Digital usando o número informado na compra.',
   },
   '/order-tracking': {
-    title: `Rastrear pedido | ${BRAND}`,
-    description: 'Acompanhe a situação e a entrega do seu pedido no O Garimpo Digital.',
+    title: `Acompanhar pedido | ${BRAND}`,
+    description: 'Acompanhe o andamento, o envio e o código de rastreio do seu pedido no O Garimpo Digital.',
   },
 };
 
@@ -71,6 +71,7 @@ function removeMeta(selector: string) {
 
 export function applySeoMetadata(title: string, description: string, path: string, image?: string) {
   const canonicalUrl = `${SITE_URL}${path === '/' ? '/' : path}`;
+  const shareImage = image ? new URL(image, SITE_URL).href : undefined;
   document.title = title;
   setMeta("meta[name='description']", 'name', 'description', description);
   setMeta("meta[property='og:title']", 'property', 'og:title', title);
@@ -78,9 +79,9 @@ export function applySeoMetadata(title: string, description: string, path: strin
   setMeta("meta[property='og:url']", 'property', 'og:url', canonicalUrl);
   setMeta("meta[name='twitter:title']", 'name', 'twitter:title', title);
   setMeta("meta[name='twitter:description']", 'name', 'twitter:description', description);
-  if (image) {
-    setMeta("meta[property='og:image']", 'property', 'og:image', image);
-    setMeta("meta[name='twitter:image']", 'name', 'twitter:image', image);
+  if (shareImage) {
+    setMeta("meta[property='og:image']", 'property', 'og:image', shareImage);
+    setMeta("meta[name='twitter:image']", 'name', 'twitter:image', shareImage);
   } else if (path !== '/') {
     removeMeta("meta[property='og:image']");
     removeMeta("meta[name='twitter:image']");
