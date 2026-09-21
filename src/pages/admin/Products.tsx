@@ -196,7 +196,7 @@ function SortableProductRow({ product, formatCurrency, handleEdit, handleDeleteC
 }
 
 export default function Products() {
-  const { data: products = [], isLoading, refetch } = useAdminProducts();
+  const { data: products = [], isLoading, isError: productsLoadFailed, refetch } = useAdminProducts();
   const createProductMutation = useCreateProduct();
   const updateProductMutation = useUpdateProduct();
   const deleteProductMutation = useDeleteProduct();
@@ -680,6 +680,13 @@ export default function Products() {
         </TabsList>
 
         <TabsContent value="products" className="space-y-6">
+          {productsLoadFailed && (
+            <div className="flex flex-col gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 sm:flex-row sm:items-center">
+              <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+              <p className="flex-1 text-sm">Não foi possível carregar os produtos. Tente novamente; seus registros continuam salvos.</p>
+              <Button variant="outline" size="sm" onClick={() => void refetch()}>Tentar novamente</Button>
+            </div>
+          )}
           {productsWithoutCategory.length > 0 && filterType !== '__none__' && (
             <div className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3">
               <AlertCircle className="h-5 w-5 text-destructive shrink-0" />

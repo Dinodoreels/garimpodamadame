@@ -70,6 +70,7 @@ export function useAdminData() {
   const [orders, setOrders] = useState<AdminOrder[]>([]);
   const [customers, setCustomers] = useState<AdminCustomer[]>([]);
   const [loading, setLoading] = useState(true);
+  const [ordersError, setOrdersError] = useState<string | null>(null);
   const [stats, setStats] = useState({
     totalOrders: 0,
     totalRevenue: 0,
@@ -82,6 +83,8 @@ export function useAdminData() {
   const fetchOrders = useCallback(async () => {
     if (!isVendedor) return;
 
+    setOrdersError(null);
+
     const { data, error } = await supabase
       .from('orders')
       .select(`
@@ -93,6 +96,7 @@ export function useAdminData() {
 
     if (error) {
       console.error('Error fetching orders:', error);
+      setOrdersError('Não foi possível carregar os pedidos. Tente novamente; seus registros continuam salvos.');
       return;
     }
 
@@ -295,6 +299,7 @@ export function useAdminData() {
     customers,
     stats,
     loading,
+    ordersError,
     updateOrderStatus,
     refetch: () => Promise.all([fetchOrders(), fetchCustomers(), fetchInventoryStats()]),
   };
