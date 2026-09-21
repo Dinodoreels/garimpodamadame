@@ -54,9 +54,9 @@ Deno.serve(async (req) => {
     if (!code) return jsonResponse({ ok: false, error: 'Informe o código de rastreio antes de postar.' }, 400)
     const [{ data: shipment }, { data: marketplaceLabel }] = await Promise.all([
       db.from('melhor_envio_shipments').select('label_url,status').eq('order_id', order_id).maybeSingle(),
-      db.from('marketplace_shipping_labels').select('status,file_path').eq('order_id', order_id).maybeSingle(),
+      db.from('marketplace_shipping_labels').select('status,label_url,storage_path').eq('order_id', order_id).maybeSingle(),
     ])
-    if (!shipment?.label_url && marketplaceLabel?.status !== 'ready' && !marketplaceLabel?.file_path) {
+    if (!shipment?.label_url && marketplaceLabel?.status !== 'ready' && !marketplaceLabel?.label_url && !marketplaceLabel?.storage_path) {
       return jsonResponse({ ok: false, error: 'A etiqueta oficial precisa estar pronta antes da postagem.' }, 409)
     }
     await updateOrder(db, order_id, { fulfillment_status: 'posted', posted_at: now, status: 'shipped', shipped_at: now, tracking_code: code, tracking_url: tracking_url || null, fulfillment_updated_by: user.id })
