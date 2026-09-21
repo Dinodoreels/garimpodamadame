@@ -39,6 +39,12 @@
     --chrome: 30 5% 45%;
     --chrome-light: 30 8% 60%;
     --chrome-dark: 30 5% 35%;
+    --storefront-header: 0 0% 5%;
+    --storefront-header-foreground: 0 0% 98%;
+    --storefront-header-border: 0 0% 20%;
+    --storefront-search: 0 0% 100%;
+    --storefront-search-foreground: 0 0% 12%;
+    --storefront-search-muted: 0 0% 45%;
   }
 
   .dark {
@@ -69,6 +75,12 @@
     --border: 0 0% 18%;
     --input: 0 0% 18%;
     --ring: 0 0% 95%;
+    --storefront-header: 0 0% 5%;
+    --storefront-header-foreground: 0 0% 98%;
+    --storefront-header-border: 0 0% 22%;
+    --storefront-search: 0 0% 98%;
+    --storefront-search-foreground: 0 0% 10%;
+    --storefront-search-muted: 0 0% 42%;
   }
 }
 

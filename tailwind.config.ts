@@ -60,6 +60,14 @@ export default {
           light: "hsl(var(--chrome-light))",
           dark: "hsl(var(--chrome-dark))",
         },
+        storefront: {
+          header: "hsl(var(--storefront-header))",
+          "header-foreground": "hsl(var(--storefront-header-foreground))",
+          "header-border": "hsl(var(--storefront-header-border))",
+          search: "hsl(var(--storefront-search))",
+          "search-foreground": "hsl(var(--storefront-search-foreground))",
+          "search-muted": "hsl(var(--storefront-search-muted))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
