@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { useSiteContent } from '@/hooks/useSiteContent';
+import { getStorefrontFallback, mergeStorefrontNavigation, type StorefrontNavigationSettings } from '@/lib/storefrontNavigation';
 
 export function MobileBottomNav() {
   const location = useLocation();
@@ -15,6 +17,9 @@ export function MobileBottomNav() {
   const { getTotalItems } = useCartStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const { data: navigationData } = useSiteContent<StorefrontNavigationSettings>('storefront_navigation');
+  const navigation = mergeStorefrontNavigation(navigationData);
+  const homeEnabled = navigation.items.find((item) => item.href === '/')?.enabled !== false;
   
   const totalItems = getTotalItems();
 
@@ -28,7 +33,7 @@ export function MobileBottomNav() {
   };
 
   const navItems = [
-    { icon: Home, label: 'Início', href: '/' },
+    { icon: Home, label: homeEnabled ? 'Início' : 'Loja', href: homeEnabled ? '/' : getStorefrontFallback(navigation) },
     { icon: Search, label: 'Buscar', href: '#search', onClick: () => setSearchOpen(true) },
     { icon: Heart, label: 'Favoritos', href: '/favorites' },
     { icon: ShoppingBag, label: 'Carrinho', href: '#cart' },
@@ -91,7 +96,7 @@ export function MobileBottomNav() {
                   <div className="relative">
                     <Icon className="h-5 w-5 text-muted-foreground" strokeWidth={1.5} />
                     {totalItems > 0 && (
-                      <Badge className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center text-[10px] bg-chrome text-white">
+                       <Badge className="absolute -top-2 -right-2 h-4 w-4 rounded-full p-0 flex items-center justify-center text-[10px] bg-accent text-accent-foreground">
                         {totalItems > 9 ? '9+' : totalItems}
                       </Badge>
                     )}

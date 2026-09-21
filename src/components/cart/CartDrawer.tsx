@@ -241,12 +241,12 @@ export function CartDrawer() {
           variant="ghost" 
           size="icon" 
           aria-label={`Abrir carrinho com ${totalItems} ${totalItems === 1 ? 'item' : 'itens'}`}
-          className="relative min-w-[44px] min-h-[44px] hover:bg-transparent hover:scale-105 transition-transform"
+          className="relative min-w-[44px] min-h-[44px] text-inherit hover:bg-current/10 hover:text-inherit transition-colors"
           data-cart-trigger
         >
           <ShoppingCart className="h-5 w-5" />
           {totalItems > 0 && (
-            <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-chrome text-white animate-scale-in">
+            <Badge className="absolute -top-2 -right-2 h-5 w-5 rounded-full p-0 flex items-center justify-center text-xs bg-accent text-accent-foreground animate-scale-in">
               {totalItems}
             </Badge>
           )}

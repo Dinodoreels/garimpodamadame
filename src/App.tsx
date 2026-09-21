@@ -39,6 +39,7 @@ import { AnalyticsProvider } from "@/components/providers/AnalyticsProvider";
 import { PushNotificationProvider } from "@/components/providers/PushNotificationProvider";
 import { LegalConsentGate } from "@/components/legal/LegalConsentGate";
 import { RouteSeo } from "@/components/seo/RouteSeo";
+import { StorefrontPageGuard } from "@/components/layout/StorefrontPageGuard";
 
 // Lazy load admin & seller routes
 const AdminLayout = lazy(() => import("./pages/admin/AdminLayout"));
@@ -140,12 +141,12 @@ const App = () => (
           <Suspense fallback={<div className="flex items-center justify-center min-h-screen"><div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" /></div>}>
           <LegalConsentGate />
           <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/catalog" element={<Catalog />} />
-            <Route path="/releases" element={<Releases />} />
-            <Route path="/lote" element={<Lote />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
+            <Route path="/" element={<StorefrontPageGuard path="/"><Index /></StorefrontPageGuard>} />
+            <Route path="/catalog" element={<StorefrontPageGuard path="/catalog"><Catalog /></StorefrontPageGuard>} />
+            <Route path="/releases" element={<StorefrontPageGuard path="/releases"><Releases /></StorefrontPageGuard>} />
+            <Route path="/lote" element={<StorefrontPageGuard path="/lote"><Lote /></StorefrontPageGuard>} />
+            <Route path="/about" element={<StorefrontPageGuard path="/about"><About /></StorefrontPageGuard>} />
+            <Route path="/contact" element={<StorefrontPageGuard path="/contact"><Contact /></StorefrontPageGuard>} />
             <Route path="/product/:handle" element={<ProductDetail />} />
             <Route path="/kits" element={<KitsList />} />
             <Route path="/kits/:handle" element={<KitDetail />} />

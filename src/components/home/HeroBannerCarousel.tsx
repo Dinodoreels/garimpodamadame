@@ -15,7 +15,7 @@ function getYouTubeId(url: string): string | null {
   return match ? match[1] : null;
 }
 
-export function HeroBannerCarousel() {
+export function HeroBannerCarousel({ compact = false }: { compact?: boolean }) {
   const theme = useCMSThemeContext();
   const { data: intConfig } = useIntegrations();
   const isMobile = useIsMobile();
@@ -66,19 +66,19 @@ export function HeroBannerCarousel() {
 
   if (isLoading) {
     return (
-      <section className="relative min-h-[70vh] lg:min-h-[85vh] overflow-hidden bg-muted animate-pulse" />
+      <section className={cn("relative overflow-hidden bg-muted animate-pulse", compact ? "h-[300px] sm:h-auto sm:aspect-[16/6] sm:min-h-[240px] sm:max-h-[520px]" : "min-h-[70vh] lg:min-h-[85vh]")} />
     );
   }
 
   if (!banners?.length) {
     return (
-      <section className="relative min-h-[70vh] lg:min-h-[85vh] overflow-hidden">
+      <section className={cn("relative overflow-hidden", compact ? "h-[300px] sm:h-auto sm:aspect-[16/6] sm:min-h-[240px] sm:max-h-[520px]" : "min-h-[70vh] lg:min-h-[85vh]")}>
         <div 
           className="absolute inset-0 bg-cover bg-center bg-no-repeat scale-105"
           style={{ backgroundImage: `url(${heroBg})` }}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-black/60 via-black/40 to-black/70" />
-        <div className="container relative z-10 flex flex-col items-center justify-center text-center min-h-[70vh] lg:min-h-[85vh]">
+        <div className={cn("container relative z-10 flex flex-col items-center justify-center text-center", compact ? "h-full min-h-[300px] sm:min-h-[240px]" : "min-h-[70vh] lg:min-h-[85vh]")}>
           <p className="text-xs tracking-[0.3em] text-white/70 mb-6 font-light">
             {heroBadge}
           </p>
@@ -113,7 +113,7 @@ export function HeroBannerCarousel() {
   }
 
   return (
-    <section className="relative min-h-[70vh] lg:min-h-[85vh] overflow-hidden">
+    <section className={cn("relative overflow-hidden", compact ? "h-[300px] sm:h-auto sm:aspect-[16/6] sm:min-h-[240px] sm:max-h-[520px]" : "min-h-[70vh] lg:min-h-[85vh]")}>
       <div ref={emblaRef} className="overflow-hidden h-full">
         <div className="flex h-full">
           {banners.map((banner) => {
@@ -123,7 +123,7 @@ export function HeroBannerCarousel() {
             const objectPos = isMobile ? (banner.mobile_object_position || '50% 50%') : (banner.desktop_object_position || '50% 50%');
 
             return (
-            <div key={banner.id} className={cn("relative min-w-full min-h-[70vh] lg:min-h-[85vh] flex-shrink-0", banner.click_url && "cursor-pointer")}
+            <div key={banner.id} className={cn("relative min-w-full flex-shrink-0", compact ? "h-full min-h-[300px] sm:min-h-[240px]" : "min-h-[70vh] lg:min-h-[85vh]", banner.click_url && "cursor-pointer")}
               onClick={() => {
                 if (banner.click_url) {
                   if (banner.click_url.startsWith('http')) {
@@ -174,15 +174,15 @@ export function HeroBannerCarousel() {
               />
               
               {/* Content */}
-              <div className="container relative z-10 flex flex-col items-center justify-center text-center min-h-[70vh] lg:min-h-[85vh]">
+               <div className={cn("container relative z-10 flex flex-col items-center justify-center overflow-hidden text-center", compact ? "h-full min-h-[300px] px-8 sm:min-h-[240px]" : "min-h-[70vh] lg:min-h-[85vh]")}>
                 {banner.title && (
-                  <h2 className="font-display text-4xl sm:text-5xl lg:text-7xl font-light leading-tight mb-6 text-white tracking-wide drop-shadow-lg">
+                   <h2 className={cn("font-display font-light leading-tight text-white drop-shadow-lg", compact ? "mb-3 text-3xl sm:text-4xl lg:text-5xl" : "mb-6 text-4xl sm:text-5xl lg:text-7xl")}>
                     {banner.title}
                   </h2>
                 )}
                 
                 {banner.subtitle && (
-                  <p className="text-sm text-white/70 max-w-lg mb-10 font-light tracking-wide">
+                   <p className={cn("max-w-lg text-sm font-light text-white/70", compact ? "mb-5" : "mb-10")}>
                     {banner.subtitle}
                   </p>
                 )}
