@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Camera, ScanLine, Sparkles, Check, RotateCcw, Loader2, AlertTriangle, ExternalLink } from 'lucide-react';
 import { scanService, type IdentifyResult, type ScanLot } from '@/services/inbound/scanService';
@@ -34,6 +35,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
   const [photo, setPhoto] = useState<string | null>(null);
   const [identifying, setIdentifying] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [autoPublish, setAutoPublish] = useState(false);
   const [identified, setIdentified] = useState<IdentifyResult | null>(null);
   const [form, setForm] = useState<Form>(EMPTY_FORM);
   const [aiWarning, setAiWarning] = useState<string | null>(null);
@@ -167,7 +169,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
         photo_base64: photo,
         identification_result_ids: identified?.result_ids,
         force_review: forceReview || identificationNeedsReview,
-        auto_publish: !forceReview && !identificationNeedsReview,
+        auto_publish: autoPublish && !forceReview && !identificationNeedsReview,
       });
       setTimes(t => [...t.slice(-19), Math.round((Date.now() - startedAt.current) / 1000)]);
       if (res.pending) {
@@ -175,7 +177,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
       } else if (res.publication) {
         toast.success('Produto publicado na loja, no painel e enviado para sincronização.');
       } else {
-        toast.warning('Peça gravada, mas ainda falta informação para publicar.');
+        toast.success(autoPublish ? 'Peça gravada; revise as informações pendentes antes de publicar.' : 'Peça gravada sem publicação automática.');
       }
       qc.invalidateQueries({ queryKey: ['inbound'] });
       resetPiece();
@@ -214,6 +216,7 @@ export function ScanScreen({ fullscreen = false }: Props) {
                   Nenhum lote aberto. Cadastre um recebimento primeiro.
                 </p>
               )}
+              {lot && <p className="text-sm text-muted-foreground">Lote selecionado: {lot.code}. Confirme se é o lote que está fisicamente na bancada.</p>}
             </div>
             <div className="grid grid-cols-3 gap-2 self-end">
               <Stat label="Bipadas" value={stats?.scanned ?? 0} />
@@ -358,10 +361,14 @@ export function ScanScreen({ fullscreen = false }: Props) {
             </Field>
           </div>
 
+          <div className="flex items-center justify-between gap-4 rounded-md border p-3">
+            <div><Label htmlFor="auto-publish">Publicar automaticamente</Label><p className="text-xs text-muted-foreground">Desativado por segurança durante a conferência operacional.</p></div>
+            <Switch id="auto-publish" checked={autoPublish} onCheckedChange={setAutoPublish} />
+          </div>
           <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
             <Button size="lg" className="h-16 text-base" onClick={()=>handleSave(false)} disabled={saving || !lotId}>
               {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Check className="mr-2 h-5 w-5" />}
-              Gravar, publicar e ir para a próxima
+              {autoPublish ? 'Gravar, publicar e ir para a próxima' : 'Gravar sem publicar e ir para a próxima'}
             </Button>
             <Button size="lg" variant="outline" className="h-16" onClick={resetPiece}>
               <RotateCcw className="mr-2 h-5 w-5" /> Limpar
