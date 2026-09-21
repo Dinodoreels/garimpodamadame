@@ -204,42 +204,6 @@ Deno.serve(async (req) => {
       throw new Error('Erro ao criar pedido')
     }
 
-    // If loyalty points were used, deduct them from user's balance
-    if (requestedPoints > 0) {
-      // Create redemption transaction
-      const { error: transactionError } = await supabase
-        .from('loyalty_transactions')
-        .insert({
-          user_id: userId,
-          order_id: order.id,
-          type: 'redeem',
-          points: -requestedPoints,
-          description: `Resgate - Pedido #${orderNumber}`,
-        })
-
-      if (transactionError) {
-        console.error('Error creating loyalty transaction:', transactionError)
-      }
-
-      // Update user's loyalty balance
-      const { error: balanceError } = await supabase
-        .from('loyalty_points')
-        .update({ 
-          balance: supabase.rpc('decrement_balance', { amount: requestedPoints }),
-          total_redeemed: supabase.rpc('increment_redeemed', { amount: requestedPoints }),
-        })
-        .eq('user_id', userId)
-
-      // Alternative: Direct update with SQL
-      if (balanceError) {
-        console.error('Error updating loyalty balance, trying direct update:', balanceError)
-        await supabase.rpc('adjust_loyalty_balance', {
-          p_user_id: userId,
-          p_points: -requestedPoints,
-        })
-      }
-    }
-
     // Create order items
     const orderItems = verifiedItems.map(item => ({
       order_id: order.id,
@@ -272,18 +236,23 @@ Deno.serve(async (req) => {
       throw new Error('Token do Mercado Pago não configurado')
     }
 
+    let remainingDiscount = discountValue
     const preferenceItems = verifiedItems.map(item => {
       // Only include picture_url if it's a valid URL (not base64)
       const isValidUrl = item.image_url && item.image_url.startsWith('http');
+      const lineTotal = Math.round(item.price * item.quantity * 100) / 100
+      const appliedToLine = Math.min(remainingDiscount, Math.max(0, lineTotal - 0.01))
+      remainingDiscount = Math.round((remainingDiscount - appliedToLine) * 100) / 100
       return {
         id: item.variant_id,
         title: item.variant_title ? `${item.title} - ${item.variant_title}` : item.title,
-        quantity: item.quantity,
-        unit_price: item.price,
+        quantity: 1,
+        unit_price: Math.round((lineTotal - appliedToLine) * 100) / 100,
         currency_id: 'BRL',
         ...(isValidUrl && { picture_url: item.image_url }),
       };
     })
+    if (remainingDiscount > 0) throw new Error('O desconto ultrapassa o valor disponível dos produtos')
 
     // Add shipping as an item if present
     if (shippingValue > 0) {
@@ -357,6 +326,20 @@ Deno.serve(async (req) => {
     }
 
     const mpData = await mpResponse.json()
+
+    if (requestedPoints > 0) {
+      const { error: redemptionError } = await admin.rpc('redeem_loyalty_points', {
+        p_order_id: order.id,
+        p_user_id: userId,
+        p_points: requestedPoints,
+      })
+      if (redemptionError) {
+        console.error('Error redeeming loyalty points:', redemptionError)
+        await admin.from('order_items').delete().eq('order_id', order.id)
+        await admin.from('orders').delete().eq('id', order.id)
+        throw new Error(redemptionError.message || 'Não foi possível resgatar os pontos')
+      }
+    }
 
     // Update order with Mercado Pago preference ID
     await supabase
