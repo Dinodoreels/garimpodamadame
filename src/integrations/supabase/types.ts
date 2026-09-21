@@ -4316,41 +4316,62 @@ export type Database = {
         Row: {
           admin_notes: string | null
           amount: number
+          confirmed_amount: number | null
           created_at: string | null
           id: string
+          idempotency_key: string | null
+          last_error: string | null
           order_id: string
           processed_at: string | null
           processed_by: string | null
+          provider_refund_id: string | null
+          provider_status: string | null
           reason: string
+          refund_type: string | null
           status: string
           updated_at: string | null
           user_id: string | null
+          workflow_results: Json
         }
         Insert: {
           admin_notes?: string | null
           amount: number
+          confirmed_amount?: number | null
           created_at?: string | null
           id?: string
+          idempotency_key?: string | null
+          last_error?: string | null
           order_id: string
           processed_at?: string | null
           processed_by?: string | null
+          provider_refund_id?: string | null
+          provider_status?: string | null
           reason: string
+          refund_type?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string | null
+          workflow_results?: Json
         }
         Update: {
           admin_notes?: string | null
           amount?: number
+          confirmed_amount?: number | null
           created_at?: string | null
           id?: string
+          idempotency_key?: string | null
+          last_error?: string | null
           order_id?: string
           processed_at?: string | null
           processed_by?: string | null
+          provider_refund_id?: string | null
+          provider_status?: string | null
           reason?: string
+          refund_type?: string | null
           status?: string
           updated_at?: string | null
           user_id?: string | null
+          workflow_results?: Json
         }
         Relationships: [
           {
@@ -5808,6 +5829,35 @@ export type Database = {
       }
       can_view_inbound: { Args: { _user_id: string }; Returns: boolean }
       claim_bling_catalog_sync: { Args: never; Returns: boolean }
+      claim_refund_processing: {
+        Args: { p_actor_id: string; p_refund_id: string }
+        Returns: {
+          admin_notes: string | null
+          amount: number
+          confirmed_amount: number | null
+          created_at: string | null
+          id: string
+          idempotency_key: string | null
+          last_error: string | null
+          order_id: string
+          processed_at: string | null
+          processed_by: string | null
+          provider_refund_id: string | null
+          provider_status: string | null
+          reason: string
+          refund_type: string | null
+          status: string
+          updated_at: string | null
+          user_id: string | null
+          workflow_results: Json
+        }
+        SetofOptions: {
+          from: "*"
+          to: "refunds"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       claim_whatsapp_campaign: {
         Args: { p_campaign_id?: string }
         Returns: string

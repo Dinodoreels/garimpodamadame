@@ -14,6 +14,12 @@ export interface Refund {
   processed_at: string | null;
   created_at: string;
   updated_at: string;
+  provider_refund_id: string | null;
+  provider_status: string | null;
+  confirmed_amount: number | null;
+  refund_type: string | null;
+  workflow_results: Record<string, any>;
+  last_error: string | null;
 }
 
 export function useRefundsByOrder(orderId: string | null) {
@@ -40,6 +46,22 @@ export function useCreateRefund() {
     mutationFn: async ({ orderId, amount, reason }: { orderId: string; amount: number; reason: string }) => {
       const { data: { user } } = await supabase.auth.getUser();
       
+      if (!Number.isFinite(amount) || amount <= 0) throw new Error('Informe um valor válido');
+      const { data: order, error: orderError } = await supabase
+        .from('orders')
+        .select('total, paid_amount')
+        .eq('id', orderId)
+        .single();
+      if (orderError) throw orderError;
+      const { data: prior } = await supabase
+        .from('refunds' as any)
+        .select('confirmed_amount')
+        .eq('order_id', orderId)
+        .in('status', ['completed', 'partial']);
+      const used = ((prior || []) as any[]).reduce((sum, item) => sum + Number(item.confirmed_amount || 0), 0);
+      const available = Number(order.paid_amount ?? order.total) - used;
+      if (amount > available + 0.01) throw new Error(`O saldo disponível para reembolso é R$ ${available.toFixed(2).replace('.', ',')}`);
+
       const { error } = await supabase
         .from('refunds' as any)
         .insert({
@@ -55,8 +77,8 @@ export function useCreateRefund() {
       queryClient.invalidateQueries({ queryKey: ['refunds', orderId] });
       toast.success('Reembolso solicitado com sucesso');
     },
-    onError: () => {
-      toast.error('Erro ao solicitar reembolso');
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Erro ao solicitar reembolso');
     },
   });
 }
@@ -76,37 +98,21 @@ export function useUpdateRefundStatus() {
       adminNotes?: string;
       orderId: string;
     }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const update: any = {
-        status,
-        processed_by: user?.id,
-        processed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      };
-      if (adminNotes !== undefined) update.admin_notes = adminNotes;
-
-      const { error } = await supabase
-        .from('refunds' as any)
-        .update(update)
-        .eq('id', refundId);
+      const action = status === 'rejected' ? 'reject' : 'approve';
+      const { data, error } = await supabase.functions.invoke('process-refund', {
+        body: { action, refund_id: refundId, admin_notes: adminNotes },
+      });
       if (error) throw error;
-
-      // If approved/completed, update order status
-      if (status === 'approved' || status === 'completed') {
-        await supabase
-          .from('orders')
-          .update({ status: 'refunded' })
-          .eq('id', orderId);
-      }
+      if (!data?.ok) throw new Error(data?.error || 'Não foi possível processar o reembolso');
+      return data;
     },
     onSuccess: (_, { orderId }) => {
       queryClient.invalidateQueries({ queryKey: ['refunds', orderId] });
       queryClient.invalidateQueries({ queryKey: ['admin-data'] });
-      toast.success('Status do reembolso atualizado');
+      toast.success('Reembolso atualizado com segurança');
     },
-    onError: () => {
-      toast.error('Erro ao atualizar reembolso');
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Erro ao atualizar reembolso');
     },
   });
 }
