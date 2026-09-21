@@ -156,12 +156,6 @@ export default function Auth() {
       return;
     }
     
-    const { error: consentError } = await recordCurrentLegalAcceptance('signup');
-    if (consentError) {
-      toast.error('Conta criada, mas o aceite não foi registrado. Confirme os documentos ao entrar.');
-      navigate('/');
-      return;
-    }
     toast.success('Conta criada!', {
       description: 'Enviamos um link para seu e-mail. Confirme o endereço para entrar na loja.'
     });

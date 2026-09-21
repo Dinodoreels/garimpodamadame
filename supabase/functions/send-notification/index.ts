@@ -377,6 +377,7 @@ Deno.serve(async (req) => {
             coupon: couponCode || undefined,
             preheader: subject,
             branding,
+            showCampaignCoupon: marketingTypes.has(type),
           },
         })
         results.push(`Email:${emailResult.sent ? 'sent' : emailResult.reason}`)
