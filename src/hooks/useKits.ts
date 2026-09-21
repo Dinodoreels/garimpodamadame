@@ -7,6 +7,9 @@ export interface ProductKit {
   description: string | null;
   handle: string;
   image_url: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  social_image_url?: string | null;
   gallery_urls?: string[] | null;
   pricing_type: string;
   fixed_price: number | null;

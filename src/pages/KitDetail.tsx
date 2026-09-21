@@ -27,8 +27,8 @@ export default function KitDetail() {
 
   useEffect(() => {
     if (!kit || !handle) return;
-    const description = kit.description?.trim() || `Conheça o kit ${kit.title} disponível no O Garimpo Digital.`;
-    applySeoMetadata(`${kit.title} | O Garimpo Digital`, description, `/kits/${handle}`, kit.image_url || kit.gallery_urls?.[0]);
+    const description = kit.seo_description?.trim() || kit.description?.trim() || `Conheça o kit ${kit.title} disponível no O Garimpo Digital.`;
+    applySeoMetadata(kit.seo_title?.trim() || `${kit.title} | O Garimpo Digital`, description, `/kits/${handle}`, kit.social_image_url || kit.image_url || kit.gallery_urls?.[0]);
   }, [kit, handle]);
 
   const productIds = useMemo(

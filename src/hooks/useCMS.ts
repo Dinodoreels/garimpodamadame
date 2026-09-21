@@ -14,6 +14,7 @@
    is_published: boolean;
    seo_title: string | null;
    seo_description: string | null;
+  social_image_url?: string | null;
    created_at: string;
    updated_at: string;
    sections?: CMSSection[];

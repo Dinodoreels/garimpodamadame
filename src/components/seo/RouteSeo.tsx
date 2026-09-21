@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useSiteContent } from '@/hooks/useSiteContent';
 
 const SITE_URL = 'https://ogarimpodigital.com.br';
 const BRAND = 'O Garimpo Digital';
@@ -94,12 +95,14 @@ export function applySeoMetadata(title: string, description: string, path: strin
 
 export function RouteSeo() {
   const { pathname } = useLocation();
+  const { data: settings } = useSiteContent<{ routes?: Array<{ path: string; title: string; description: string; image?: string }> }>('seo_metadata');
 
   useEffect(() => {
-    const metadata = ROUTE_META[pathname];
+    const saved = settings?.routes?.find((route) => route.path === pathname);
+    const metadata = saved || ROUTE_META[pathname];
     if (!metadata || pathname.startsWith('/product/')) return;
-    applySeoMetadata(metadata.title, metadata.description, pathname);
-  }, [pathname]);
+    applySeoMetadata(metadata.title, metadata.description, pathname, 'image' in metadata ? metadata.image : undefined);
+  }, [pathname, settings]);
 
   return null;
 }

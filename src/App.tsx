@@ -55,6 +55,7 @@ const Expenses = lazy(() => import("./pages/admin/Expenses"));
 const Accounting = lazy(() => import("./pages/admin/Accounting"));
 const Promotions = lazy(() => import("./pages/admin/Promotions"));
 const Content = lazy(() => import("./pages/admin/Content"));
+const Seo = lazy(() => import("./pages/admin/Seo"));
 const Closing = lazy(() => import("./pages/admin/Closing"));
 const InventoryClosing = lazy(() => import("./pages/admin/InventoryClosing"));
 const AdminStores = lazy(() => import("./pages/admin/Stores"));
@@ -188,6 +189,7 @@ const App = () => (
               <Route path="accounting" element={<Accounting />} />
               <Route path="promotions" element={<Promotions />} />
               <Route path="content" element={<Content />} />
+              <Route path="seo" element={<Seo />} />
               <Route path="closing" element={<Closing />} />
               <Route path="inventory-closing" element={<InventoryClosing />} />
               <Route path="cash-register" element={<CashRegister />} />
