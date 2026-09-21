@@ -65,6 +65,8 @@ export interface ImageData {
 
 export interface ProductFormData {
   id?: string;
+  store_status?: string;
+  bling_status?: string;
   title: string;
   body: string;
   product_type: string;
