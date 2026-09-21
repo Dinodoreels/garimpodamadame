@@ -101,7 +101,7 @@ export function RouteSeo() {
     const saved = settings?.routes?.find((route) => route.path === pathname);
     const metadata = saved || ROUTE_META[pathname];
     if (!metadata || pathname.startsWith('/product/')) return;
-    applySeoMetadata(metadata.title, metadata.description, pathname, 'image' in metadata ? metadata.image : undefined);
+    applySeoMetadata(metadata.title, metadata.description, pathname, saved?.image);
   }, [pathname, settings]);
 
   return null;

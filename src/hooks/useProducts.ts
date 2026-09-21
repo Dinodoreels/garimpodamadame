@@ -16,9 +16,6 @@ export interface ProductVariant {
   price: number;
   cost: number | null;
   compare_at_price: number | null;
-  seo_title?: string | null;
-  seo_description?: string | null;
-  social_image_url?: string | null;
   option1: string | null;
   option2: string | null;
   option3: string | null;
@@ -55,6 +52,9 @@ export interface Product {
   catalog_pending_fields?: string[];
   price: number;
   compare_at_price: number | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  social_image_url?: string | null;
   status: string;
   is_available: boolean;
   expiry_date?: string | null;

@@ -13,9 +13,9 @@ export interface PromoPage {
   show_hero_text: boolean;
   banner_images: string[];
   product_ids: string[];
-  seo_title: string | null;
-  seo_description: string | null;
-  social_image_url: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
+  social_image_url?: string | null;
   created_at: string;
   updated_at: string;
 }
