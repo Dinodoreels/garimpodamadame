@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Search, Plus, CalendarIcon, X, Globe, MessageCircle, Store, User } from 'lucide-react';
+import { Search, Plus, CalendarIcon, X, Globe, MessageCircle, Store, User, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Input } from '@/components/ui/input';
@@ -56,7 +56,7 @@ export default function Orders() {
   const [searchParams] = useSearchParams();
   const initialStatus = searchParams.get('status') ?? 'all';
   const operationFilter = searchParams.get('operation');
-  const { orders, loading, updateOrderStatus } = useAdminData();
+  const { orders, loading, ordersError, updateOrderStatus, refetch } = useAdminData();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>(initialStatus);
   const [sourceFilter, setSourceFilter] = useState<string>('all');
@@ -232,6 +232,13 @@ export default function Orders() {
           </Button>
         </div>
       </div>
+      {ordersError && (
+        <div className="flex flex-col gap-3 rounded-md border border-destructive/30 bg-destructive/5 p-3 sm:flex-row sm:items-center">
+          <AlertCircle className="h-5 w-5 shrink-0 text-destructive" />
+          <p className="flex-1 text-sm">{ordersError}</p>
+          <Button variant="outline" size="sm" onClick={() => void refetch()}>Tentar novamente</Button>
+        </div>
+      )}
       {operationFilter && <div className="flex items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2 text-sm"><span>{operationFilter === 'separation' ? 'Fila operacional: pedidos pagos aguardando separação' : operationFilter === 'shipping' ? 'Fila operacional: fiscal, etiqueta e envio' : operationFilter === 'reconciliation' ? 'Conciliação: pedidos antigos sem endereço vinculado' : 'Fila operacional: pós-compra'}</span><Button variant="ghost" size="sm" onClick={() => navigate('/admin/orders')}>Ver todos</Button></div>}
       <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
         {[
