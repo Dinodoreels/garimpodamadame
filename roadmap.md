@@ -216,3 +216,9 @@
 - [x] Permitir ativar ou desativar o preço cheio em cada produto
 - [x] Cadastrar o preço cheio manualmente e validar que seja maior que o preço de venda
 - [x] Exibir preço riscado e percentual de desconto na vitrine e no detalhe do produto
+
+# E-mails oficiais
+- [x] Verificar o domínio de envio de O Garimpo Digital
+- [x] Publicar novamente os envios de acesso, pedidos, recibos e notificações
+- [x] Confirmar um envio real no histórico de entrega
+- [x] Simplificar o painel para mostrar apenas o serviço oficial ativo
