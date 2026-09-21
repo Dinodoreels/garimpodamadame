@@ -43,7 +43,7 @@ export function Header() {
   const toggleColorMode = () => setColorMode(colorMode === 'dark' ? 'light' : 'dark');
 
   return (
-    <header className="sticky top-0 z-50 border-b border-storefront-header-border bg-storefront-header text-storefront-header-foreground shadow-lg">
+    <header className="sticky top-0 z-50 border-b border-storefront-header-border bg-storefront-header text-storefront-header-foreground shadow-sm">
       <nav className="mx-auto grid min-h-20 w-full max-w-[1600px] grid-cols-[auto_1fr_auto] items-center gap-x-3 gap-y-3 px-4 py-3 lg:gap-8 lg:px-8">
         <div className="flex items-center gap-2 lg:gap-5">
           <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
@@ -91,7 +91,7 @@ export function Header() {
             </SheetContent>
           </Sheet>
           <Link to={homeHref} className="flex items-center">
-            <img src={logoUrl} alt="O Garimpo Digital" className="h-11 w-auto max-w-[145px] object-contain brightness-0 invert transition-opacity hover:opacity-75 lg:h-14 lg:max-w-[190px]" />
+            <img src={logoUrl} alt="O Garimpo Digital" className="h-11 w-auto max-w-[145px] object-contain transition-opacity hover:opacity-75 lg:h-14 lg:max-w-[190px]" />
           </Link>
         </div>
 
