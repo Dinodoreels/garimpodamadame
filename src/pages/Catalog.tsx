@@ -20,6 +20,7 @@ import { DynamicSection } from '@/components/cms/blocks/DynamicSection';
 import { useCatalogShippingCep } from '@/hooks/useCatalogShippingCep';
 import { CategoryChips } from '@/components/catalog/CategoryChips';
 import { CatalogFiltersSheet, type CatalogFilters } from '@/components/catalog/CatalogFiltersSheet';
+import { HeroBannerCarousel } from '@/components/home/HeroBannerCarousel';
 
 type SortOption = 'newest' | 'price-asc' | 'price-desc' | 'name-asc' | 'name-desc' | 'expiry-asc';
 
@@ -167,6 +168,8 @@ export default function Catalog() {
       <Header />
 
       <main className="flex-1 pb-16 md:pb-0">
+        <HeroBannerCarousel compact />
+
         {cmsHeaderSections.length > 0 ? (
           cmsHeaderSections.map((section) => (
             <DynamicSection key={section.id} section={section as CMSSection} />
