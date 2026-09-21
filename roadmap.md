@@ -211,3 +211,8 @@
 - [x] Interpretar intenção e faixa de preço em pesquisas naturais, com funcionamento local se a IA estiver indisponível
 - [x] Aplicar a busca melhorada no Catálogo e na Administração
 - [x] Validar a pesquisa no computador e celular
+
+# Preço de ancoragem
+- [x] Permitir ativar ou desativar o preço cheio em cada produto
+- [x] Cadastrar o preço cheio manualmente e validar que seja maior que o preço de venda
+- [x] Exibir preço riscado e percentual de desconto na vitrine e no detalhe do produto

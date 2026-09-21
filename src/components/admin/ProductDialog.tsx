@@ -87,6 +87,7 @@ export interface ProductFormData {
   height_cm?: number;
   expiry_date?: string | null;
   is_lote?: boolean;
+  compare_at_price?: string;
   variants: Array<{
     price: string;
     sku: string;
@@ -126,6 +127,7 @@ const defaultFormData: ProductFormData = {
   dropship_lead_time: 7,
   dropship_message: '',
   is_lote: false,
+  compare_at_price: '',
   variants: [{ price: '', sku: '' }],
   options: [],
   images: [],

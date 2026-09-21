@@ -236,15 +236,20 @@ export function ProductCard({ product, shippingCep }: ProductCardProps) {
           </h3>
           
           {/* Price */}
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-medium text-foreground">
-              {formatPrice(price)}
-            </p>
+          <div className="space-y-0.5">
             {hasDiscount && (
               <p className="text-xs text-muted-foreground line-through">
-                {formatPrice(compareAtPrice)}
+                De {formatPrice(compareAtPrice)}
               </p>
             )}
+            <div className="flex items-center gap-2">
+              <p className="text-sm font-medium text-foreground">
+                {hasDiscount ? 'Por ' : ''}{formatPrice(price)}
+              </p>
+              {hasDiscount && (
+                <span className="text-xs font-medium text-destructive">-{discountPercent}%</span>
+              )}
+            </div>
           </div>
 
           {/* Shipping estimate (when CEP is set on catalog) */}

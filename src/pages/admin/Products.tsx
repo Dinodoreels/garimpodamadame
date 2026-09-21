@@ -404,6 +404,7 @@ export default function Products() {
       width_cm: data.width_cm,
       height_cm: data.height_cm,
       price,
+      compare_at_price: data.compare_at_price ? parseFloat(data.compare_at_price) || undefined : undefined,
       status: 'active',
       is_available: true,
       expiry_date: data.expiry_date || null,
@@ -414,6 +415,7 @@ export default function Products() {
         sku: v.sku,
         gtin: v.gtin,
         price: typeof v.price === 'string' ? parseFloat(v.price) || 0 : v.price || 0,
+        compare_at_price: data.compare_at_price ? parseFloat(data.compare_at_price) || undefined : undefined,
         cost: v.cost ?? 0,
         option1: v.option1,
         option2: v.option2,
@@ -599,6 +601,7 @@ export default function Products() {
       dropship_lead_time: 7,
       dropship_message: '',
       is_lote: (selectedProduct as any).is_lote === true,
+      compare_at_price: selectedProduct.compare_at_price ? String(selectedProduct.compare_at_price) : '',
       variants: selectedProduct.variants?.map(v => ({
         price: String(v.price),
         sku: v.sku || '',
