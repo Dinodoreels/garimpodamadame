@@ -225,3 +225,11 @@
 - [x] Exigir confirmação do endereço de e-mail antes do primeiro acesso
 - [x] Ativar avisos por e-mail de pagamento, envio e entrega do pedido
 - [x] Restringir carrinho e comunicações promocionais a clientes com consentimento registrado
+
+# Reembolso completo
+- [x] Validar pedido, pagamento, valor e saldo ainda reembolsável
+- [x] Solicitar estorno total ou parcial ao Mercado Pago com proteção contra repetição
+- [x] Confirmar o retorno antes de concluir o pedido como reembolsado
+- [x] Devolver estoque total uma única vez e sincronizar o saldo com o Bling
+- [x] Tentar cancelar o Melhor Envio quando a postagem ainda permitir
+- [x] Registrar resultados e enviar confirmação por e-mail ao cliente

@@ -8,6 +8,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -75,6 +76,11 @@ export function OrderDetailsDialog({ order, onClose, onStatusChange }: OrderDeta
   const { data: refunds } = useRefundsByOrder(order?.id || null);
   const createRefund = useCreateRefund();
   const updateRefundStatus = useUpdateRefundStatus();
+  const confirmedRefundTotal = (refunds || []).reduce(
+    (sum, refund) => sum + (['completed', 'partial'].includes(refund.status) ? Number(refund.confirmed_amount || 0) : 0),
+    0,
+  );
+  const refundableBalance = Math.max(0, Number(order?.paid_amount ?? order?.total ?? 0) - confirmedRefundTotal);
 
   // Fetch status history with profile names
   useEffect(() => {
@@ -654,7 +660,7 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
 
           {/* Refunds Tab */}
           <TabsContent value="refunds" className="space-y-4 mt-4">
-            {['paid', 'delivered', 'shipped'].includes(order.status) && !showRefundForm && (
+            {['paid', 'processing', 'delivered', 'shipped'].includes(order.status) && refundableBalance > 0 && !showRefundForm && (
               <Button onClick={() => { setShowRefundForm(true); setRefundAmount(String(order.total)); }} variant="outline" className="w-full">
                 <RotateCcw className="h-4 w-4 mr-2" />
                 Solicitar Reembolso
@@ -663,7 +669,10 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
 
             {showRefundForm && (
               <div className="space-y-3 p-4 border rounded-lg">
-                <h3 className="text-sm font-medium">Novo Reembolso</h3>
+                <div>
+                  <h3 className="text-sm font-medium">Novo Reembolso</h3>
+                  <p className="text-xs text-muted-foreground">Saldo disponível: {formatCurrency(refundableBalance)}</p>
+                </div>
                 <div className="space-y-2">
                   <Label className="text-xs">Valor (R$)</Label>
                   <Input
@@ -696,7 +705,7 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
                       setRefundAmount('');
                       setRefundReason('');
                     }}
-                    disabled={createRefund.isPending || !refundReason.trim()}
+                    disabled={createRefund.isPending || !refundReason.trim() || Number(refundAmount) <= 0 || Number(refundAmount) > refundableBalance}
                   >
                     Confirmar
                   </Button>
@@ -718,27 +727,45 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
                       <span className="text-sm font-medium">{formatCurrency(r.amount)}</span>
                       <Badge variant="outline" className={cn(
                         r.status === 'pending' && 'bg-yellow-100 text-yellow-800',
-                        r.status === 'approved' && 'bg-green-100 text-green-800',
+                        r.status === 'processing' && 'bg-blue-100 text-blue-800',
+                        r.status === 'partial' && 'bg-blue-100 text-blue-800',
                         r.status === 'rejected' && 'bg-red-100 text-red-800',
                         r.status === 'completed' && 'bg-blue-100 text-blue-800',
+                        r.status === 'failed' && 'bg-red-100 text-red-800',
                       )}>
-                        {r.status === 'pending' ? 'Pendente' : r.status === 'approved' ? 'Aprovado' : r.status === 'rejected' ? 'Rejeitado' : 'Concluído'}
+                        {r.status === 'pending' ? 'Pendente' : r.status === 'processing' ? 'Processando' : r.status === 'partial' ? 'Parcial concluído' : r.status === 'rejected' ? 'Rejeitado' : r.status === 'failed' ? 'Falha' : 'Concluído'}
                       </Badge>
                     </div>
                     <p className="text-xs text-muted-foreground">{r.reason}</p>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(r.created_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                     </p>
+                    {r.confirmed_amount ? <p className="text-xs">Confirmado pelo Mercado Pago: {formatCurrency(Number(r.confirmed_amount))}</p> : null}
+                    {r.last_error ? <p className="text-xs text-destructive">{r.last_error}</p> : null}
+                    {r.workflow_results && Object.keys(r.workflow_results).length > 0 ? (
+                      <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                        <span>Pagamento: {r.workflow_results.payment?.ok ? 'confirmado' : 'pendente'}</span>
+                        <span>Estoque: {r.workflow_results.stock?.ok ? 'devolvido' : r.workflow_results.stock?.skipped ? 'não aplicável' : 'revisar'}</span>
+                        <span>Bling: {r.workflow_results.bling?.ok ? 'sincronizado' : r.workflow_results.bling?.skipped ? 'não aplicável' : 'na fila'}</span>
+                        <span>Envio: {r.workflow_results.shipping?.ok ? 'tratado' : r.workflow_results.shipping?.skipped ? 'não aplicável' : 'revisar'}</span>
+                        <span>E-mail: {r.workflow_results.email?.sent ? 'enviado' : r.workflow_results.email?.reason === 'recipient_suppressed' ? 'bloqueado pelo destinatário' : 'revisar'}</span>
+                      </div>
+                    ) : null}
                     {r.status === 'pending' && (
                       <div className="flex gap-2 pt-1">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="text-green-600 h-7 text-xs"
-                          onClick={() => updateRefundStatus.mutate({ refundId: r.id, status: 'approved', orderId: order.id })}
-                        >
-                          Aprovar
-                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild><Button size="sm" variant="outline" className="text-green-600 h-7 text-xs">Aprovar e estornar</Button></AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar estorno de {formatCurrency(Number(r.amount))}?</AlertDialogTitle>
+                              <AlertDialogDescription>O valor será devolvido pelo Mercado Pago. Em reembolso total, o estoque será devolvido e o envio será cancelado quando ainda for possível.</AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Voltar</AlertDialogCancel>
+                              <AlertDialogAction onClick={() => updateRefundStatus.mutate({ refundId: r.id, status: 'approved', orderId: order.id })}>Confirmar estorno</AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
                         <Button
                           size="sm"
                           variant="outline"

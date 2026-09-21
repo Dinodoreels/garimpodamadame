@@ -15,6 +15,8 @@ function response(body: Record<string, unknown>, status = 200) {
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+  let processingRefundId: string | null = null
+  let adminClient: ReturnType<typeof createClient> | null = null
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader?.startsWith('Bearer ')) return response({ ok: false, error: 'Não autorizado.' }, 401)
@@ -25,6 +27,7 @@ Deno.serve(async (req) => {
 
     const caller = createClient(url, anonKey, { global: { headers: { Authorization: authHeader } } })
     const admin = createClient(url, serviceKey)
+    adminClient = admin
     const { data: userData } = await caller.auth.getUser(authHeader.slice(7))
     if (!userData.user) return response({ ok: false, error: 'Sessão inválida.' }, 401)
     const { data: role } = await admin.from('user_roles').select('role').eq('user_id', userData.user.id).eq('role', 'admin').maybeSingle()
@@ -62,6 +65,7 @@ Deno.serve(async (req) => {
     if (claimError) throw claimError
     if (['completed', 'partial'].includes(claimed.status)) return response({ ok: true, status: claimed.status, already_processed: true })
     if (claimed.status !== 'processing') return response({ ok: false, error: 'Este reembolso já está sendo tratado ou foi encerrado.' }, 409)
+    processingRefundId = refund.id
 
     const token = Deno.env.get('MERCADOPAGO_ACCESS_TOKEN')
     if (!token) throw new Error('A conta do Mercado Pago não está configurada.')
@@ -90,10 +94,15 @@ Deno.serve(async (req) => {
     }
 
     const workflow = await finalizeConfirmedRefund(admin, refund.id, providerData)
+    processingRefundId = null
     const { data: completed } = await admin.from('refunds').select('status, confirmed_amount, refund_type, workflow_results').eq('id', refund.id).single()
     return response({ ok: true, ...completed, workflow })
   } catch (error) {
     console.error('process-refund failed:', error)
-    return response({ ok: false, error: error instanceof Error ? error.message : 'Não foi possível processar o reembolso.' }, 500)
+    const message = error instanceof Error ? error.message : 'Não foi possível processar o reembolso.'
+    if (processingRefundId && adminClient) {
+      await adminClient.from('refunds').update({ status: 'failed', last_error: message, updated_at: new Date().toISOString() }).eq('id', processingRefundId)
+    }
+    return response({ ok: false, error: message }, 500)
   }
 })
