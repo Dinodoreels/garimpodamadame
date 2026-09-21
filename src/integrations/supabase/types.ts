@@ -159,6 +159,9 @@ export type Database = {
           overlay_opacity: number | null
           position: number | null
           show_button: boolean | null
+          show_overlay: boolean
+          show_subtitle: boolean
+          show_title: boolean
           subtitle: string | null
           title: string
           updated_at: string | null
@@ -179,6 +182,9 @@ export type Database = {
           overlay_opacity?: number | null
           position?: number | null
           show_button?: boolean | null
+          show_overlay?: boolean
+          show_subtitle?: boolean
+          show_title?: boolean
           subtitle?: string | null
           title: string
           updated_at?: string | null
@@ -199,6 +205,9 @@ export type Database = {
           overlay_opacity?: number | null
           position?: number | null
           show_button?: boolean | null
+          show_overlay?: boolean
+          show_subtitle?: boolean
+          show_title?: boolean
           subtitle?: string | null
           title?: string
           updated_at?: string | null
