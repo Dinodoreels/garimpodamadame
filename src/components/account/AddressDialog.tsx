@@ -158,10 +158,10 @@ export function AddressDialog({ open, onOpenChange, address, onSuccess }: Addres
         is_default: parsed.data.is_default,
       };
       const { error: profileError } = await updateProfile({
-        full_name: parsed.data.recipient_name,
+        ...(!profile?.full_name ? { full_name: parsed.data.recipient_name } : {}),
         phone,
-        cpf: cpf.replace(/\D/g, ''),
-        birth_date,
+        ...(!profile?.cpf ? { cpf: cpf.replace(/\D/g, '') } : {}),
+        ...(!profile?.birth_date ? { birth_date } : {}),
       });
       if (profileError) throw profileError;
       if (address) {
