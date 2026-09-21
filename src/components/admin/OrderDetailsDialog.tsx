@@ -60,7 +60,7 @@ const PAYMENT_LABELS: Record<string, string> = {
 interface OrderDetailsDialogProps {
   order: AdminOrder | null;
   onClose: () => void;
-  onStatusChange?: (orderId: string, status: string) => void;
+  onStatusChange?: (orderId: string, status: string) => void | Promise<void>;
 }
 
 export function OrderDetailsDialog({ order, onClose, onStatusChange }: OrderDetailsDialogProps) {
@@ -509,7 +509,7 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
           </TabsContent>
 
           <TabsContent value="tracking" className="space-y-6 mt-4">
-            <FulfillmentActions order={order} onChanged={() => onStatusChange?.(order.id, order.status)} />
+            <FulfillmentActions order={order} onChanged={() => void onStatusChange?.(order.id, order.status)} />
 
             <MarketplaceLabelSection
               orderId={order.id}
