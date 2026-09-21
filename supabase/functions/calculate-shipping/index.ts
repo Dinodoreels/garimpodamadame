@@ -102,18 +102,29 @@ Deno.serve(async (req) => {
       }
 
       const productMap = new Map(productsData.map((p: any) => [p.id, p]));
+      const incompleteProducts: string[] = [];
 
       for (const item of items as ShippingItem[]) {
         const product = productMap.get(item.product_id);
-        const weight = item.weight_grams || product?.weight_grams || 300;
-        const length = item.length_cm || product?.length_cm || 20;
-        const width = item.width_cm || product?.width_cm || 15;
-        const height = item.height_cm || product?.height_cm || 10;
+        const weight = Number(product?.weight_grams);
+        const length = Number(product?.length_cm);
+        const width = Number(product?.width_cm);
+        const height = Number(product?.height_cm);
+        if (!product || weight <= 0 || length <= 0 || width <= 0 || height <= 0) {
+          incompleteProducts.push(item.product_id || 'produto');
+          continue;
+        }
 
         totalWeight += weight * (item.quantity || 1);
         maxLength = Math.max(maxLength, length);
         maxWidth = Math.max(maxWidth, width);
         totalHeight += height * (item.quantity || 1);
+      }
+      if (incompleteProducts.length > 0) {
+        return new Response(JSON.stringify({ error: 'Este produto ainda não possui peso e medidas de embalagem para calcular o frete.', code: 'PACKAGE_DATA_REQUIRED' }), {
+          status: 409,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
       }
     } else {
       totalWeight = 300;
