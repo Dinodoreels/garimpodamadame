@@ -233,8 +233,16 @@ Deno.serve(async (req) => {
     const total = subtotal - discountValue + shippingValue
 
     // Generate order number
-    const { data: orderNumberData, error: orderNumberError } = await supabase
-      .rpc('generate_order_number')
+    const yearPrefix = `PI${new Date().getUTCFullYear()}`
+    const { data: latestOrders, error: latestOrderError } = await admin
+      .from('orders')
+      .select('order_number')
+      .like('order_number', `${yearPrefix}%`)
+      .order('order_number', { ascending: false })
+      .limit(1)
+    const nextSequence = latestOrderError ? 1 : Number(latestOrders?.[0]?.order_number?.slice(yearPrefix.length) || 0) + 1
+    const orderNumberData = `${yearPrefix}${String(nextSequence).padStart(4, '0')}`
+    const orderNumberError = latestOrderError
 
     if (orderNumberError) {
       console.error('Error generating order number:', orderNumberError)

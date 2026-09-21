@@ -1,3 +1,4 @@
+import { requireInternalOrAdmin } from '../_shared/internal-auth.ts'
 import { corsHeaders, jsonResponse, getServiceClient, getShopifyConfig, shopifyFetch, getDefaultLocationId, type ShopifyConfig } from '../_shared/shopify.ts';
 
 const BATCH = 10;
@@ -135,6 +136,9 @@ async function deleteFromShopify(svc: any, config: ShopifyConfig, shopifyPid: st
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  const access = await requireInternalOrAdmin(req)
+  if (access instanceof Response) return new Response(access.body, { status: access.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
 
   try {
     const config = await getShopifyConfig();

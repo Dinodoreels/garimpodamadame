@@ -1,3 +1,4 @@
+import { requireInternalOrAdmin, requireAuthenticated } from '../_shared/internal-auth.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -45,12 +46,24 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    const body = (await req.json()) as EnqueuePayload
+    const isSelfWelcome = body.type === 'welcome' && Boolean(body.userId) && !body.orderId && body.stepIndex === 0
+    let access: { kind?: string; userId?: string; isAdmin?: boolean } | Response
+    if (isSelfWelcome) {
+      access = await requireAuthenticated(req)
+      if (!(access instanceof Response) && access.userId !== body.userId) {
+        access = new Response(JSON.stringify({ error: 'Forbidden' }), { status: 403, headers: { 'Content-Type': 'application/json' } })
+      }
+    } else {
+      access = await requireInternalOrAdmin(req)
+    }
+    if (access instanceof Response) return new Response(access.body, { status: access.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     )
 
-    const body = (await req.json()) as EnqueuePayload
     const { type, orderId, userId, stepIndex = 0, batchSize = 1, batchIndex = 0, immediate = false } = body
 
     // Load throttling + automations

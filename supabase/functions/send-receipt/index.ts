@@ -1,3 +1,4 @@
+import { requireAuthenticated } from '../_shared/internal-auth.ts'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { getEmailBranding, type EmailBranding } from '../_shared/email-branding.ts'
 import { sendTemplateEmail } from '../_shared/transactional-email-templates/send-email.ts'
@@ -114,6 +115,9 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
   try {
+    const access = await requireAuthenticated(req)
+    if (access instanceof Response) return new Response(access.body, { status: access.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL')!,
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -133,6 +137,9 @@ Deno.serve(async (req) => {
 
     if (orderErr || !order) {
       return new Response(JSON.stringify({ ok: false, error: 'Order not found' }), { status: 404, headers: corsHeaders })
+    }
+    if (!access.isAdmin && order.user_id !== access.userId) {
+      return new Response(JSON.stringify({ ok: false, error: 'Forbidden' }), { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
     }
 
     const profile = (order as any).profiles

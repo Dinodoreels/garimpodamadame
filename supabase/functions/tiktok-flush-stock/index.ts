@@ -1,3 +1,4 @@
+import { requireInternalOrAdmin } from '../_shared/internal-auth.ts'
 // Cron-triggered. Flushes pending stock changes to TikTok Shop.
 // Endpoint: POST /product/202309/products/{product_id}/inventory/update
 import { callTikTok, corsHeaders, getConfig, getSupabaseAdmin, jsonResponse, logSync } from "../_shared/tiktok.ts";
@@ -6,6 +7,9 @@ const BATCH = 50;
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  const access = await requireInternalOrAdmin(req)
+  if (access instanceof Response) return new Response(access.body, { status: access.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
+
   try {
     const cfg = await getConfig();
     if (!cfg?.is_active || !cfg?.auto_sync_products) {
