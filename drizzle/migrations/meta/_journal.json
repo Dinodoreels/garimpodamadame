@@ -190,6 +190,13 @@
       "when": 1789973276340,
       "tag": "0026_remove_last_public_definer_grant",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1789974623169,
+      "tag": "0027_restore_rls_policy_helpers",
+      "breakpoints": true
     }
   ]
 }
