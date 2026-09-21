@@ -275,4 +275,6 @@
 - [x] Evitar respostas de registro ausente nas configurações opcionais
 - [x] Remover depoimentos fictícios exibidos por padrão
 - [x] Corrigir o nome O Garimpo Digital no rodapé
+- [x] Corrigir avisos de interface ao abrir o carrinho e o endereço
+- [x] Restaurar avaliações sem depender de uma relação indisponível
 - [ ] Repetir a jornada autenticada até antes do pagamento

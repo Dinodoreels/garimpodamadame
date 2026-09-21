@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { forwardRef, useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,7 +23,7 @@ interface ShippingCalculatorProps {
   hasDropshipItems?: boolean;
 }
 
-export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalculatorProps) {
+export const ShippingCalculator = forwardRef<HTMLDivElement, ShippingCalculatorProps>(function ShippingCalculator({ hasDropshipItems = false }, ref) {
   const { user } = useAuth();
   const { addresses, refetch } = useAddresses();
   const { data: freeShippingSettings } = useFreeShippingSettings();
@@ -210,7 +210,7 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
   };
 
   return (
-    <div className="space-y-4 p-4 bg-secondary/30 rounded-lg">
+    <div ref={ref} className="space-y-4 p-4 bg-secondary/30 rounded-lg">
       {/* Free Shipping Progress */}
       {freeShippingEnabled && (
         <div className="space-y-2">
@@ -353,4 +353,4 @@ export function ShippingCalculator({ hasDropshipItems = false }: ShippingCalcula
       <AddressDialog open={addressDialogOpen} onOpenChange={setAddressDialogOpen} onSuccess={refetch} />
     </div>
   );
-}
+});

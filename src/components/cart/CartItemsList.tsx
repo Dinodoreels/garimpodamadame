@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { forwardRef, useState } from "react";
 import { Minus, Plus, Trash2, Bookmark, BookmarkCheck, Package, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -137,24 +137,24 @@ export function CartItemsList({ items, formatPrice, onUpdateQty, onRemove, onRem
   );
 }
 
-function ItemRow({
-  item,
-  formatPrice,
-  onUpdateQty,
-  onRemove,
-  onToggleSaved,
-  compact,
-}: {
+const ItemRow = forwardRef<HTMLDivElement, {
   item: CartItem;
   formatPrice: (n: number, c?: string) => string;
   onUpdateQty: (variantId: string, qty: number) => void;
   onRemove: (variantId: string) => void;
   onToggleSaved: (variantId: string) => void;
   compact?: boolean;
-}) {
+}>(function ItemRow({
+  item,
+  formatPrice,
+  onUpdateQty,
+  onRemove,
+  onToggleSaved,
+  compact,
+}, ref) {
   const unitPrice = item.kitUnitPrice ?? item.variant.price;
   return (
-    <div className={`flex gap-3 ${compact ? 'p-2' : 'p-3'} bg-secondary/50 rounded-lg`}>
+    <div ref={ref} className={`flex gap-3 ${compact ? 'p-2' : 'p-3'} bg-secondary/50 rounded-lg`}>
       <div className={`${compact ? 'w-14 h-14' : 'w-20 h-20 sm:w-16 sm:h-16'} bg-muted rounded-md overflow-hidden flex-shrink-0`}>
         {item.product.images?.[0] && (
           <img src={item.product.images[0].url} alt={item.product.title} className="w-full h-full object-cover" />
@@ -216,4 +216,4 @@ function ItemRow({
       </div>
     </div>
   );
-}
+});
