@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { finalizeConfirmedRefund } from '../_shared/refund-workflow.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -89,7 +90,8 @@ Deno.serve(async (req) => {
         return new Response('OK', { headers: corsHeaders })
       }
       const alreadyProcessed = currentOrder.mercadopago_payment_id === String(paymentId) && currentOrder.status === orderStatus
-      if (alreadyProcessed) return new Response('OK', { headers: corsHeaders })
+      const refundedAmount = Number(payment.transaction_amount_refunded ?? 0)
+      if (alreadyProcessed && refundedAmount <= 0) return new Response('OK', { headers: corsHeaders })
 
       // Update order status
       const updateData: Record<string, any> = { 
@@ -161,6 +163,45 @@ Deno.serve(async (req) => {
             if (!fiscalResponse.ok) console.log('Automatic invoice stayed pending:', fiscalResult?.error ?? fiscalResponse.status)
           } catch (fiscalErr) {
             console.error('Failed to start automatic invoice:', fiscalErr)
+          }
+        }
+
+        if (refundedAmount > 0 || orderStatus === 'refunded') {
+          const { data: knownRefunds } = await supabase
+            .from('refunds')
+            .select('*')
+            .eq('order_id', orderId)
+            .in('status', ['processing', 'completed', 'partial'])
+            .order('created_at', { ascending: true })
+          const confirmedTotal = (knownRefunds ?? [])
+            .filter((item: any) => ['completed', 'partial'].includes(item.status))
+            .reduce((sum: number, item: any) => sum + Number(item.confirmed_amount ?? 0), 0)
+          const delta = Math.max(0, refundedAmount - confirmedTotal)
+          let target = (knownRefunds ?? []).find((item: any) => item.status === 'processing')
+
+          if (!target && delta > 0) {
+            const { data: externalRefund } = await supabase.from('refunds').insert({
+              order_id: orderId,
+              user_id: null,
+              amount: delta,
+              reason: 'Reembolso identificado automaticamente pelo Mercado Pago',
+              status: 'processing',
+              provider_status: String(payment.status),
+              idempotency_key: `mp-webhook-${paymentId}-${refundedAmount}`,
+              processed_at: new Date().toISOString(),
+            }).select('*').single()
+            target = externalRefund
+          }
+
+          if (target) {
+            try {
+              const providerRefund = Array.isArray(payment.refunds) && payment.refunds.length
+                ? payment.refunds[payment.refunds.length - 1]
+                : { id: `payment-${paymentId}`, status: 'approved', amount: Number(target.amount) }
+              await finalizeConfirmedRefund(supabase, target.id, providerRefund)
+            } catch (refundError) {
+              console.error('Failed to finalize refund workflow:', refundError)
+            }
           }
         }
       }
