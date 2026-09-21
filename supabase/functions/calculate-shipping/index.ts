@@ -195,11 +195,25 @@ Deno.serve(async (req) => {
       options = await getFallbackRates(supabase, cleanZip);
     }
 
+    // The configured adjustment is folded into the public shipping price.
+    // Keep original_cost untouched so internal operations retain the carrier cost.
+    const surchargeEnabled = shippingConfig?.surcharge_enabled === true;
+    const configuredSurcharge = Number(shippingConfig?.surcharge_amount ?? 0);
+    const surchargeAmount = surchargeEnabled && Number.isFinite(configuredSurcharge)
+      ? Math.min(1000, Math.max(0, configuredSurcharge))
+      : 0;
+    if (surchargeAmount > 0) {
+      options = options.map((option) => ({
+        ...option,
+        cost: Math.round((option.cost + surchargeAmount) * 100) / 100,
+      }));
+      options.sort((a, b) => a.cost - b.cost);
+    }
+
     // Apply free shipping
     if (qualifiesForFreeShipping) {
       options = options.map(opt => ({
         ...opt,
-        original_cost: opt.cost,
         cost: 0,
         is_free: true,
       }));
