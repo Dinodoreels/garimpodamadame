@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors'
 import { z } from 'npm:zod@3.23.8'
-import { finalizeConfirmedRefund } from '../_shared/refund-workflow.ts'
+import { finalizeConfirmedRefund, sendRefundApprovedEmail } from '../_shared/refund-workflow.ts'
 
 const jsonHeaders = { ...corsHeaders, 'Content-Type': 'application/json' }
 const BodySchema = z.discriminatedUnion('action', [
@@ -86,6 +86,14 @@ Deno.serve(async (req) => {
       const message = String(providerData.message ?? providerData.error ?? `Mercado Pago recusou o estorno (${mpResponse.status}).`)
       await admin.from('refunds').update({ status: 'failed', provider_status: 'failed', last_error: message, workflow_results: { payment: { ok: false, status: mpResponse.status } }, updated_at: new Date().toISOString() }).eq('id', refund.id)
       return response({ ok: false, error: message }, 409)
+    }
+
+    try {
+      const approvedEmail = await sendRefundApprovedEmail(admin, refund.id)
+      const priorResults = claimed.workflow_results ?? {}
+      await admin.from('refunds').update({ workflow_results: { ...priorResults, approval_email: approvedEmail }, updated_at: new Date().toISOString() }).eq('id', refund.id)
+    } catch (emailError) {
+      console.error('Refund approved email failed:', emailError)
     }
 
     if (!['approved', 'refunded'].includes(String(providerData.status ?? '').toLowerCase())) {
