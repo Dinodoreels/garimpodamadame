@@ -12,7 +12,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useSiteContent } from '@/hooks/useSiteContent';
 import { toast } from 'sonner';
 import { z } from 'zod';
-import { recordCurrentLegalAcceptance } from '@/hooks/useLegalConsent';
 import { CURRENT_LEGAL_VERSION } from '@/lib/legalContent';
 
 const loginSchema = z.object({
