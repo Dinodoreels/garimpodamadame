@@ -241,3 +241,7 @@
 - [x] Enviar aviso ao aprovar o reembolso e confirmação após o retorno do dinheiro
 - [x] Validar reposição única de estoque, atualização do Bling e avisos sem executar estorno real
 
+# Personalização dos banners
+- [x] Permitir editar e ocultar separadamente o título e o subtítulo
+- [x] Permitir remover totalmente a camada de cor e exibir somente a imagem original
+
