@@ -45,7 +45,7 @@ export interface AdminOrder {
   paid_at?: string | null;
   payment_attempts?: number | null;
   mercadopago_payment_id?: string | null;
-  fulfillment_status?: 'awaiting_separation' | 'separating' | 'packed' | 'posted' | 'returned' | null;
+  fulfillment_status?: string | null;
   separation_started_at?: string | null;
   separated_at?: string | null;
   packed_at?: string | null;
