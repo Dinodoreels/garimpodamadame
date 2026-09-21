@@ -1,3 +1,4 @@
+ import { useEffect } from 'react';
  import { useParams, useSearchParams } from 'react-router-dom';
  import { useCMSPageBySlug, type CMSSection } from '@/hooks/useCMS';
  import { useAdmin } from '@/hooks/useAdmin';
@@ -7,6 +8,12 @@
  import { Loader2, AlertTriangle } from 'lucide-react';
  import { supabase } from '@/integrations/supabase/client';
  import { useQuery } from '@tanstack/react-query';
+ import { applySeoMetadata } from '@/components/seo/RouteSeo';
+
+ function findPageImage(sections: CMSSection[] | undefined) {
+   const values = sections?.flatMap((section) => Object.values((section.content || {}) as Record<string, unknown>)) || [];
+   return values.find((value): value is string => typeof value === 'string' && /^(https?:\/\/|\/).+\.(avif|jpe?g|png|webp)(\?.*)?$/i.test(value));
+ }
  
  export default function CMSPage() {
    const { slug } = useParams<{ slug: string }>();
@@ -44,6 +51,13 @@
      },
      enabled: !!slug,
    });
+
+    useEffect(() => {
+      if (!page || !slug) return;
+      const title = page.seo_title?.trim() || page.title;
+      const description = page.seo_description?.trim() || `Conheça ${page.title} no O Garimpo Digital.`;
+      applySeoMetadata(`${title} | O Garimpo Digital`, description, `/p/${slug}`, findPageImage(page.sections as CMSSection[] | undefined));
+    }, [page, slug]);
  
    if (isLoading) {
      return (

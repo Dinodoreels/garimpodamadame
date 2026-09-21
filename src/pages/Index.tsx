@@ -25,7 +25,7 @@ export default function Index() {
        <div className="min-h-screen flex flex-col bg-background">
          <Header />
          <main className="flex-1 pb-16 md:pb-0">
-            <h1 className="sr-only">O Garimpo Digital</h1>
+             <h1 className="sr-only">O Garimpo Digital — produtos selecionados, kits e ofertas</h1>
            {cmsHomePage.sections?.map((section) => (
              <DynamicSection key={section.id} section={section as CMSSection} />
            ))}
@@ -72,7 +72,7 @@ function StaticHomePage({ user }: { user: ReturnType<typeof useAuth>['user'] }) 
       <Header />
       
       <main className="flex-1 pb-16 md:pb-0">
-        <h1 className="sr-only">O Garimpo Digital</h1>
+        <h1 className="sr-only">O Garimpo Digital — produtos selecionados, kits e ofertas</h1>
         {/* Hero Banner Carousel */}
         <HeroBannerCarousel />
 

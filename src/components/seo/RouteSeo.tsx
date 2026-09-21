@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 
 const SITE_URL = 'https://ogarimpodigital.com.br';
 const BRAND = 'O Garimpo Digital';
+const DEFAULT_SHARE_IMAGE = 'https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/373e73cf-0243-4554-8858-759808ce0000/id-preview-663a6460--7b27380b-a8d2-4cc8-bfc2-71a5b0665cda.lovable.app-1775859891069.png';
 
 const ROUTE_META: Record<string, { title: string; description: string }> = {
   '/': {
@@ -46,12 +47,12 @@ const ROUTE_META: Record<string, { title: string; description: string }> = {
     description: 'Entenda como o O Garimpo Digital utiliza cookies e gerencie suas preferências.',
   },
   '/rastrear': {
-    title: `Rastrear pedido | ${BRAND}`,
-    description: 'Acompanhe a situação e a entrega do seu pedido no O Garimpo Digital.',
+    title: `Consultar entrega | ${BRAND}`,
+    description: 'Consulte a entrega do seu pedido no O Garimpo Digital usando o número informado na compra.',
   },
   '/order-tracking': {
-    title: `Rastrear pedido | ${BRAND}`,
-    description: 'Acompanhe a situação e a entrega do seu pedido no O Garimpo Digital.',
+    title: `Acompanhar pedido | ${BRAND}`,
+    description: 'Acompanhe o andamento, o envio e o código de rastreio do seu pedido no O Garimpo Digital.',
   },
 };
 
@@ -71,6 +72,7 @@ function removeMeta(selector: string) {
 
 export function applySeoMetadata(title: string, description: string, path: string, image?: string) {
   const canonicalUrl = `${SITE_URL}${path === '/' ? '/' : path}`;
+  const shareImage = image ? new URL(image, SITE_URL).href : DEFAULT_SHARE_IMAGE;
   document.title = title;
   setMeta("meta[name='description']", 'name', 'description', description);
   setMeta("meta[property='og:title']", 'property', 'og:title', title);
@@ -78,13 +80,8 @@ export function applySeoMetadata(title: string, description: string, path: strin
   setMeta("meta[property='og:url']", 'property', 'og:url', canonicalUrl);
   setMeta("meta[name='twitter:title']", 'name', 'twitter:title', title);
   setMeta("meta[name='twitter:description']", 'name', 'twitter:description', description);
-  if (image) {
-    setMeta("meta[property='og:image']", 'property', 'og:image', image);
-    setMeta("meta[name='twitter:image']", 'name', 'twitter:image', image);
-  } else if (path !== '/') {
-    removeMeta("meta[property='og:image']");
-    removeMeta("meta[name='twitter:image']");
-  }
+  setMeta("meta[property='og:image']", 'property', 'og:image', shareImage);
+  setMeta("meta[name='twitter:image']", 'name', 'twitter:image', shareImage);
 
   let canonical = document.head.querySelector<HTMLLinkElement>("link[rel='canonical']");
   if (!canonical) {

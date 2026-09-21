@@ -58,22 +58,6 @@
         }
       }
 
-      // Apply document title from SEO
-      if (theme.seo?.title) {
-        document.title = theme.seo.title;
-      }
-
-      // Apply meta description
-      if (theme.seo?.description) {
-        let meta = document.querySelector("meta[name='description']") as HTMLMetaElement;
-        if (!meta) {
-          meta = document.createElement('meta');
-          meta.name = 'description';
-          document.head.appendChild(meta);
-        }
-        meta.content = theme.seo.description;
-      }
-
       return () => {
         colorKeys.forEach(key => {
           root.style.removeProperty(`--${key}`);

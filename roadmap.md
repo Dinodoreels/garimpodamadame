@@ -156,7 +156,8 @@
 - [x] Registrar e permitir revisão das preferências de cookies
 - [x] Exibir histórico próprio na conta e histórico geral para administradores
 - [x] Validar cadastro, login, nova versão e preferências
-- [ ] Corrigir todos os alertas atuais de SEO e validar novamente (site corrigido; Search Console aguarda conexão e publicação)
+- [x] Corrigir títulos, descrições e prévias sociais específicas das páginas públicas
+- [ ] Solicitar ao Google a indexação da página inicial pelo Search Console
 
 # Campanhas WhatsApp
 
