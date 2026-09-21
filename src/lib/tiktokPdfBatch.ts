@@ -32,7 +32,7 @@ export async function validatePdf(file: File) {
 export async function parseTikTokPdf(file: File): Promise<ParsedTikTokPdf> {
   await validatePdf(file);
   const bytes = new Uint8Array(await file.arrayBuffer());
-  const task = pdfjs.getDocument({ data: bytes.slice(), isEvalSupported: false });
+  const task = pdfjs.getDocument({ data: bytes.slice() });
   const document = await task.promise;
   const pages: ParsedPdfPage[] = [];
 
@@ -47,7 +47,7 @@ export async function parseTikTokPdf(file: File): Promise<ParsedTikTokPdf> {
     const numericCodes = Array.from(new Set(text.match(/(?<!\d)\d{8,20}(?!\d)/g) ?? []));
     pages.push({ pageNumber, text, numericCodes });
   }
-  await document.destroy();
+  await task.destroy();
   return { file, bytes, pages };
 }
 
@@ -57,5 +57,7 @@ export async function extractSinglePdfPage(bytes: Uint8Array, pageIndex: number)
   const [page] = await output.copyPages(source, [pageIndex]);
   if (!page) throw new Error('Não foi possível separar a página do PDF.');
   output.addPage(page);
-  return new Blob([await output.save()], { type: 'application/pdf' });
+  const saved = await output.save();
+  const buffer = saved.buffer.slice(saved.byteOffset, saved.byteOffset + saved.byteLength) as ArrayBuffer;
+  return new Blob([buffer], { type: 'application/pdf' });
 }

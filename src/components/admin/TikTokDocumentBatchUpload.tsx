@@ -47,22 +47,24 @@ export function TikTokDocumentBatchUpload({ orders, onCompleted }: TikTokDocumen
     [orders],
   );
 
-  const matches = useMemo<MatchRow[]>(() => tikTokOrders
-    .map(order => {
+  const matches = useMemo<MatchRow[]>(() => {
+    const rows: MatchRow[] = [];
+    for (const order of tikTokOrders) {
       const trackingCode = normalizeCode(order.tracking_code);
-      if (!trackingCode) return null;
+      if (!trackingCode) continue;
       const labelPage = pageForCode(labelsPdf, trackingCode);
       const danfePage = pageForCode(danfePdf, trackingCode);
-      if (!labelPage && !danfePage) return null;
-      return {
+      if (!labelPage && !danfePage) continue;
+      rows.push({
         order,
         trackingCode,
         labelPage,
         danfePage,
         replacesLabel: Boolean(order.marketplace_shipping_label?.storage_path || order.marketplace_shipping_label?.label_url),
-      };
-    })
-    .filter((row): row is MatchRow => row !== null), [danfePdf, labelsPdf, tikTokOrders]);
+      });
+    }
+    return rows;
+  }, [danfePdf, labelsPdf, tikTokOrders]);
 
   const unmatched = useMemo(() => {
     const matchedLabelPages = new Set(matches.map(row => row.labelPage).filter(Boolean));
