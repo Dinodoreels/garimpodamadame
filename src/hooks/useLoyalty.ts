@@ -123,12 +123,14 @@ export function useLoyaltySettings() {
       const { data, error } = await supabase
         .from('loyalty_settings')
         .select('*')
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching loyalty settings:', error);
         return null;
       }
+
+      if (!data) return null;
 
       return {
         id: data.id,
@@ -168,9 +170,9 @@ export function useLoyaltyBalance() {
         .from('loyalty_points')
         .select('*')
         .eq('user_id', user.id)
-        .single();
+        .maybeSingle();
 
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error fetching loyalty balance:', error);
         return null;
       }
