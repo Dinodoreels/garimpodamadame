@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Loader2, Plus, CheckCircle2, Zap, Wifi, ShieldCheck } from 'lucide-react';
+import { Loader2, Plus, CheckCircle2, Zap, Wifi, ShieldCheck, Info } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -45,7 +45,7 @@ const GATEWAYS: GatewayDef[] = [
     color: '#009ee3',
     bgColor: 'rgba(0,158,227,0.12)',
     subtitle: 'O gateway mais popular da América Latina',
-    methods: ['Pix', 'Cartão'],
+    methods: ['Pix', 'Crédito', 'Débito'],
     hasRealIntegration: true,
     fields: [{ key: 'pix_expiration', label: 'Expiração do Pix (minutos)', placeholder: '30', type: 'number' }],
   },
@@ -145,6 +145,11 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
   const [selectedGateway, setSelectedGateway] = useState<GatewayDef | null>(null);
   const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
   const [isTesting, setIsTesting] = useState(false);
+  const [debitDiagnosis, setDebitDiagnosis] = useState<{
+    available: boolean;
+    names: string[];
+    note: string;
+  } | null>(null);
   const { toast } = useToast();
 
   const activeGateway = config.payment.active_gateway;
@@ -154,6 +159,7 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
     const vals: Record<string, string> = {};
     gw.fields.forEach((f) => { vals[f.key] = current[f.key] ?? ''; });
     setFieldValues(vals);
+    setDebitDiagnosis(null);
     setSelectedGateway(gw);
   };
 
@@ -205,6 +211,13 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
 
       if (data.success) {
         const envLabel = data.environment === 'sandbox' ? ' (Sandbox/Teste)' : ' (Produção)';
+        setDebitDiagnosis({
+          available: Boolean(data.debit_available),
+          names: Array.isArray(data.debit_methods)
+            ? data.debit_methods.map((method: { name?: string }) => method.name).filter(Boolean)
+            : [],
+          note: data.debit_note || 'O Mercado Pago define as opções exibidas para cada comprador.',
+        });
         toast({ title: '✅ Conexão bem-sucedida!' + envLabel, description: 'Credenciais do Mercado Pago validadas com sucesso.' });
       } else {
         toast({ 
@@ -301,9 +314,30 @@ export function PaymentTab({ config, onSave, isSaving }: PaymentTabProps) {
               <div className="flex-1 space-y-4 overflow-y-auto">
                 {PAYMENT_GUIDES[selectedGateway.id] && <ProviderSetupGuide guide={PAYMENT_GUIDES[selectedGateway.id]} />}
                 {selectedGateway.id === 'mercadopago' && (
-                  <div className="flex gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
-                    <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
-                    <p>A credencial fica protegida no cofre do sistema e nunca aparece nesta tela. Use “Testar conexão” após cadastrá-la.</p>
+                  <div className="space-y-3">
+                    <div className="flex gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                      <ShieldCheck className="h-4 w-4 shrink-0 text-primary" />
+                      <p>A credencial fica protegida no cofre do sistema e nunca aparece nesta tela. Use “Testar conexão” após cadastrá-la.</p>
+                    </div>
+                    <div className="flex gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                      <Info className="h-4 w-4 shrink-0 text-primary" />
+                      <p>
+                        Pix, crédito e débito estão liberados pela loja. O Mercado Pago mostra somente as opções compatíveis com a conta e o cartão de cada comprador; por isso alguns bancos podem não aparecer.
+                      </p>
+                    </div>
+                    {debitDiagnosis && (
+                      <div className="rounded-lg border border-border p-3 text-sm" aria-live="polite">
+                        <p className="font-medium">
+                          {debitDiagnosis.available ? 'Débito disponível na conta' : 'Débito não retornado pela conta'}
+                        </p>
+                        {debitDiagnosis.names.length > 0 && (
+                          <p className="mt-1 text-muted-foreground">
+                            Opções informadas: {debitDiagnosis.names.join(', ')}.
+                          </p>
+                        )}
+                        <p className="mt-1 text-muted-foreground">{debitDiagnosis.note}</p>
+                      </div>
+                    )}
                   </div>
                 )}
                 {selectedGateway.fields.map((field) => (
