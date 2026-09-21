@@ -527,25 +527,28 @@ ${address ? `<div class="section"><h3>Endereço de Entrega</h3><div class="addre
             />
 
             <Separator />
-            <TrackingForm 
-              orderId={order.id} 
-              currentTrackingCode={(order as any).tracking_code}
-              currentTrackingUrl={(order as any).tracking_url}
-              currentNotes={(order as any).admin_notes}
-              onSave={async (data) => {
-                const { data: result, error } = await supabase.functions.invoke('order-fulfillment', {
-                  body: {
-                    order_id: order.id,
-                    action: 'confirm_posted',
-                    tracking_code: data.tracking_code,
-                    tracking_url: data.tracking_url,
-                    notes: data.admin_notes,
-                  },
-                });
-                if (error || !result?.ok) throw new Error(result?.error || error?.message || 'Não foi possível confirmar a postagem.');
-                onStatusChange?.(order.id, 'shipped');
-              }}
-            />
+            {!['shipped', 'delivered', 'cancelled', 'refunded'].includes(order.status) && (
+              <TrackingForm 
+                orderId={order.id} 
+                currentTrackingCode={(order as any).tracking_code}
+                currentTrackingUrl={(order as any).tracking_url}
+                currentNotes={(order as any).admin_notes}
+                canPost={order.fulfillment_status === 'packed'}
+                onSave={async (data) => {
+                  const { data: result, error } = await supabase.functions.invoke('order-fulfillment', {
+                    body: {
+                      order_id: order.id,
+                      action: 'confirm_posted',
+                      tracking_code: data.tracking_code,
+                      tracking_url: data.tracking_url,
+                      notes: data.admin_notes,
+                    },
+                  });
+                  if (error || !result?.ok) throw new Error(result?.error || error?.message || 'Não foi possível confirmar a postagem.');
+                  onStatusChange?.(order.id, 'shipped');
+                }}
+              />
+            )}
 
             {/* Notify client button */}
             {(order as any).tracking_code && (

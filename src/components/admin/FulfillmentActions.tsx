@@ -20,7 +20,10 @@ interface FulfillmentActionsProps {
 
 export function FulfillmentActions({ order, onChanged }: FulfillmentActionsProps) {
   const [working, setWorking] = useState(false);
-  const step = order.fulfillment_status ?? 'awaiting_separation';
+  const isTerminal = ['shipped', 'delivered', 'cancelled', 'refunded'].includes(order.status);
+  const step = isTerminal && ['shipped', 'delivered'].includes(order.status)
+    ? 'posted'
+    : order.fulfillment_status ?? 'awaiting_separation';
 
   const advance = async (action: 'start_separation' | 'confirm_packed') => {
     setWorking(true);
@@ -61,6 +64,7 @@ export function FulfillmentActions({ order, onChanged }: FulfillmentActionsProps
       )}
       {step === 'packed' && <p className="text-xs text-muted-foreground">Informe o rastreio abaixo para confirmar a postagem.</p>}
       {step === 'posted' && <p className="text-xs text-muted-foreground">Postagem registrada. O pedido não pode voltar etapas.</p>}
+      {['cancelled', 'refunded'].includes(order.status) && <p className="text-xs text-muted-foreground">Este pedido está encerrado e não pode entrar na expedição.</p>}
     </section>
   );
 }

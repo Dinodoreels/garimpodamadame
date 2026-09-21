@@ -33,6 +33,7 @@ interface TrackingFormProps {
     status?: string;
   }) => Promise<void>;
   onNotifyCustomer?: () => Promise<void>;
+  canPost?: boolean;
 }
 
 export function TrackingForm({
@@ -42,6 +43,7 @@ export function TrackingForm({
   currentNotes,
   onSave,
   onNotifyCustomer,
+  canPost = false,
 }: TrackingFormProps) {
   const [carrier, setCarrier] = useState('correios');
   const [trackingCode, setTrackingCode] = useState(currentTrackingCode || '');
@@ -58,6 +60,10 @@ export function TrackingForm({
       : '';
 
   const handleSave = async () => {
+    if (!canPost) {
+      toast.error('Conclua a separação e a conferência antes de postar.');
+      return;
+    }
     if (!trackingCode.trim()) {
       toast.error('Digite o código de rastreio');
       return;
@@ -163,13 +169,13 @@ export function TrackingForm({
         </div>
 
         <div className="flex gap-2">
-          <Button onClick={handleSave} disabled={saving} className="flex-1">
+          <Button onClick={handleSave} disabled={saving || !canPost} className="flex-1">
             {saving ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
             ) : (
               <Save className="h-4 w-4 mr-2" />
             )}
-            Salvar e Marcar como Enviado
+            {canPost ? 'Confirmar postagem' : 'Conclua a separação primeiro'}
           </Button>
           
           {onNotifyCustomer && currentTrackingCode && (
